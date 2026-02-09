@@ -26,7 +26,7 @@
     <nav class="navbar">
         <div class="logo">
             <img src="blockly.png" class="logo" alt="Blockly Logo">
-            <h1>EAF Blockly Prototype</h1>
+            <h1>Blockly AI Assistant: Neon</h1>
         </div>
     </nav>
     <div style="display: flex; height: 90%;">
@@ -59,6 +59,7 @@
                 <button id="showInstructions" class="info-button" title="Show task instructions" aria-label="Show task instructions">
                     <i class="fas fa-circle-info"></i>
                 </button>
+                <button id="logPayloadBtn">Log Payload</button>
             </div>
 
             <!-- Output panel -->
@@ -91,4 +92,53 @@
     </div>
   </div>
 </body>
+<script type="module">
+    import { BlocklyPilot } from './js/pilot/index.js';
+
+    // Configuration - API key should be injected securely in production
+    const API_KEY = "TODO";
+
+    // Initialize agent controller with two-step flow
+    const agentController = createAgentController(API_KEY, {
+        // model: 'x-ai/grok-4.1-fast',
+        // model: 'openai/gpt-4o-mini',
+        // model: 'meta-llama/llama-3.3-70b-instruct',
+        model: 'deepseek/deepseek-v3.2',
+        intentModel: 'x-ai/grok-4.1-fast',
+        testing: false  // Set to true for dummy responses, false for real API calls
+    });
+
+    // Debug button to log payload
+    document.getElementById('logPayloadBtn')?.addEventListener('click', () => {
+        if (window.workspace) {
+            agentController.logPayload(window.workspace, { includeXML: false });
+        } else {
+            console.warn('Workspace not ready');
+        }
+    });
+
+    // Initialize Blockly Pilot
+    document.addEventListener('DOMContentLoaded', () => {
+        // Wait for workspace to be ready
+        const initPilot = () => {
+            if (!window.workspace) {
+                setTimeout(initPilot, 100);
+                return;
+            }
+
+            const pilot = new BlocklyPilot({
+                workspace: window.workspace,
+                agentController: agentController
+            });
+            pilot.init();
+
+            // Expose pilot globally for debugging
+            window.blocklyPilot = pilot;
+
+            console.log('[Blockly Neon] Ready');
+        };
+
+        initPilot();
+    });
+</script>
 </html>
