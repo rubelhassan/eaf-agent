@@ -13,6 +13,10 @@ import {
 import {Navigation} from './navigation';
 import {NavigationController} from './navigation_controller';
 import {AccessibleCursor} from "./cursors/accessible_cursor";
+import {InputBuilder} from "./agent/input_builder";
+import {PromptBuilder} from "./agent/prompt_builder";
+import {AgentActor} from "./agent/agent_actor";
+import {AgentController, createAgentController, Phase, Intent} from "./agent/agent_controller";
 
 
 export {
@@ -21,5 +25,9 @@ export {
   FlyoutCursorPluginInfo,
   Navigation,
   NavigationController,
-  AccessibleCursor
+  AccessibleCursor,
+  InputBuilder,
+  PromptBuilder,
+  AgentActor,
+  AgentController, createAgentController, Phase, Intent
 };
