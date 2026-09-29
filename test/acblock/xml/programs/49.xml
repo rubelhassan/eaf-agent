@@ -1,0 +1,298 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="#c)5]~[(#HQ0N~(Ra+CX">newScore</variable>
+        <variable id="*LM;C$+hvkFO)*M+B^si">scores</variable>
+        <variable id="t8l*W]sSJ6C}#aXpkWbK">avg</variable>
+    </variables>
+    <block type="procedures_defnoreturn" id="def_update_top5" x="10" y="10">
+        <mutation>
+            <arg name="newScore" varid="#c)5]~[(#HQ0N~(Ra+CX"></arg>
+        </mutation>
+        <field name="NAME">updateTop5</field>
+        <comment pinned="false" h="80" w="160">Describe this function...</comment>
+        <statement name="STACK">
+            <block type="lists_setIndex" id="list_insert_end">
+                <mutation at="false"></mutation>
+                <field name="MODE">INSERT</field>
+                <field name="WHERE">LAST</field>
+                <value name="LIST">
+                    <block type="variables_get" id="get_scores_1">
+                        <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                    </block>
+                </value>
+                <value name="TO">
+                    <block type="variables_get" id="get_new_score_1">
+                        <field name="VAR" id="#c)5]~[(#HQ0N~(Ra+CX">newScore</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_scores_sorted">
+                        <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                        <value name="VALUE">
+                            <block type="lists_sort" id="sort_scores">
+                                <field name="TYPE">NUMERIC</field>
+                                <field name="DIRECTION">-1</field>
+                                <value name="LIST">
+                                    <block type="variables_get" id="get_scores_2">
+                                        <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_scores_trimmed">
+                                <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                                <value name="VALUE">
+                                    <block type="lists_getSublist" id="sublist_scores">
+                                        <mutation at1="true" at2="true"></mutation>
+                                        <field name="WHERE1">FROM_START</field>
+                                        <field name="WHERE2">FROM_START</field>
+                                        <value name="LIST">
+                                            <block type="variables_get" id="get_scores_3">
+                                                <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                                            </block>
+                                        </value>
+                                        <value name="AT1">
+                                            <block type="math_number" id="num_1a">
+                                                <field name="NUM">1</field>
+                                            </block>
+                                        </value>
+                                        <value name="AT2">
+                                            <block type="math_number" id="num_5">
+                                                <field name="NUM">5</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </statement>
+    </block>
+    <block type="text_print" id="print_intro" x="10" y="190">
+        <value name="TEXT">
+            <block type="text" id="text_intro">
+                <field name="TEXT">Leaderboard update…</field>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_scores_init">
+                <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                <value name="VALUE">
+                    <block type="lists_create_with" id="list_scores_init">
+                        <mutation items="5"></mutation>
+                        <value name="ADD0">
+                            <block type="text_prompt_ext" id="prompt_s1">
+                                <mutation type="NUMBER"></mutation>
+                                <field name="TYPE">NUMBER</field>
+                                <value name="TEXT">
+                                    <block type="text" id="text_p1">
+                                        <field name="TEXT">Enter current top score 1</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="text_prompt_ext" id="prompt_s2">
+                                <mutation type="NUMBER"></mutation>
+                                <field name="TYPE">NUMBER</field>
+                                <value name="TEXT">
+                                    <block type="text" id="text_p2">
+                                        <field name="TEXT">Enter current top score 2</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <value name="ADD2">
+                            <block type="text_prompt_ext" id="prompt_s3">
+                                <mutation type="NUMBER"></mutation>
+                                <field name="TYPE">NUMBER</field>
+                                <value name="TEXT">
+                                    <block type="text" id="text_p3">
+                                        <field name="TEXT">Enter current top score 3</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <value name="ADD3">
+                            <block type="text_prompt_ext" id="prompt_s4">
+                                <mutation type="NUMBER"></mutation>
+                                <field name="TYPE">NUMBER</field>
+                                <value name="TEXT">
+                                    <block type="text" id="text_p4">
+                                        <field name="TEXT">Enter current top score 4</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <value name="ADD4">
+                            <block type="text_prompt_ext" id="prompt_s5">
+                                <mutation type="NUMBER"></mutation>
+                                <field name="TYPE">NUMBER</field>
+                                <value name="TEXT">
+                                    <block type="text" id="text_p5">
+                                        <field name="TEXT">Enter current top score 5</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+    <block type="variables_set" id="set_new_score" x="10" y="390">
+        <field name="VAR" id="#c)5]~[(#HQ0N~(Ra+CX">newScore</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_new">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_new_prompt">
+                        <field name="TEXT">Enter new score</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="procedures_callnoreturn" id="call_update_top5">
+                <mutation name="updateTop5">
+                    <arg name="newScore"></arg>
+                </mutation>
+                <value name="ARG0">
+                    <block type="variables_get" id="get_new_score_2">
+                        <field name="VAR" id="#c)5]~[(#HQ0N~(Ra+CX">newScore</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_avg">
+                        <field name="VAR" id="t8l*W]sSJ6C}#aXpkWbK">avg</field>
+                        <value name="VALUE">
+                            <block type="math_on_list" id="math_avg">
+                                <mutation op="AVERAGE"></mutation>
+                                <field name="OP">AVERAGE</field>
+                                <value name="LIST">
+                                    <block type="variables_get" id="get_scores_4">
+                                        <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="text_print" id="print_top1" x="10" y="530">
+        <value name="TEXT">
+            <block type="text_join" id="join_top1">
+                <mutation items="2"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_top1_label">
+                        <field name="TEXT">Top 1: </field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="lists_getIndex" id="get_item_1">
+                        <mutation statement="false" at="true"></mutation>
+                        <field name="MODE">GET</field>
+                        <field name="WHERE">FROM_START</field>
+                        <value name="VALUE">
+                            <block type="variables_get" id="get_scores_5">
+                                <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                            </block>
+                        </value>
+                        <value name="AT">
+                            <block type="math_number" id="num_idx1">
+                                <field name="NUM">1</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_top2">
+                <value name="TEXT">
+                    <block type="text_join" id="join_top2">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_top2_label">
+                                <field name="TEXT">Top 2: </field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="lists_getIndex" id="get_item_2">
+                                <mutation statement="false" at="true"></mutation>
+                                <field name="MODE">GET</field>
+                                <field name="WHERE">FROM_START</field>
+                                <value name="VALUE">
+                                    <block type="variables_get" id="get_scores_6">
+                                        <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                                    </block>
+                                </value>
+                                <value name="AT">
+                                    <block type="math_number" id="num_idx2">
+                                        <field name="NUM">2</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_top3">
+                        <value name="TEXT">
+                            <block type="text_join" id="join_top3">
+                                <mutation items="2"></mutation>
+                                <value name="ADD0">
+                                    <block type="text" id="text_top3_label">
+                                        <field name="TEXT">Top 3: </field>
+                                    </block>
+                                </value>
+                                <value name="ADD1">
+                                    <block type="lists_getIndex" id="get_item_3">
+                                        <mutation statement="false" at="true"></mutation>
+                                        <field name="MODE">GET</field>
+                                        <field name="WHERE">FROM_START</field>
+                                        <value name="VALUE">
+                                            <block type="variables_get" id="get_scores_7">
+                                                <field name="VAR" id="*LM;C$+hvkFO)*M+B^si">scores</field>
+                                            </block>
+                                        </value>
+                                        <value name="AT">
+                                            <block type="math_number" id="num_idx3">
+                                                <field name="NUM">3</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_avg">
+                                <value name="TEXT">
+                                    <block type="text_join" id="join_avg">
+                                        <mutation items="2"></mutation>
+                                        <value name="ADD0">
+                                            <block type="text" id="text_avg_label">
+                                                <field name="TEXT">Top-5 avg: </field>
+                                            </block>
+                                        </value>
+                                        <value name="ADD1">
+                                            <block type="variables_get" id="get_avg_1">
+                                                <field name="VAR" id="t8l*W]sSJ6C}#aXpkWbK">avg</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

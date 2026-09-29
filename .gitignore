@@ -23,4 +23,5 @@ temp/
 
 *.iml
 .idea/
-.secret/
+secret/
+test/acblock/config.local.js

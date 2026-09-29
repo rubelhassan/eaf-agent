@@ -12,6 +12,7 @@
 import { PromptBuilder } from './prompt_builder.js';
 import { InputBuilder } from './input_builder.js';
 import { AgentActor } from './agent_actor.js';
+import { getPrompt } from './prompts/index.js';
 
 /**
  * Intent types returned by NEXT_ACTION API
@@ -83,6 +84,13 @@ const DEFAULT_CONFIG = {
 const DEFAULT_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // ---- Dummy responses for testing mode ----
+
+/** Canned AI hints per level (testing mode, no API key). */
+const DUMMY_HINTS = {
+    nudge: 'What do you need to find out at this point in the program?',
+    point: 'A block that compares two values could help here.',
+    kind: 'Try a compare block with the value you are checking on one side.'
+};
 
 const DUMMY_INTENT_RESPONSE = {
     id: "dummy-intent-001",
@@ -727,6 +735,30 @@ export class AgentController {
             this.abortController.abort();
             this.abortController = null;
         }
+    }
+
+    /**
+     * TODO(agentic phase): prototype call, not evaluated; reached through
+     * agent_services.js so the UI only depends on contracts.js.
+     * Writes one AI hint for a question block.
+     * The request is built and the output checked by src/blocks/question/ai_hints.js.
+     * @param {Object} request  level, levelRule, question, program, learnerAnswer, previousHints, ...
+     * @returns {Promise<string>} The hint text (unchecked).
+     */
+    async generateHint(request) {
+        if (this.config.testing) return DUMMY_HINTS[request.level] || DUMMY_HINTS.nudge;
+        const payload = {
+            model: this.config.hintModel || this.config.model,
+            temperature: 0.2,
+            max_tokens: 200,
+            messages: [
+                { role: 'system', content: getPrompt('HINT', this.config.promptVersions?.HINT) },
+                { role: 'user', content: JSON.stringify(request) }
+            ],
+            response_format: { type: 'json_object' }
+        };
+        const response = await this._callApi(payload);
+        return this._extractJSON(response).hint ?? '';
     }
 
     /**

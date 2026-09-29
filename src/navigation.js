@@ -16,6 +16,7 @@ import {
   registrationName as cursorRegistrationName,
   registrationType as cursorRegistrationType,
 } from './cursors/flyout_cursor';
+import {blockTypes} from './blocks/registry';
 
 /**
  * Class that holds all methods necessary for keyboard navigation to work.
@@ -757,6 +758,8 @@ export class Navigation {
    * @protected
    */
   tryToConnectMarkerAndCursor(workspace, markerNode, cursorNode) {
+    // Custom block types may redirect the target or reshape the moving block.
+    markerNode = blockTypes.prepareConnect(markerNode, cursorNode);
     if (!this.logConnectionWarning(markerNode, cursorNode)) {
       return false;
     }

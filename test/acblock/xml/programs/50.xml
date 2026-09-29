@@ -1,0 +1,363 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="Y$9JWt1:o6_Lm9UW6PtJ">n</variable>
+        <variable id="Uh6l{Mujk)NK2303:p`m">len</variable>
+        <variable id="g!CT,r5X5jq(J/N(MHvc">fib_list</variable>
+        <variable id=",=K:lJ-aeE5g~vpx$`Cr">last</variable>
+        <variable id="=ZH6k%@_-]o[r4/l!Dd?">second_last</variable>
+        <variable id="w`vHaT9AsI!*k7gR^/UT">ratio</variable>
+        <variable id="u)ibtflvPYsw:B;yc#}n">a</variable>
+        <variable id="Gtq#6[Wy6Sp1,=.sQT3a">phi</variable>
+        <variable id="Gl{V5g,egxOep4z^$?(h">b</variable>
+    </variables>
+    <block type="variables_set" id="set_n" x="10" y="10">
+        <field name="VAR" id="Y$9JWt1:o6_Lm9UW6PtJ">n</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_n">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_n">
+                        <field name="TEXT">How many Fibonacci numbers to generate?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_fib_list">
+                <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                <value name="VALUE">
+                    <block type="lists_create_with" id="list_init">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="math_number" id="num_0">
+                                <field name="NUM">0</field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="math_number" id="num_1a">
+                                <field name="NUM">1</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_whileUntil" id="while_fib">
+                        <field name="MODE">WHILE</field>
+                        <value name="BOOL">
+                            <block type="logic_compare" id="cmp_len_n">
+                                <field name="OP">LT</field>
+                                <value name="A">
+                                    <block type="lists_length" id="list_len_1">
+                                        <value name="VALUE">
+                                            <block type="variables_get" id="get_fib_1">
+                                                <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="variables_get" id="get_n_1">
+                                        <field name="VAR" id="Y$9JWt1:o6_Lm9UW6PtJ">n</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO">
+                            <block type="variables_set" id="set_len_1">
+                                <field name="VAR" id="Uh6l{Mujk)NK2303:p`m">len</field>
+                                <value name="VALUE">
+                                    <block type="lists_length" id="list_len_2">
+                                        <value name="VALUE">
+                                            <block type="variables_get" id="get_fib_2">
+                                                <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_a">
+                                        <field name="VAR" id="u)ibtflvPYsw:B;yc#}n">a</field>
+                                        <value name="VALUE">
+                                            <block type="lists_getIndex" id="get_idx_a">
+                                                <mutation statement="false" at="true"></mutation>
+                                                <field name="MODE">GET</field>
+                                                <field name="WHERE">FROM_START</field>
+                                                <value name="VALUE">
+                                                    <block type="variables_get" id="get_fib_3">
+                                                        <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                                                    </block>
+                                                </value>
+                                                <value name="AT">
+                                                    <block type="variables_get" id="get_len_1">
+                                                        <field name="VAR" id="Uh6l{Mujk)NK2303:p`m">len</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="variables_set" id="set_b">
+                                                <field name="VAR" id="Gl{V5g,egxOep4z^$?(h">b</field>
+                                                <value name="VALUE">
+                                                    <block type="lists_getIndex" id="get_idx_b">
+                                                        <mutation statement="false" at="true"></mutation>
+                                                        <field name="MODE">GET</field>
+                                                        <field name="WHERE">FROM_START</field>
+                                                        <value name="VALUE">
+                                                            <block type="variables_get" id="get_fib_4">
+                                                                <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="AT">
+                                                            <block type="math_arithmetic" id="math_len_minus1">
+                                                                <field name="OP">MINUS</field>
+                                                                <value name="A">
+                                                                    <block type="variables_get" id="get_len_2">
+                                                                        <field name="VAR" id="Uh6l{Mujk)NK2303:p`m">len</field>
+                                                                    </block>
+                                                                </value>
+                                                                <value name="B">
+                                                                    <block type="math_number" id="num_1b">
+                                                                        <field name="NUM">1</field>
+                                                                    </block>
+                                                                </value>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                                <next>
+                                                    <block type="lists_setIndex" id="append_fib">
+                                                        <mutation at="false"></mutation>
+                                                        <field name="MODE">INSERT</field>
+                                                        <field name="WHERE">LAST</field>
+                                                        <value name="LIST">
+                                                            <block type="variables_get" id="get_fib_5">
+                                                                <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="TO">
+                                                            <block type="math_arithmetic" id="math_a_plus_b">
+                                                                <field name="OP">ADD</field>
+                                                                <value name="A">
+                                                                    <block type="variables_get" id="get_a_1">
+                                                                        <field name="VAR" id="u)ibtflvPYsw:B;yc#}n">a</field>
+                                                                    </block>
+                                                                </value>
+                                                                <value name="B">
+                                                                    <block type="variables_get" id="get_b_1">
+                                                                        <field name="VAR" id="Gl{V5g,egxOep4z^$?(h">b</field>
+                                                                    </block>
+                                                                </value>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </next>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </statement>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="variables_set" id="set_len_2" x="10" y="350">
+        <field name="VAR" id="Uh6l{Mujk)NK2303:p`m">len</field>
+        <value name="VALUE">
+            <block type="lists_length" id="list_len_3">
+                <value name="VALUE">
+                    <block type="variables_get" id="get_fib_6">
+                        <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_last">
+                <field name="VAR" id=",=K:lJ-aeE5g~vpx$`Cr">last</field>
+                <value name="VALUE">
+                    <block type="lists_getIndex" id="get_last_item">
+                        <mutation statement="false" at="false"></mutation>
+                        <field name="MODE">GET</field>
+                        <field name="WHERE">LAST</field>
+                        <value name="VALUE">
+                            <block type="variables_get" id="get_fib_7">
+                                <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_second_last">
+                        <field name="VAR" id="=ZH6k%@_-]o[r4/l!Dd?">second_last</field>
+                        <value name="VALUE">
+                            <block type="lists_getIndex" id="get_second_last">
+                                <mutation statement="false" at="true"></mutation>
+                                <field name="MODE">GET</field>
+                                <field name="WHERE">FROM_START</field>
+                                <value name="VALUE">
+                                    <block type="variables_get" id="get_fib_8">
+                                        <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                                    </block>
+                                </value>
+                                <value name="AT">
+                                    <block type="math_arithmetic" id="math_len_minus2b">
+                                        <field name="OP">MINUS</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_len_3">
+                                                <field name="VAR" id="Uh6l{Mujk)NK2303:p`m">len</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_2b">
+                                                <field name="NUM">2</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_ratio">
+                                <field name="VAR" id="w`vHaT9AsI!*k7gR^/UT">ratio</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="math_ratio_div">
+                                        <field name="OP">DIVIDE</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_last_1">
+                                                <field name="VAR" id=",=K:lJ-aeE5g~vpx$`Cr">last</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="variables_get" id="get_second_last_1">
+                                                <field name="VAR" id="=ZH6k%@_-]o[r4/l!Dd?">second_last</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_phi">
+                                        <field name="VAR" id="Gtq#6[Wy6Sp1,=.sQT3a">phi</field>
+                                        <value name="VALUE">
+                                            <block type="math_constant" id="math_phi">
+                                                <field name="CONSTANT">GOLDEN_RATIO</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="text_print" id="print_seq" x="10" y="570">
+        <value name="TEXT">
+            <block type="text_join" id="join_seq">
+                <mutation items="2"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_seq_label">
+                        <field name="TEXT">Fibonacci sequence: </field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="lists_split" id="join_list">
+                        <mutation mode="JOIN"></mutation>
+                        <field name="MODE">JOIN</field>
+                        <value name="INPUT">
+                            <block type="variables_get" id="get_fib_9">
+                                <field name="VAR" id="g!CT,r5X5jq(J/N(MHvc">fib_list</field>
+                            </block>
+                        </value>
+                        <value name="DELIM">
+                            <block type="text" id="text_comma">
+                                <field name="TEXT">, </field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_ratio">
+                <value name="TEXT">
+                    <block type="text_join" id="join_ratio">
+                        <mutation items="6"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_ratio_label">
+                                <field name="TEXT">Ratio F(</field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="variables_get" id="get_len_4">
+                                <field name="VAR" id="Uh6l{Mujk)NK2303:p`m">len</field>
+                            </block>
+                        </value>
+                        <value name="ADD2">
+                            <block type="text" id="text_slash">
+                                <field name="TEXT">)/F(</field>
+                            </block>
+                        </value>
+                        <value name="ADD3">
+                            <block type="math_arithmetic" id="math_len_minus1b">
+                                <field name="OP">MINUS</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_len_5">
+                                        <field name="VAR" id="Uh6l{Mujk)NK2303:p`m">len</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_1c">
+                                        <field name="NUM">1</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <value name="ADD4">
+                            <block type="text" id="text_eq">
+                                <field name="TEXT">) = </field>
+                            </block>
+                        </value>
+                        <value name="ADD5">
+                            <block type="math_round" id="round_ratio">
+                                <field name="OP">ROUND</field>
+                                <value name="NUM">
+                                    <block type="variables_get" id="get_ratio_1">
+                                        <field name="VAR" id="w`vHaT9AsI!*k7gR^/UT">ratio</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_phi">
+                        <value name="TEXT">
+                            <block type="text_join" id="join_phi">
+                                <mutation items="2"></mutation>
+                                <value name="ADD0">
+                                    <block type="text" id="text_phi_label">
+                                        <field name="TEXT">Golden Ratio φ = </field>
+                                    </block>
+                                </value>
+                                <value name="ADD1">
+                                    <block type="math_round" id="round_phi">
+                                        <field name="OP">ROUND</field>
+                                        <value name="NUM">
+                                            <block type="variables_get" id="get_phi_1">
+                                                <field name="VAR" id="Gtq#6[Wy6Sp1,=.sQT3a">phi</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

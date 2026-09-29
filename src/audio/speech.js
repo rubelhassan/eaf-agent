@@ -1,6 +1,7 @@
 import * as Blockly from 'blockly/core';
 import {Constants} from "../index";
 import * as Util from "../util/util";
+import {blockTypes} from "../blocks/registry";
 
 export class Speech {
     constructor() {
@@ -152,12 +153,21 @@ export class Speech {
             }
         }
 
+        // custom block types describe themselves on focus
+        const customFocus = blockTypes.focusText(blockSvg);
+        if (customFocus) {
+            this.update(`${prefixTxt} ${customFocus}`);
+            return;
+        }
+
         // add speech for container‑type blocks
         if (this.getFirstStatementConnection(blockSvg)) {
             outStr = `container block ${outStr}`;
         }
 
-        this.update(`${prefixTxt} ${outStr}`);
+        // custom block types may add to any block's description (e.g. "Answers a question.")
+        const suffix = blockTypes.focusSuffix(blockSvg);
+        this.update(`${prefixTxt} ${outStr}${suffix ? `. ${suffix}` : ''}`);
     }
 
 
@@ -295,7 +305,7 @@ export class Speech {
                 return `${disabledPrefix}set variable ${fieldPhrase(blk,'VAR','name')} 
                 to ${inputsPhrase(blk,'VALUE','(value)')}`;
             default:
-                return `${disabledPrefix}${type}`;
+                return `${disabledPrefix}${blockTypes.describe(blk) ?? type}`;
         }
     }
 
@@ -364,7 +374,8 @@ export class Speech {
                 postfix = 'selected'
         }
 
-        this.update(`${prefix}: ${name} ${postfix}`);
+        const note = blockTypes.categoryNote(category, Blockly.getMainWorkspace?.());
+        this.update(`${prefix}: ${name}${note ? `, ${note}` : ''} ${postfix}`);
     }
 
 
@@ -420,7 +431,11 @@ export class Speech {
             ? 'back'
             : '';
 
-        const phrase = `Move ${dirstrt} to ${disabledPrefix} item ${label} under ${categoryName} category`;
+        const note = node.getSourceBlock ? blockTypes.flyoutNote(node.getSourceBlock()) : null;
+        // Choices shown outside the toolbox (e.g. a question's) have no category.
+        const where = categoryName ? ` under ${categoryName} category` : '';
+        const phrase = ['Move', dirstrt, 'to', disabledPrefix, 'item', `${label}${note ? `, ${note}` : ''}${where}`]
+            .filter(Boolean).join(' ');
         this.update(phrase);
     }
 
@@ -642,8 +657,9 @@ export class Speech {
 
         if (block) {
             const label = this.friendlyName(block);
+            const hint = editMode ? blockTypes.editLock(block) : null;
             const phrase = editMode
-                ? `Entering edit mode on ${label}`
+                ? `Entering edit mode on ${label}${hint ? `. ${hint}` : ''}`
                 : `Leaving edit mode on ${label}`;
             this.update(phrase);
         } else {

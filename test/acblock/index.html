@@ -18,8 +18,9 @@
     <script src="./keyboard-navigation/index.js"></script>
     <script src="./js/Toolbox.js"></script>
     <script src="./js/key_overlay.js"></script>
-    <script type="module" src="./js/instructions_overlay.js"></script>
     <script src="./js/main.js"></script>
+    <script src="./js/settings.js"></script>
+    <script src="./js/teacher_guide.js"></script>
 </head>
 <body onload="initWorkspace()">
   <div id="root">
@@ -50,16 +51,86 @@
                 </button>
                 <label class="sr-only" for="programSelect">Choose a program</label>
                 <select id="programSelect" class="program-dropdown">
-                    <option value="">None — select a program…</option>
+                    <option value="">Select a program…</option>
                     <!-- options filled on events -->
                 </select>
                 <button id="showShortcuts" class="shortcut-button" title="Show keyboard shortcuts" aria-label="Show keyboard shortcuts">
                     <i class="fas fa-keyboard"></i>
                 </button>
-                <button id="showInstructions" class="info-button" title="Show task instructions" aria-label="Show task instructions">
-                    <i class="fas fa-circle-info"></i>
-                </button>
-                <button id="logPayloadBtn">Log Payload</button>
+                <!-- Settings: disclosure panel for user preferences; add future items as more .settings-row entries. -->
+                <div class="settings">
+                    <div class="status-row">
+                        <!-- Also Ctrl+Shift+K; a button works in every browser (Firefox keeps that key for its console). -->
+                        <button id="navToggle" class="nav-toggle" type="button" aria-pressed="false"
+                                title="Turn keyboard navigation on or off (Ctrl+Shift+K)">
+                            <i class="fas fa-keyboard" aria-hidden="true"></i> Navigation <strong id="navToggleState">Off</strong>
+                        </button>
+                        <!-- Teacher/Learner role cue (only with ?teacher=1); screen readers get it from #blocklyApp's label. -->
+                        <div id="roleBadge" class="role-badge" aria-hidden="true" hidden></div>
+                    </div>
+                    <button id="settingsButton" class="settings-button" type="button"
+                            aria-label="Settings" title="Settings"
+                            aria-expanded="false" aria-controls="settingsPanel">
+                        <i class="fas fa-gear" aria-hidden="true"></i>
+                    </button>
+                    <div id="settingsPanel" class="settings-panel" role="region" aria-labelledby="settingsTitle" hidden>
+                        <h2 id="settingsTitle" class="settings-title">Settings</h2>
+                        <div class="settings-row">
+                            <button id="logPayloadBtn" class="settings-action" type="button">
+                                <i class="fas fa-terminal" aria-hidden="true"></i> Log payload
+                            </button>
+                            <p class="settings-hint">Prints the workspace snapshot and agent request to the browser console.</p>
+                            <p id="settingsNote" class="settings-hint" role="status" aria-live="polite"></p>
+                        </div>
+                        <div class="settings-row">
+                            <label class="settings-label" for="learnerLevelSelect">Learner level</label>
+                            <select id="learnerLevelSelect" class="settings-select">
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                            <p class="settings-hint">Beginners hear extra help, like which blocks fit a question.</p>
+                        </div>
+                        <div class="settings-row">
+                            <button id="saveWorkBtn" class="settings-action" type="button">
+                                <i class="fas fa-floppy-disk" aria-hidden="true"></i> Save my work
+                            </button>
+                            <p class="settings-hint">Downloads your program with your answers, to hand in to your teacher.</p>
+                        </div>
+                        <!-- Teacher tools: shown only when the page is opened with ?teacher=1 -->
+                        <div class="settings-row" id="teacherModeRow" hidden>
+                            <button id="teacherModeToggle" class="settings-switch" type="button" role="switch" aria-checked="false">
+                                <span class="switch-track" aria-hidden="true"></span>
+                                Teacher mode <strong id="teacherModeState">Off</strong>
+                            </button>
+                            <p class="settings-hint">Show question blocks in the toolbox and edit them.</p>
+                            <button id="teacherGuideBtn" class="settings-action" type="button">
+                                <i class="fas fa-book-open" aria-hidden="true"></i> Teacher guide
+                            </button>
+                        </div>
+                        <div class="settings-row" id="teacherToolsRow" hidden>
+                            <label class="settings-label" for="activitySelect">Activity</label>
+                            <select id="activitySelect" class="settings-select">
+                                <option value="practice">Practice</option>
+                                <option value="quiz">Quiz (only the questions can be changed)</option>
+                            </select>
+                            <button id="exportTaskBtn" class="settings-action" type="button">
+                                <i class="fas fa-file-export" aria-hidden="true"></i> Export task XML
+                            </button>
+                            <button id="importTaskBtn" class="settings-action" type="button">
+                                <i class="fas fa-file-import" aria-hidden="true"></i> Import task XML
+                            </button>
+                            <button id="makeScaffoldBtn" class="settings-action" type="button">
+                                <i class="fas fa-layer-group" aria-hidden="true"></i> Make scaffold…
+                            </button>
+                            <button id="taskTestsBtn" class="settings-action" type="button">
+                                <i class="fas fa-list-check" aria-hidden="true"></i> Task tests…
+                            </button>
+                            <input id="importTaskFile" type="file" accept=".xml,application/xml,text/xml" hidden>
+                            <p class="settings-hint">Export saves the task as learners first see it: answered questions become empty again. Import also opens a learner's saved work; Run then assesses it against the task tests.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Output panel -->
@@ -88,6 +159,20 @@
                 </div>
                 <pre id="codeOutput" class="prettyprint" style="border: none"><code class="language-javascript"></code></pre>
             </div>
+
+            <!-- Teacher guide (?teacher=1): takes the place of Output and Code while open. -->
+            <section id="teacherGuide" class="guide-panel" aria-labelledby="guideTitle" hidden>
+                <div class="guide-header">
+                    <h3 id="guideTitle" tabindex="-1">Teacher guide</h3>
+                    <button id="guideSizeBtn" class="guide-btn" type="button" aria-label="Maximize the teacher guide" title="Maximize">
+                        <i class="fas fa-up-right-and-down-left-from-center" aria-hidden="true"></i>
+                    </button>
+                    <button id="guideCloseBtn" class="guide-btn" type="button" aria-label="Close the teacher guide" title="Close">
+                        <i class="fas fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div id="guideBody" class="guide-body"></div>
+            </section>
         </div>
     </div>
   </div>
@@ -95,50 +180,58 @@
 <script type="module">
     import { BlocklyPilot } from './js/pilot/index.js';
 
-    // Configuration - API key should be injected securely in production
-    const API_KEY = "TODO";
+    // Keys and model choices come from the untracked config.local.js (copy config.example.js).
+    let localConfig = {};
+    try {
+        localConfig = (await import('./config.local.js')).default || {};
+    } catch (e) {
+        console.warn('[Blockly Neon] config.local.js not found; using dummy responses. Copy config.example.js to config.local.js.');
+    }
+    const { apiKey, ...agentConfig } = localConfig;
 
     // Initialize agent controller with two-step flow
-    const agentController = createAgentController(API_KEY, {
-        // model: 'x-ai/grok-4.1-fast',
-        // model: 'openai/gpt-4o-mini',
-        // model: 'meta-llama/llama-3.3-70b-instruct',
-        model: 'deepseek/deepseek-v3.2',
-        intentModel: 'x-ai/grok-4.1-fast',
-        testing: false  // Set to true for dummy responses, false for real API calls
+    const agentController = createAgentController(apiKey || 'no-key', {
+        ...agentConfig,
+        testing: !apiKey || agentConfig.testing === true
     });
+
+    // Agent services for question blocks (hints, scaffolds): the fake without a key or in testing mode.
+    window.eafAgent = agentConfig.testing === true || !apiKey ?
+        createFakeAgentServices() :
+        createAgentServices(agentController);
 
     // Debug button to log payload
     document.getElementById('logPayloadBtn')?.addEventListener('click', () => {
+        const note = document.getElementById('settingsNote');
         if (window.workspace) {
             agentController.logPayload(window.workspace, { includeXML: false });
+            if (note) note.textContent = 'Payload logged to the browser console.';
         } else {
             console.warn('Workspace not ready');
+            if (note) note.textContent = 'Workspace not ready yet.';
         }
     });
 
-    // Initialize Blockly Pilot
-    document.addEventListener('DOMContentLoaded', () => {
-        // Wait for workspace to be ready
-        const initPilot = () => {
-            if (!window.workspace) {
-                setTimeout(initPilot, 100);
-                return;
-            }
+    // Initialize Blockly Pilot once the workspace exists (polls; the config await above
+    // may finish after DOMContentLoaded, so don't depend on that event).
+    const initPilot = () => {
+        if (!window.workspace) {
+            setTimeout(initPilot, 100);
+            return;
+        }
 
-            const pilot = new BlocklyPilot({
-                workspace: window.workspace,
-                agentController: agentController
-            });
-            pilot.init();
+        const pilot = new BlocklyPilot({
+            workspace: window.workspace,
+            agentController: agentController
+        });
+        pilot.init();
 
-            // Expose pilot globally for debugging
-            window.blocklyPilot = pilot;
+        // Expose pilot globally for debugging
+        window.blocklyPilot = pilot;
 
-            console.log('[Blockly Neon] Ready');
-        };
+        console.log('[Blockly Neon] Ready');
+    };
 
-        initPilot();
-    });
+    initPilot();
 </script>
 </html>

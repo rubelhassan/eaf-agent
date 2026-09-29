@@ -1,15 +1,156 @@
 // list block program xml
 const PROGRAMS = [
-    { "id": "Program1", "label": "Program 1", "file": "xml/tasks/task-1.xml" },
-    { "id": "Program2", "label": "Program 2 (Incomplete)",   "file": "xml/tasks/task-2.xml" },
-    { "id": "Program2Comp", "label": "Program 2 (Complete)",    "file": "xml/tasks/task-2-complete.xml" },
-    // { "id": "Test1", "label": "Test 1",    "file": "xml/tests/test1.xml" },
-    // { "id": "Test2", "label": "Test 2",    "file": "xml/tests/test2.xml" },
+    // Hand-written example of configured question blocks (prompts, hints, intended blocks).
+    { id: 'DemoQuestions', label: 'Demo 1: Question Blocks', file: 'xml/tasks/question-demo.xml' },
+    // Program 18 turned into tasks: the same questions as practice, as a quiz, and as one sequence question.
+    { id: 'DemoSkipCountPractice', label: 'Demo 2: Skip Count (Practice)', file: 'xml/tasks/skip-count-practice.xml' },
+    { id: 'DemoSkipCountQuiz', label: 'Demo 3: Skip Count (Quiz)', file: 'xml/tasks/skip-count-quiz.xml' },
+    { id: 'DemoSkipCountSequence', label: 'Demo 4: Skip Count (Sequence)', file: 'xml/tasks/skip-count-sequence.xml' },
+    // A plain program for trying Make scaffold as a teacher.
+    { id: 'DemoMakeScaffold', label: 'Demo 5: Make a Scaffold (Teacher)', file: 'xml/programs/18.xml' },
+    ...Array.from({ length: 54 }, (_, i) => ({
+        id: `Program${i + 1}`,
+        label: `Program ${i + 1}`,
+        file: `xml/programs/${i + 1}.xml`,
+    })),
 ];
+
+const LEARNER_LEVEL_KEY = 'eaf.learnerLevel';
+
+/** Toolbox without question blocks, for learners (teachers see them). */
+function toolboxFor(teacherMode) {
+    if (teacherMode) return toolboxConfig;
+    const strip = (node) => {
+        if (Array.isArray(node)) {
+            return node.filter(n => n.type !== QuestionBlock.QUESTION_TYPE).map(strip)
+                // A category left empty (the Hint category) disappears.
+                .filter(n => !(String(n.kind).toUpperCase() === 'CATEGORY' && Array.isArray(n.contents) && !n.contents.length));
+        }
+        if (node && typeof node === 'object' && node.contents) return { ...node, contents: strip(node.contents) };
+        return node;
+    };
+    return strip(toolboxConfig);
+}
+
+/** Teacher mode (only offered with ?teacher=1): toolbox, task snapshot, activity, export/import. */
+/** The Navigation On/Off toggle, kept in step with Ctrl+Shift+K. */
+function setupNavToggle(workspace) {
+    const button = document.getElementById('navToggle');
+    const state = document.getElementById('navToggleState');
+    const sync = () => {
+        const on = !!workspace.keyboardAccessibilityMode;
+        button.setAttribute('aria-pressed', String(on));
+        state.textContent = on ? 'On' : 'Off';
+    };
+    button.addEventListener('click', () => {
+        const toggle = Blockly.ShortcutRegistry.registry.getRegistry()[Constants.SHORTCUT_NAMES.TOGGLE_KEYBOARD_NAV];
+        toggle?.callback(workspace);
+        sync();
+        // Blockly listens for keys on its own svg, so move focus there to use the keys right away.
+        if (workspace.keyboardAccessibilityMode) workspace.getParentSvg()?.focus();
+    });
+    document.addEventListener('keyup', sync, true);
+    sync();
+}
+
+/** Closes Settings and parks focus on the gear, so a dialog's Escape and focus return work. */
+function openFromSettings(open) {
+    window.eafSettings?.close();
+    document.getElementById('settingsButton').focus();
+    open();
+}
+
+function agentReady() {
+    if (!window.eafAgent) throw new AgentError(AgentErrorCode.UNAVAILABLE, 'The agent is not ready yet.');
+    return window.eafAgent;
+}
+
+/** Downloads XML named after the chosen program, e.g. "DemoQuestions-work.xml". */
+function downloadXml(xml, suffix) {
+    const name = document.getElementById('programSelect').value;
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([xml], { type: 'application/xml' }));
+    link.download = name && name !== 'Default' ? `${name}-${suffix}.xml` : `${suffix}.xml`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+function setupTeacherMode(workspace, runOnRun) {
+    const params = new URLSearchParams(window.location.search);
+    // ?author=1 is the old name of the teacher URL.
+    if (params.get('teacher') !== '1' && params.get('author') !== '1') return;
+    const modeRow = document.getElementById('teacherModeRow');
+    const toolsRow = document.getElementById('teacherToolsRow');
+    const toggle = document.getElementById('teacherModeToggle');
+    const state = document.getElementById('teacherModeState');
+    const activity = document.getElementById('activitySelect');
+    modeRow.hidden = false;
+
+    const render = () => {
+        const on = getPolicy(workspace).teacherMode;
+        toggle.setAttribute('aria-checked', String(on));
+        state.textContent = on ? 'On' : 'Off';
+        toolsRow.hidden = !on;
+        activity.value = getPolicy(workspace).activity;
+        // Questions are ordinary blocks in teacher mode (nothing vanishes), so make the role obvious.
+        const badge = document.getElementById('roleBadge');
+        badge.hidden = false;
+        const icon = document.createElement('i');
+        icon.className = `fas ${on ? 'fa-chalkboard-user' : 'fa-user-graduate'}`;
+        icon.setAttribute('aria-hidden', 'true');
+        badge.replaceChildren(icon, on ? ' Teacher' : ' Learner');
+        badge.className = `role-badge role-badge-${on ? 'teacher' : 'learner'}`;
+        document.getElementById('blocklyApp').setAttribute('aria-label', on ? 'Blockly workspace, teacher mode' : 'Blockly workspace');
+    };
+    toggle.addEventListener('click', () => setPolicy(workspace, { teacherMode: !getPolicy(workspace).teacherMode }));
+    activity.addEventListener('change', () => setPolicy(workspace, { activity: activity.value }));
+    onPolicyChange(workspace, (next, previous) => {
+        if (next.teacherMode !== previous.teacherMode) workspace.updateToolbox(toolboxFor(next.teacherMode));
+        render();
+    });
+
+    document.getElementById('exportTaskBtn').addEventListener('click', () => {
+        downloadXml(QuestionBlock.cleanTaskXml(workspace), 'task');
+    });
+    // Teacher-only: tests of the whole program, used when assessing a learner's work.
+    const testsDialog = new QuestionBlock.TaskTestsDialog(workspace, { onRun: runOnRun });
+    document.getElementById('taskTestsBtn').addEventListener('click', () => openFromSettings(() => testsDialog.open()));
+    document.getElementById('makeScaffoldBtn').addEventListener('click', () =>
+        openFromSettings(() => QuestionBlock.openScaffoldDialog(workspace)));
+    const file = document.getElementById('importTaskFile');
+    document.getElementById('importTaskBtn').addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+        const chosen = file.files[0];
+        file.value = '';
+        if (!chosen || !confirm('Replace the current workspace with this task?')) return;
+        loadXmlToWorkspace(workspace, await chosen.text());
+    });
+    // Opening the teacher URL starts in teacher mode.
+    setPolicy(workspace, { teacherMode: true });
+    render();
+}
+
+/** Learner level preference (Settings): applied to the workspace policy, remembered per browser. */
+function setupLearnerLevel(workspace) {
+    const select = document.getElementById('learnerLevelSelect');
+    if (!select) return;
+    let saved = null;
+    try {
+        saved = localStorage.getItem(LEARNER_LEVEL_KEY);
+    } catch (e) { /* storage unavailable: use the default */ }
+    if (saved && [...select.options].some(o => o.value === saved)) select.value = saved;
+    setPolicy(workspace, { learnerLevel: select.value });
+    select.addEventListener('change', () => {
+        setPolicy(workspace, { learnerLevel: select.value });
+        try {
+            localStorage.setItem(LEARNER_LEVEL_KEY, select.value);
+        } catch (e) { /* not remembered, still applied */ }
+    });
+}
 
 function populateProgramsToDom() {
     const select = document.getElementById('programSelect');
-    select.innerHTML = '<option value="Default">None — select a program…</option>';
+    select.innerHTML = '<option value="Default">Select a program…</option>';
     PROGRAMS.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
@@ -85,11 +226,16 @@ async function fetchProgramXmlById(id) {
 }
 
 
+/** Set in init; program loads reset keyboard navigation through it. */
+let navController = null;
+
 function loadXmlToWorkspace(workspace, xmlString) {
     try {
-        const textToDom = (Blockly.Xml.textToDom || Blockly.utils.xml.textToDom);
-        const xml = textToDom(xmlString);
-        Blockly.Xml.clearWorkspaceAndLoadFromXml(xml.documentElement || xml, workspace);
+        // Loads with gap rules suspended, applies the file's activity (practice/quiz),
+        // and records its blocks as the task (for quiz locks).
+        QuestionBlock.loadTaskXml(workspace, xmlString);
+        navController?.resetNavigation(workspace);
+        document.getElementById('activitySelect').value = getPolicy(workspace).activity;
         requestAnimationFrame(() => {
             if (typeof workspace.scrollCenter === 'function') workspace.scrollCenter();
             if (typeof Blockly.svgResize === 'function') Blockly.svgResize(workspace);
@@ -136,22 +282,9 @@ async function autoLoadProgramFromQuery(workspace) {
     select.dispatchEvent(changeEvent);
 }
 
-// Global instructions overlay manager
-let instructionsManager = null;
-
 function initWorkspace() {
     // load program as html select items
     populateProgramsToDom();
-
-    // Initialize instructions overlay
-    instructionsManager = window.initInstructionsOverlay();
-
-    // Set initial button state based on default selection (Default)
-    const select = document.getElementById('programSelect');
-    const initialSelection = select.value; // This will be "Default"
-    if (instructionsManager) {
-        instructionsManager.setProgramId(initialSelection);
-    }
 
     // Override the text_print block to use console.log instead of alert
     javascript.javascriptGenerator.forBlock['text_print'] = function(block, generator) {
@@ -159,9 +292,21 @@ function initWorkspace() {
         return 'console.log(' + msg + ');\n';
     };
 
+    // Custom blocks (e.g. the question block) must be registered before the workspace exists.
+    const {connectionChecker} = registerCustomBlocks({
+        generators: {
+            javascript: javascript.javascriptGenerator,
+            python: python.pythonGenerator,
+            php: php.phpGenerator,
+            lua: lua.luaGenerator,
+            dart: dart.dartGenerator,
+        },
+    });
+
     // Blockly Workspace Initialization
     const workspace = Blockly.inject('blocklyDiv', {
-        toolbox: toolboxConfig,
+        toolbox: toolboxFor(false),
+        plugins: {connectionChecker},
         grid: {spacing: 20, length: 3, colour: "#ccc", snap: true},
         zoom: {
             controls: true,
@@ -175,50 +320,56 @@ function initWorkspace() {
         trashcan: true
     });
 
-    workspace.allowedTypeCatalog = allowedTypeCatalog(toolboxConfig);
+
+    // The agent may never create question gaps (design doc G2), so keep them out of its catalog.
+    workspace.allowedTypeCatalog = allowedTypeCatalog(toolboxConfig)
+        .filter(type => type !== QuestionBlock.QUESTION_TYPE);
     window.workspace = workspace;
 
     let nav = new NavigationController();
     nav.init();
     nav.addWorkspace(workspace);
+    navController = nav;
+    // Keyboard navigation is on from the start: every key the walkthroughs teach needs it.
+    nav.enable(workspace);
+    setupNavToggle(workspace);
+    // Blockly reads keys on its own svg. Tabbing into the app lands on its container
+    // first, so hand focus to the svg when it arrives from outside the app.
+    const app = document.getElementById('blocklyApp');
+    app.addEventListener('focusin', (e) => {
+        const fromOutside = !e.relatedTarget || !app.contains(e.relatedTarget);
+        const svg = workspace.getParentSvg();
+        if (fromOutside && e.target !== svg && (e.target === app || e.target.classList.contains('injectionDiv'))) svg.focus();
+    });
+
+    // Question gap tracking and answer badges; announcements go through the screen reader speech.
+    attachCustomBlocks(workspace, {
+        announce: (text) => nav.speech.update(text),
+        // index.html sets window.eafAgent once the agent config has loaded.
+        agent: {
+            generateHint: (request, options) => agentReady().generateHint(request, options),
+            generateScaffold: (request, options) => agentReady().generateScaffold(request, options),
+        },
+    });
+    setupLearnerLevel(workspace);
+    const run = () => runProgram(workspace, nav.speech);
+    setupTeacherMode(workspace, run);
+    // Learners hand in their work as a file; a teacher imports it and Run assesses it.
+    document.getElementById('saveWorkBtn').addEventListener('click', () => {
+        downloadXml(QuestionBlock.workXml(workspace), 'work');
+    });
 
     const keyOverlay = new KeyOverlay({ hideDelayMs: 5000 });
     keyOverlay.attach();
 
-    document.getElementById("runButton").addEventListener("click", () => {
-        // Close Blockly Pilot panel if open
-        if (window.blocklyPilot && window.blocklyPilot.state.panelVisible) {
-            window.blocklyPilot.close();
-        }
+    document.getElementById("runButton").addEventListener("click", run);
 
-        // Clear output panel
-        clearOutput();
-
-        // Setup output capture only when running code
-        const restoreConsole = setupOutputCapture();
-
-        generateCode(Blockly.getMainWorkspace());
-        try {
-            eval(document.getElementById("codeOutput").textContent);
-        } catch (error) {
-            appendOutput("Error: " + error.message);
-        } finally {
-            // Restore original console.log after execution
-            restoreConsole();
-        }
-    });
-
-    document.getElementById("languageSelect").addEventListener("change", generateCode);
+    document.getElementById("languageSelect").addEventListener("change", () => generateCode(workspace));
 
     // Auto-load program when selection changes
     document.getElementById("programSelect").addEventListener("change", async () => {
         const select = document.getElementById("programSelect");
         const selectedId = select.value;
-
-        // Update instructions manager with current program
-        if (instructionsManager) {
-            instructionsManager.setProgramId(selectedId);
-        }
 
         if (!selectedId || selectedId === "Default") {
             // Clear workspace if no program selected
@@ -239,37 +390,32 @@ function initWorkspace() {
         nav?.showShortcuts();
     });
 
-    // Info button to show instructions
-    document.getElementById("showInstructions")?.addEventListener("click", () => {
-        instructionsManager?.show();
-    });
-
     // auto select & load program if query param is provided
     autoLoadProgramFromQuery(workspace);
     // renderKeyboardHints(null);
 }
 
-function generateCode() {
+function generateCode(workspace = Blockly.getMainWorkspace()) {
     const language = document.getElementById("languageSelect").value;
     let code;
     switch (language) {
         case "javascript":
-            code = javascript.javascriptGenerator.workspaceToCode(Blockly.getMainWorkspace());
+            code = javascript.javascriptGenerator.workspaceToCode(workspace);
             break;
         case "python":
-            code = python.pythonGenerator.workspaceToCode(Blockly.getMainWorkspace());
+            code = python.pythonGenerator.workspaceToCode(workspace);
             break;
         case "php":
-            code = php.phpGenerator.workspaceToCode(Blockly.getMainWorkspace());
+            code = php.phpGenerator.workspaceToCode(workspace);
             break;
         case "lua":
-            code = lua.luaGenerator.workspaceToCode(Blockly.getMainWorkspace());
+            code = lua.luaGenerator.workspaceToCode(workspace);
             break;
         case "dart":
-            code = dart.dartGenerator.workspaceToCode(Blockly.getMainWorkspace());
+            code = dart.dartGenerator.workspaceToCode(workspace);
             break;
         case "xml":
-            const xmlDom = Blockly.Xml.workspaceToDom(Blockly.getMainWorkspace());
+            const xmlDom = Blockly.Xml.workspaceToDom(workspace);
             code = Blockly.Xml.domToPrettyText(xmlDom);
             break;
         default:
@@ -280,6 +426,96 @@ function generateCode() {
     codePanel.classList.remove('prettyprinted');
     if (typeof PR === 'object') {
         PR.prettyPrint();
+    }
+}
+
+/**
+ * Run: learners get a compact warning about unanswered questions (tests never run
+ * for them); teachers get an assessment of the program (questions, then task tests)
+ * after the normal run. Spoken too while keyboard navigation is on.
+ */
+function runProgram(workspace, speech) {
+    // Close Blockly Pilot panel if open
+    if (window.blocklyPilot && window.blocklyPilot.state.panelVisible) {
+        window.blocklyPilot.close();
+    }
+    clearOutput();
+    const say = (text) => {
+        if (workspace.keyboardAccessibilityMode) speech.update(text);
+    };
+    const { teacherMode } = getPolicy(workspace);
+    if (!teacherMode) {
+        const warning = QuestionBlock.learnerRunWarning(workspace);
+        if (warning) {
+            appendOutput(`Note: ${warning}`);
+            say(warning);
+        }
+    }
+
+    // Setup output capture only when running code
+    const restoreConsole = setupOutputCapture();
+    generateCode(workspace);
+    try {
+        eval(document.getElementById("codeOutput").textContent);
+    } catch (error) {
+        appendOutput("Error: " + error.message);
+    } finally {
+        // Restore original console.log after execution
+        restoreConsole();
+    }
+
+    if (teacherMode) {
+        const report = QuestionBlock.assess(workspace, {
+            execute: (inputs) => runSilently(workspace, inputs),
+            locate: describeBlockLocation,
+        });
+        appendOutput('Assessment');
+        report.lines.forEach((line) => appendOutput(line));
+        say(report.summary || 'Assessment done.');
+    }
+}
+
+const SILENT_RUN_MAX_LOOPS = 100000;
+const SILENT_RUN_MAX_MS = 1000;
+
+/**
+ * Runs the program once without touching the page: prompt answers come from
+ * `inputs` in order, printed lines are captured, and loops are capped.
+ * @returns {{lines: string[], error?: string, outOfInputs?: boolean, timedOut?: boolean}}
+ */
+function runSilently(workspace, inputs) {
+    const generator = javascript.javascriptGenerator;
+    const previousTrap = generator.INFINITE_LOOP_TRAP;
+    generator.INFINITE_LOOP_TRAP = 'if (--__eafRun.loops < 0 || Date.now() > __eafRun.deadline) throw __eafRun.stop;\n';
+    let code;
+    try {
+        code = generator.workspaceToCode(workspace);
+    } finally {
+        generator.INFINITE_LOOP_TRAP = previousTrap;
+    }
+
+    const lines = [];
+    const queue = [...inputs];
+    const stop = new Error('stopped');
+    const noInput = new Error('no input');
+    const state = { loops: SILENT_RUN_MAX_LOOPS, deadline: Date.now() + SILENT_RUN_MAX_MS, stop };
+    const previousPrompt = window.prompt;
+    const previousLog = console.log;
+    window.prompt = () => {
+        if (!queue.length) throw noInput;
+        return queue.shift();
+    };
+    console.log = (...args) => lines.push(args.map(String).join(' '));
+    try {
+        new Function('__eafRun', code)(state);
+        return { lines };
+    } catch (error) {
+        if (error === stop) return { lines, timedOut: true };
+        if (error === noInput) return { lines, outOfInputs: true };
+        return { lines, error: error?.message || String(error) };
+    } finally {
+        window.prompt = previousPrompt;
+        console.log = previousLog;
     }
 }
 

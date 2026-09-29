@@ -1,0 +1,128 @@
+<!-- Teacher guide, loaded into the app's guide panel. Pictures come from docs/img and the
+     numbered boxes from docs/guide-markers.json; regenerate both with docs/capture-guide.js.
+     Keep each numbered list in the same order as the markers in capture-guide.js. -->
+<p>How to build tasks with question blocks, scaffolds and tests. Each picture has numbered boxes; the list under it explains them.</p>
+<ol class="guide-toc">
+    <li><a href="#guide-basics">Teacher mode</a></li>
+    <li><a href="#guide-questions">Add a question</a></li>
+    <li><a href="#guide-edit">Edit a question</a></li>
+    <li><a href="#guide-reference">Reference answers</a></li>
+    <li><a href="#guide-scaffold">Make a scaffold</a></li>
+    <li><a href="#guide-tasks">Tasks, tests and assessment</a></li>
+</ol>
+
+<h2 id="guide-basics">1. Teacher mode</h2>
+<p>Open the app with <code>index.html?teacher=1</code>. It starts in teacher mode. In teacher mode, question blocks are ordinary blocks: whatever you put in a question's slot stays there as its reference answer. Nothing vanishes. Keyboard navigation is on when the page opens; the <strong>Navigation</strong> button left of the badge turns it off and on.</p>
+<figure class="guide-shot" data-shot="teacher-mode">
+    <img src="docs/img/teacher-mode.png" alt="The app in teacher mode with Settings open.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1">The <strong>Teacher</strong> badge. It changes to <strong>Learner</strong> when teacher mode is off.</li>
+    <li data-n="2">The <strong>Settings</strong> gear.</li>
+    <li data-n="3"><strong>Teacher mode</strong> switch. Turn it off to try the task exactly as a learner would; turn it on again to keep editing.</li>
+    <li data-n="4">The <strong>Hint</strong> category holds the question blocks. Learners never see it.</li>
+    <li data-n="5">Opens this <strong>Teacher guide</strong>.</li>
+</ol>
+
+<h2 id="guide-questions">2. Add a question</h2>
+<figure class="guide-shot" data-shot="hint-category">
+    <img src="docs/img/hint-category.png" alt="The Hint category open, showing a value question and a statement question.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1">Open the <strong>Hint</strong> category.</li>
+    <li data-n="2">A <strong>value question</strong> fits where a value goes, such as the right side of <q>set number to</q> or the condition of an <q>if</q>.</li>
+    <li data-n="3">A <strong>statement question</strong> fits in a stack of steps. It can ask for one block or a sequence.</li>
+</ol>
+<p>Drag a question into the program, or insert it with the keyboard (<kbd>E</kbd>, <kbd>T</kbd>, then <kbd>Enter</kbd> on the question). The <strong>Edit question</strong> form opens as soon as it is placed.</p>
+
+<h2 id="guide-edit">3. Edit a question</h2>
+<p>Open the form any time: press <kbd>Enter</kbd> on a question (or click it), then choose <strong>Edit question</strong>. Save applies all changes as one step you can undo.</p>
+<figure class="guide-shot" data-shot="edit-question-top">
+    <img src="docs/img/edit-question-top.png" alt="The top of the Edit question form.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1"><strong>What goes in the question block</strong>: a value, one statement, or a sequence (with a minimum number of blocks).</li>
+    <li data-n="2"><strong>What the learner hears</strong>: an optional <q>needs</q> phrase, the short prompt, and a longer instruction.</li>
+    <li data-n="3"><strong>Category</strong> of the intended block.</li>
+    <li data-n="4"><strong>Block</strong>: pick it by its picture; screen readers hear its name.</li>
+    <li data-n="5"><strong>Add</strong> it to the intended blocks.</li>
+    <li data-n="6">The <strong>intended blocks</strong>. Any block that fits the shape can be placed, but only these count as a fitting answer.</li>
+</ol>
+<figure class="guide-shot" data-shot="edit-question-reference">
+    <img src="docs/img/edit-question-reference.png" alt="The Reference answer section, showing number plus 4.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1">The hidden <strong>reference answer</strong> (see section 4).</li>
+    <li data-n="2"><strong>Put in slot to edit</strong> moves it back into the question's slot when you save.</li>
+    <li data-n="3"><strong>Remove</strong> deletes it when you save.</li>
+</ol>
+<figure class="guide-shot" data-shot="edit-question-hints">
+    <img src="docs/img/edit-question-hints.png" alt="The Hints part of the form: written hints, AI hints and choices.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1"><strong>Written hints</strong>, read one at a time after the learner's first try, in this order.</li>
+    <li data-n="2"><strong>AI help allowed</strong>: off, or up to Nudge (a guiding question), Point (names the idea or category) or Show the kind (names the block). Also set how many AI hints, and an optional note for the AI.</li>
+    <li data-n="3"><strong>Offer choices</strong>: learners may pick from a few real blocks made from the reference answer. Never offered in quizzes.</li>
+    <li data-n="4"><strong>Save</strong>.</li>
+</ol>
+
+<h2 id="guide-reference">4. Reference answers</h2>
+<p>In teacher mode, build the correct answer inside the question's slot. That is the question's <strong>reference answer</strong>. <strong>Export task XML</strong> hides it inside the question and empties the slot, so learners start with an empty question and never see it. Choices and scaffolds use it.</p>
+<figure class="guide-shot" data-shot="reference-slot">
+    <img src="docs/img/reference-slot.png" alt="Two questions in the skip count program, each holding its answer in its slot.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1">A value question holding its reference answer, <q>number + 4</q>.</li>
+    <li data-n="2">A statement question holding its reference answer, <q>print number</q>.</li>
+</ol>
+
+<h2 id="guide-scaffold">5. Make a scaffold</h2>
+<p>A scaffold turns the program on the workspace into a partial program: the parts that carry the lesson's key concept become questions. Open <strong>Settings → Make scaffold…</strong>.</p>
+<figure class="guide-shot" data-shot="scaffold-dialog">
+    <img src="docs/img/scaffold-dialog.png" alt="The Make scaffold form with Math and Intermediate chosen.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1"><strong>Key concept</strong>: questions go where it appears. <q>Let the AI decide</q> picks one for you.</li>
+    <li data-n="2"><strong>Learner level</strong>: beginners get fewer, smaller questions; advanced learners get more, including loops, ifs and runs of steps.</li>
+    <li data-n="3">How many questions this gives, from how many possible places.</li>
+    <li data-n="4"><strong>Make scaffold</strong>.</li>
+</ol>
+<figure class="guide-shot" data-shot="scaffold-result">
+    <img src="docs/img/scaffold-result.png" alt="The program after the scaffold: number plus 4 is now inside a question.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1">The new question, holding the removed part as its reference answer. Each question comes with a prompt, an instruction, two written hints, AI hints and choices. Review it with <strong>Edit question</strong>, or undo the whole scaffold with one <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+</ol>
+<p>Without the AI, the rules still choose the places and the questions get simple text you can edit.</p>
+
+<h2 id="guide-tasks">6. Tasks, tests and assessment</h2>
+<figure class="guide-shot" data-shot="task-tools">
+    <img src="docs/img/task-tools.png" alt="The teacher part of Settings.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1"><strong>Activity</strong>: Practice, or Quiz. In a quiz only the questions can be changed, learners are not told whether an answer fits, and choices and AI hints are off.</li>
+    <li data-n="2"><strong>Export task XML</strong>: the task as learners first see it, with reference answers hidden.</li>
+    <li data-n="3"><strong>Import task XML</strong>: opens a task, or a learner's saved work.</li>
+    <li data-n="4"><strong>Make scaffold…</strong> (section 5).</li>
+    <li data-n="5"><strong>Task tests…</strong>: checks of the whole program that only teachers see.</li>
+</ol>
+<figure class="guide-shot" data-shot="task-tests">
+    <img src="docs/img/task-tests.png" alt="The Task tests form with one test.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1"><strong>Inputs</strong>: answers typed into prompt blocks, one per line, in order.</li>
+    <li data-n="2"><strong>Expected output</strong>: lines that must be printed, in this order. Other printed lines are allowed.</li>
+    <li data-n="3"><strong>Add test</strong> for another case.</li>
+    <li data-n="4"><strong>Run tests</strong> saves the tests and assesses the program on the workspace.</li>
+</ol>
+<h4>Assess a learner's work</h4>
+<p>The learner uses <strong>Settings → Save my work</strong> and sends you the file. Open it with <strong>Import task XML</strong> and press <strong>Run</strong>.</p>
+<figure class="guide-shot" data-shot="assessment">
+    <img src="docs/img/assessment.png" alt="The Output panel showing the program's output and then the assessment.">
+</figure>
+<ol class="guide-legend">
+    <li data-n="1">After the program's own output, the <strong>Assessment</strong> starts.</li>
+    <li data-n="2">Every question in program order: where it is, its prompt, and whether it is empty, fits, or doesn't fit (with what the learner used).</li>
+    <li data-n="3">Every task test: pass, or fail with the reason. Tests are skipped while a question is empty.</li>
+</ol>
+<p>Learners never see tests or assessments: their Run only notes how many questions are still unanswered.</p>

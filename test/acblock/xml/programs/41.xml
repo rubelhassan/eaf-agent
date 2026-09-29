@@ -1,0 +1,89 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="GrB5jCa/i/(BC[)GssXH">price</variable>
+        <variable id="sO/][HZMEXnQG2u1^Goh">p</variable>
+        <variable id="AVLI;^c2u8_g2|f:OR;y">result</variable>
+        <variable id="w@2g/d.Gz*X~x[,L{j{O">final</variable>
+    </variables>
+    <block type="procedures_defreturn" id="def_apply_discount" x="30" y="10">
+        <mutation>
+            <arg name="price" varid="GrB5jCa/i/(BC[)GssXH"></arg>
+        </mutation>
+        <field name="NAME">applyDiscount</field>
+        <comment pinned="false" h="80" w="160">Describe this function...</comment>
+        <statement name="STACK">
+            <block type="variables_set" id="set_return_val">
+                <field name="VAR" id="AVLI;^c2u8_g2|f:OR;y">result</field>
+                <value name="VALUE">
+                    <block type="math_arithmetic" id="math_mult">
+                        <field name="OP">MULTIPLY</field>
+                        <value name="A">
+                            <block type="variables_get" id="get_price_1">
+                                <field name="VAR" id="GrB5jCa/i/(BC[)GssXH">price</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="math_number" id="num_08">
+                                <field name="NUM">0.8</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </statement>
+        <value name="RETURN">
+            <block type="variables_get" id="get_result_1">
+                <field name="VAR" id="AVLI;^c2u8_g2|f:OR;y">result</field>
+            </block>
+        </value>
+    </block>
+    <block type="variables_set" id="set_p" x="30" y="150">
+        <field name="VAR" id="sO/][HZMEXnQG2u1^Goh">p</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_price">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_price_prompt">
+                        <field name="TEXT">Price?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_final">
+                <field name="VAR" id="w@2g/d.Gz*X~x[,L{j{O">final</field>
+                <value name="VALUE">
+                    <block type="procedures_callreturn" id="call_apply_discount">
+                        <mutation name="applyDiscount">
+                            <arg name="price"></arg>
+                        </mutation>
+                        <value name="ARG0">
+                            <block type="variables_get" id="get_p_1">
+                                <field name="VAR" id="sO/][HZMEXnQG2u1^Goh">p</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_final_label">
+                        <value name="TEXT">
+                            <block type="text" id="text_final_label">
+                                <field name="TEXT">Final:</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_final_val">
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_final_1">
+                                        <field name="VAR" id="w@2g/d.Gz*X~x[,L{j{O">final</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

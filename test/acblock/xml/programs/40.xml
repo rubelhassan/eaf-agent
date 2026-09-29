@@ -1,0 +1,172 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id=")B5k73Qqso$#|;0SbF!_">vals</variable>
+        <variable id="UFN[w!+D|j}z.eO+iLhq">num</variable>
+        <variable id="6Z@{WtHjv+zOEW.ogQDz">max</variable>
+    </variables>
+    <block type="variables_set" id="set_vals" x="10" y="10">
+        <field name="VAR" id=")B5k73Qqso$#|;0SbF!_">vals</field>
+        <value name="VALUE">
+            <block type="lists_create_with" id="list_vals">
+                <mutation items="4"></mutation>
+                <value name="ADD0">
+                    <block type="math_number" id="num_5">
+                        <field name="NUM">5</field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="math_number" id="num_12">
+                        <field name="NUM">12</field>
+                    </block>
+                </value>
+                <value name="ADD2">
+                    <block type="math_number" id="num_3">
+                        <field name="NUM">3</field>
+                    </block>
+                </value>
+                <value name="ADD3">
+                    <block type="math_number" id="num_9">
+                        <field name="NUM">9</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_max">
+                <field name="VAR" id="6Z@{WtHjv+zOEW.ogQDz">max</field>
+                <value name="VALUE">
+                    <block type="math_number" id="num_0">
+                        <field name="NUM">0</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_vals_1">
+                        <value name="TEXT">
+                            <block type="variables_get" id="get_vals_1">
+                                <field name="VAR" id=")B5k73Qqso$#|;0SbF!_">vals</field>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="controls_forEach" id="foreach_nums" x="10" y="210">
+        <field name="VAR" id="UFN[w!+D|j}z.eO+iLhq">num</field>
+        <value name="LIST">
+            <block type="variables_get" id="get_vals_2">
+                <field name="VAR" id=")B5k73Qqso$#|;0SbF!_">vals</field>
+            </block>
+        </value>
+        <statement name="DO">
+            <block type="controls_if" id="if_gt_max">
+                <value name="IF0">
+                    <block type="logic_compare" id="cmp_gt">
+                        <field name="OP">GT</field>
+                        <value name="A">
+                            <block type="variables_get" id="get_num_2">
+                                <field name="VAR" id="UFN[w!+D|j}z.eO+iLhq">num</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="variables_get" id="get_max_1">
+                                <field name="VAR" id="6Z@{WtHjv+zOEW.ogQDz">max</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <statement name="DO0">
+                    <block type="variables_set" id="set_max_2">
+                        <field name="VAR" id="6Z@{WtHjv+zOEW.ogQDz">max</field>
+                        <value name="VALUE">
+                            <block type="variables_get" id="get_num_3">
+                                <field name="VAR" id="UFN[w!+D|j}z.eO+iLhq">num</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+            </block>
+        </statement>
+        <next>
+            <block type="text_print" id="print_new_max">
+                <value name="TEXT">
+                    <block type="text" id="text_new_max">
+                        <field name="TEXT">New Max</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_winner_label">
+                        <value name="TEXT">
+                            <block type="text" id="text_winner">
+                                <field name="TEXT">Winner:</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_max">
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_max_2">
+                                        <field name="VAR" id="6Z@{WtHjv+zOEW.ogQDz">max</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="variables_set" id="set_vals_sorted" x="10" y="450">
+        <field name="VAR" id=")B5k73Qqso$#|;0SbF!_">vals</field>
+        <value name="VALUE">
+            <block type="lists_sort" id="sort_vals">
+                <field name="TYPE">NUMERIC</field>
+                <field name="DIRECTION">1</field>
+                <value name="LIST">
+                    <block type="variables_get" id="get_vals_3">
+                        <field name="VAR" id=")B5k73Qqso$#|;0SbF!_">vals</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="controls_if" id="j;dsdhAtMcCO%KnW[];K">
+                <value name="IF0">
+                    <block type="logic_compare" id="5T)tyzJPx,Osz@r5Nr1A">
+                        <field name="OP">EQ</field>
+                        <value name="A">
+                            <block type="variables_get" id="W/o[GYtJ-VCE]H]8~#7a">
+                                <field name="VAR" id="6Z@{WtHjv+zOEW.ogQDz">max</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="lists_getIndex" id="P-?ai.[GPtabT?Nx]s;!">
+                                <mutation statement="false" at="true"></mutation>
+                                <field name="MODE">GET</field>
+                                <field name="WHERE">FROM_END</field>
+                                <value name="VALUE">
+                                    <block type="variables_get" id="heL?h78(;Q|:.oAK;fob">
+                                        <field name="VAR" id=")B5k73Qqso$#|;0SbF!_">vals</field>
+                                    </block>
+                                </value>
+                                <value name="AT">
+                                    <block type="math_number" id="*//Rk7znFUp6$]osdx*=">
+                                        <field name="NUM">1</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <statement name="DO0">
+                    <block type="text_print" id="print_vals_sorted">
+                        <value name="TEXT">
+                            <block type="text" id="d1?mlbJ:^],SO[O$#GRG">
+                                <field name="TEXT">Verified: max equals the largest list value</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+            </block>
+        </next>
+    </block>
+</xml>

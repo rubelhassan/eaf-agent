@@ -1,0 +1,125 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_temp">temp</variable>
+        <variable id="var_activity">activity</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_temp">temp</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="Ud*.b#ETi.{Z;j5|J;fS">
+                        <field name="TEXT">What is the temperature today?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_2">
+                <field name="VAR" id="var_activity">activity</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_2">
+                        <mutation type="TEXT"></mutation>
+                        <field name="TYPE">TEXT</field>
+                        <value name="TEXT">
+                            <block type="text" id="mLU_zSw/*GJ$g,@ov9Be">
+                                <field name="TEXT">Pick an activity`</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_1">
+                        <value name="TEXT">
+                            <block type="text" id="text_1">
+                                <field name="TEXT">Weather check:</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_1">
+                                        <field name="VAR" id="var_temp">temp</field>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="controls_if" id="if_1">
+                                        <mutation else="1"></mutation>
+                                        <value name="IF0">
+                                            <block type="logic_compare" id="compare_1">
+                                                <field name="OP">LT</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_2">
+                                                        <field name="VAR" id="var_temp">temp</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="math_number" id="num_50">
+                                                        <field name="NUM">50</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <statement name="DO0">
+                                            <block type="text_print" id="print_3">
+                                                <value name="TEXT">
+                                                    <block type="text" id="text_2">
+                                                        <field name="TEXT">Wear a coat.</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </statement>
+                                        <statement name="ELSE">
+                                            <block type="text_print" id="print_4">
+                                                <value name="TEXT">
+                                                    <block type="text" id="text_3">
+                                                        <field name="TEXT">T-shirt time.</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </statement>
+                                        <next>
+                                            <block type="controls_repeat_ext" id="repeat_1">
+                                                <value name="TIMES">
+                                                    <block type="math_number" id="num_3">
+                                                        <field name="NUM">3</field>
+                                                    </block>
+                                                </value>
+                                                <statement name="DO">
+                                                    <block type="text_print" id="print_5">
+                                                        <value name="TEXT">
+                                                            <block type="text_join" id="join_1">
+                                                                <mutation items="3"></mutation>
+                                                                <value name="ADD0">
+                                                                    <block type="text" id="text_4">
+                                                                        <field name="TEXT">Have fun </field>
+                                                                    </block>
+                                                                </value>
+                                                                <value name="ADD1">
+                                                                    <block type="variables_get" id="get_3">
+                                                                        <field name="VAR" id="var_activity">activity</field>
+                                                                    </block>
+                                                                </value>
+                                                                <value name="ADD2">
+                                                                    <block type="text" id="text_5">
+                                                                        <field name="TEXT">!</field>
+                                                                    </block>
+                                                                </value>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </statement>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

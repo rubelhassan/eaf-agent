@@ -1,0 +1,62 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_cm">cm</variable>
+        <variable id="var_mm">mm</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_cm">cm</field>
+        <value name="VALUE">
+            <block type="math_number" id="num_7">
+                <field name="NUM">7</field>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_2">
+                <field name="VAR" id="var_mm">mm</field>
+                <value name="VALUE">
+                    <block type="math_arithmetic" id="arith_1">
+                        <field name="OP">MULTIPLY</field>
+                        <value name="A">
+                            <block type="variables_get" id="get_1">
+                                <field name="VAR" id="var_cm">cm</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="math_number" id="num_10">
+                                <field name="NUM">10</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_1">
+                        <value name="TEXT">
+                            <block type="text_join" id="join_1">
+                                <mutation items="2"></mutation>
+                                <value name="ADD0">
+                                    <block type="text" id="text_1">
+                                        <field name="TEXT">mm = </field>
+                                    </block>
+                                </value>
+                                <value name="ADD1">
+                                    <block type="variables_get" id="get_2">
+                                        <field name="VAR" id="var_mm">mm</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <block type="text" id="text_2">
+                                        <field name="TEXT">Measurement done.</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

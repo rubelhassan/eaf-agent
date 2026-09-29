@@ -1,170 +1,46 @@
 <xml xmlns="https://developers.google.com/blockly/xml">
   <variables>
-    <variable id="_B_E*Y0K$9o[3/J~k(_g">pet</variable>
-    <variable id="2B~QvD0PXYI-cO8Iklgj">timer</variable>
+    <variable id="counterVar">count</variable>
   </variables>
-  <block type="variables_set" id="setTimer" x="70" y="40">
-    <field name="VAR" id="2B~QvD0PXYI-cO8Iklgj">timer</field>
-    <value name="VALUE">
-      <shadow type="math_number" id="r#;@Ia?##tym~QgSOZ;I">
-        <field name="NUM">3</field>
-      </shadow>
-    </value>
+  <block type="variables_set" id="set1" x="130" y="50">
+    <field name="VAR" id="counterVar">count</field>
     <next>
-      <block type="controls_whileUntil" id="whileTimer">
-        <field name="MODE">WHILE</field>
-        <value name="BOOL">
-          <block type="logic_compare" id="eFc@2TF#5d;iF$,vWnJw">
-            <field name="OP">GT</field>
-            <value name="A">
-              <block type="variables_get" id="nYYPW1HD@kPO=J_d|=?B">
-                <field name="VAR" id="2B~QvD0PXYI-cO8Iklgj">timer</field>
-              </block>
-            </value>
-            <value name="B">
-              <shadow type="math_number" id=",Mi?i)76MQ~5PgZsO,]F">
-                <field name="NUM">0</field>
-              </shadow>
-            </value>
+      <block type="controls_repeat_ext" id="rep1">
+        <value name="TIMES">
+          <block type="math_number" id="n13">
+            <field name="NUM">3</field>
           </block>
         </value>
         <statement name="DO">
-          <block type="text_print" id="|vo|+4bRcnF9|**4dje}">
+          <block type="text_print" id="p1">
             <value name="TEXT">
-              <block type="text_join" id="n0%kkK+Gv;?/M-0LA+up">
-                <mutation items="2"></mutation>
-                <value name="ADD0">
-                  <shadow type="text" id="~c$X7dJ,LGjUoeTNR3Tl">
-                    <field name="TEXT">Rocket</field>
-                  </shadow>
-                </value>
-                <value name="ADD1">
-                  <block type="variables_get" id="cpqhG{+N}(w|ItE0qd[4">
-                    <field name="VAR" id="2B~QvD0PXYI-cO8Iklgj">timer</field>
-                  </block>
-                </value>
+              <block type="text" id="t1">
+                <field name="TEXT">Jack plants a magic bean.</field>
               </block>
             </value>
             <next>
-              <block type="variables_set" id="NWBTRjr_+(!oQ_Q4IG~0">
-                <field name="VAR" id="2B~QvD0PXYI-cO8Iklgj">timer</field>
+              <block type="variables_set" id="inc1">
+                <field name="VAR" id="counterVar">count</field>
                 <value name="VALUE">
-                  <block type="math_arithmetic" id="s`9EK/vhu^v[lu5IjK!^">
-                    <field name="OP">MINUS</field>
+                  <block type="math_arithmetic" id="add1">
+                    <field name="OP">ADD</field>
                     <value name="A">
-                      <block type="variables_get" id="HrzOB8ns(eZ9xQk+ojh(">
-                        <field name="VAR" id="2B~QvD0PXYI-cO8Iklgj">timer</field>
+                      <block type="variables_get" id="g10">
+                        <field name="VAR" id="counterVar">count</field>
                       </block>
                     </value>
                     <value name="B">
-                      <shadow type="math_number" id="2$;qq8@Z=.H7hkvgct;8">
+                      <block type="math_number" id="one1">
                         <field name="NUM">1</field>
-                      </shadow>
-                    </value>
-                  </block>
-                </value>
-              </block>
-            </next>
-          </block>
-        </statement>
-        <next>
-          <block type="controls_repeat_ext" id="C(A!k6VWPb0l,{Qri/Q-">
-            <value name="TIMES">
-              <shadow type="math_number" id="`5i4||:BnGfljQhV?OA$">
-                <field name="NUM">10</field>
-              </shadow>
-            </value>
-            <statement name="DO">
-              <block type="text_print" id="osN!*mEC+dN/cG$wjIOP">
-                <value name="TEXT">
-                  <shadow type="text" id="O+W4T2T8eOU;4+5nsu*x">
-                    <field name="TEXT">GO!</field>
-                  </shadow>
-                </value>
-              </block>
-            </statement>
-            <next>
-              <block type="text_print" id="PtkDo|W8-Zk3%0rgoHW2">
-                <value name="TEXT">
-                  <shadow type="text" id="hm1bZj)/a6{c!D!Hgjra">
-                    <field name="TEXT">abc</field>
-                  </shadow>
-                </value>
-                <next>
-                  <block type="controls_if" id="}qb4uw[/YqP=KnB9wyN^">
-                    <value name="IF0">
-                      <block type="logic_compare" id="6WZD#M[(V8+E_HA:zT,t">
-                        <field name="OP">LTE</field>
-                        <value name="A">
-                          <block type="math_arithmetic" id="Sg~=0muvm)L3A/_:86Wh">
-                            <field name="OP">ADD</field>
-                            <value name="A">
-                              <shadow type="math_number" id="aR3pM74:u0/rm*]ngsj(">
-                                <field name="NUM">1</field>
-                              </shadow>
-                            </value>
-                            <value name="B">
-                              <shadow type="math_number" id="-40F7Gxcls/(o_YjY;po">
-                                <field name="NUM">1</field>
-                              </shadow>
-                            </value>
-                          </block>
-                        </value>
-                        <value name="B">
-                          <block type="math_number" id="RP@EaY$|?E#ksm#eB:nJ">
-                            <field name="NUM">123</field>
-                          </block>
-                        </value>
                       </block>
                     </value>
                   </block>
-                </next>
+                </value>
               </block>
             </next>
-          </block>
-        </next>
-      </block>
-    </next>
-  </block>
-  <block type="variables_set" id="setPet" x="70" y="430">
-    <field name="VAR" id="_B_E*Y0K$9o[3/J~k(_g">pet</field>
-    <value name="VALUE">
-      <shadow type="text" id="gEOF?l%X7AjXqlK)9*Iq">
-        <field name="TEXT">cat</field>
-      </shadow>
-    </value>
-    <next>
-      <block type="controls_if" id="ifCat">
-        <value name="IF0">
-          <block type="logic_compare" id="r,2*m(rP`oc=^5jaE9Nz">
-            <field name="OP">EQ</field>
-            <value name="A">
-              <block type="variables_get" id="NP3-eKOi-c}$G~5e]J5N">
-                <field name="VAR" id="_B_E*Y0K$9o[3/J~k(_g">pet</field>
-              </block>
-            </value>
-            <value name="B">
-              <shadow type="text" id="qh;?3_G_6?5sz()zP[$O">
-                <field name="TEXT">cat</field>
-              </shadow>
-            </value>
-          </block>
-        </value>
-        <statement name="DO0">
-          <block type="text_print" id="F}GL*P[.?@XEF-NI3q~5">
-            <value name="TEXT">
-              <shadow type="text" id="%cavq,2Y=mpB9?A#b?i1">
-                <field name="TEXT">Meow!</field>
-              </shadow>
-            </value>
           </block>
         </statement>
       </block>
     </next>
-  </block>
-  <block type="controls_if" id="x~q)#M]q_7o*o;DixTS_" x="70" y="570">
-    <statement name="DO0">
-      <block type="controls_if" id="N,-|P@|a3-S=e(8pi`=%"></block>
-    </statement>
   </block>
 </xml>

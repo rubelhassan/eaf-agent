@@ -1,0 +1,22 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="DHI;?}6%f~a_${`F%Nas">apples</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="DHI;?}6%f~a_${`F%Nas">apples</field>
+        <value name="VALUE">
+            <block type="math_number" id="num_1">
+                <field name="NUM">5</field>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_1">
+                <value name="TEXT">
+                    <block type="variables_get" id="get_1">
+                        <field name="VAR" id="DHI;?}6%f~a_${`F%Nas">apples</field>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+</xml>

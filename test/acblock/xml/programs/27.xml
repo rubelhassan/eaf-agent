@@ -1,0 +1,188 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_minutes">minutes</variable>
+        <variable id="var_sum">sum</variable>
+        <variable id="var_i">i</variable>
+        <variable id="DghiIOMNlQCu^_UyWKi[">average</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="10" y="30">
+        <field name="VAR" id="var_minutes">minutes</field>
+        <value name="VALUE">
+            <block type="lists_create_with" id="list_1">
+                <mutation items="3"></mutation>
+                <value name="ADD0">
+                    <shadow type="math_number" id="num_15">
+                        <field name="NUM">15</field>
+                    </shadow>
+                </value>
+                <value name="ADD1">
+                    <shadow type="math_number" id="num_25">
+                        <field name="NUM">25</field>
+                    </shadow>
+                </value>
+                <value name="ADD2">
+                    <shadow type="math_number" id="num_35">
+                        <field name="NUM">35</field>
+                    </shadow>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_1">
+                <value name="TEXT">
+                    <shadow type="text" id="text_ready">
+                        <field name="TEXT">Study minutes list ready.</field>
+                    </shadow>
+                </value>
+            </block>
+        </next>
+    </block>
+    <block type="variables_set" id="set_2" x="10" y="190">
+        <field name="VAR" id="var_sum">sum</field>
+        <value name="VALUE">
+            <shadow type="math_number" id="num_0">
+                <field name="NUM">0</field>
+            </shadow>
+        </value>
+        <next>
+            <block type="controls_for" id="for_1">
+                <field name="VAR" id="var_i">i</field>
+                <value name="FROM">
+                    <shadow type="math_number" id="num_from_1">
+                        <field name="NUM">1</field>
+                    </shadow>
+                </value>
+                <value name="TO">
+                    <shadow type="math_number" id="num_to_3">
+                        <field name="NUM">3</field>
+                    </shadow>
+                </value>
+                <value name="BY">
+                    <shadow type="math_number" id="num_by_1">
+                        <field name="NUM">1</field>
+                    </shadow>
+                </value>
+                <statement name="DO">
+                    <block type="variables_set" id="set_3">
+                        <field name="VAR" id="var_sum">sum</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="arith_1">
+                                <field name="OP">ADD</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_1">
+                                        <field name="VAR" id="var_sum">sum</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="lists_getIndex" id="list_get_1">
+                                        <mutation statement="false" at="true"></mutation>
+                                        <field name="MODE">GET</field>
+                                        <field name="WHERE">FROM_START</field>
+                                        <value name="VALUE">
+                                            <block type="variables_get" id="get_2">
+                                                <field name="VAR" id="var_minutes">minutes</field>
+                                            </block>
+                                        </value>
+                                        <value name="AT">
+                                            <block type="variables_get" id="get_3">
+                                                <field name="VAR" id="var_i">i</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+                <next>
+                    <block type="variables_set" id="YWD:;r#jl-~z0bYD7%}x">
+                        <field name="VAR" id="DghiIOMNlQCu^_UyWKi[">average</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="arith_2">
+                                <field name="OP">DIVIDE</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_4">
+                                        <field name="VAR" id="var_sum">sum</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <shadow type="math_number" id="num_div_3">
+                                        <field name="NUM">3</field>
+                                    </shadow>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <shadow type="text" id="text_avg_label">
+                                        <field name="TEXT">Average:</field>
+                                    </shadow>
+                                </value>
+                                <next>
+                                    <block type="text_print" id="zmfryt~Pl=`/5)4?,86e">
+                                        <value name="TEXT">
+                                            <shadow type="text" id="(3=;EKPNXq4=j2MK2Wge">
+                                                <field name="TEXT">Average:</field>
+                                            </shadow>
+                                            <block type="variables_get" id="^Bt+q[/=Uev?Fgf[}4Pq">
+                                                <field name="VAR" id="DghiIOMNlQCu^_UyWKi[">average</field>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="controls_if" id="if_1">
+                                                <mutation else="1"></mutation>
+                                                <value name="IF0">
+                                                    <block type="logic_compare" id="cmp_1">
+                                                        <field name="OP">GTE</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="fhE@4Mxz}20*am@U!_Ap">
+                                                                <field name="VAR" id="DghiIOMNlQCu^_UyWKi[">average</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <shadow type="math_number" id="num_25_thresh">
+                                                                <field name="NUM">25</field>
+                                                            </shadow>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                                <statement name="DO0">
+                                                    <block type="text_print" id="print_4">
+                                                        <value name="TEXT">
+                                                            <shadow type="text" id="text_ontrack">
+                                                                <field name="TEXT">On track!</field>
+                                                            </shadow>
+                                                        </value>
+                                                    </block>
+                                                </statement>
+                                                <statement name="ELSE">
+                                                    <block type="text_print" id="print_5">
+                                                        <value name="TEXT">
+                                                            <shadow type="text" id="text_try">
+                                                                <field name="TEXT">Try a bit more.</field>
+                                                            </shadow>
+                                                        </value>
+                                                    </block>
+                                                </statement>
+                                                <next>
+                                                    <block type="text_print" id="print_6">
+                                                        <value name="TEXT">
+                                                            <shadow type="text" id="text_done">
+                                                                <field name="TEXT">Done</field>
+                                                            </shadow>
+                                                        </value>
+                                                    </block>
+                                                </next>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

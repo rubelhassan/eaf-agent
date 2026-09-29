@@ -1,0 +1,367 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="L?TF*:TD(pAgOj@WNY7`">principal</variable>
+        <variable id="b?4DnnQ]`?3Bpy6)_dLt">annual_rate</variable>
+        <variable id="p.~SkL;5H0:t1Kdml9`M">years</variable>
+        <variable id="8+nD/e4/CrG_2981Q*KI">loan</variable>
+        <variable id="rFQG.*]9nvSb%eRK-z(#">monthly_rate</variable>
+        <variable id="XofCzrO^^,rta.v.G|lI">rate</variable>
+        <variable id="eUEL^d`3=~%^2$yKneQ,">num_payments</variable>
+        <variable id="oYMg0~qH@e/dqSj+_?/N">numerator</variable>
+        <variable id="f?I$VDgxZ.2/GPKj::ur">denominator</variable>
+        <variable id="SyhED[q=,qF|O$^71bb{">term</variable>
+        <variable id="=At%5^/2_V_@MuPO%lZ+">factor</variable>
+        <variable id="tH1+EtE-e]{ej;S]}OGw">payment</variable>
+        <variable id="SM?B|2TpdJsADv2Fd7SQ">total_paid</variable>
+        <variable id="u(_eZk(bsU!$!z]/F?|B">interest</variable>
+    </variables>
+    <block type="procedures_defreturn" id="def_calc_payment" x="10" y="10">
+        <mutation>
+            <arg name="principal" varid="L?TF*:TD(pAgOj@WNY7`"></arg>
+            <arg name="annual_rate" varid="b?4DnnQ]`?3Bpy6)_dLt"></arg>
+            <arg name="years" varid="p.~SkL;5H0:t1Kdml9`M"></arg>
+        </mutation>
+        <field name="NAME">calcPayment</field>
+        <comment pinned="false" h="80" w="160">Describe this function...</comment>
+        <statement name="STACK">
+            <block type="variables_set" id="set_monthly_rate">
+                <field name="VAR" id="rFQG.*]9nvSb%eRK-z(#">monthly_rate</field>
+                <value name="VALUE">
+                    <block type="math_arithmetic" id="math_div_12">
+                        <field name="OP">DIVIDE</field>
+                        <value name="A">
+                            <block type="math_arithmetic" id="math_div_100">
+                                <field name="OP">DIVIDE</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_annual_rate_1">
+                                        <field name="VAR" id="b?4DnnQ]`?3Bpy6)_dLt">annual_rate</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_100">
+                                        <field name="NUM">100</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="math_number" id="num_12a">
+                                <field name="NUM">12</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_num_payments">
+                        <field name="VAR" id="eUEL^d`3=~%^2$yKneQ,">num_payments</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="math_years_12">
+                                <field name="OP">MULTIPLY</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_years_1">
+                                        <field name="VAR" id="p.~SkL;5H0:t1Kdml9`M">years</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_12b">
+                                        <field name="NUM">12</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_factor">
+                                <field name="VAR" id="=At%5^/2_V_@MuPO%lZ+">factor</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="math_pow_factor">
+                                        <field name="OP">POWER</field>
+                                        <value name="A">
+                                            <block type="math_arithmetic" id="math_add_1_rate">
+                                                <field name="OP">ADD</field>
+                                                <value name="A">
+                                                    <block type="math_number" id="num_1">
+                                                        <field name="NUM">1</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="variables_get" id="get_monthly_rate_1">
+                                                        <field name="VAR" id="rFQG.*]9nvSb%eRK-z(#">monthly_rate</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="variables_get" id="get_num_payments_1">
+                                                <field name="VAR" id="eUEL^d`3=~%^2$yKneQ,">num_payments</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_numerator">
+                                        <field name="VAR" id="oYMg0~qH@e/dqSj+_?/N">numerator</field>
+                                        <value name="VALUE">
+                                            <block type="math_arithmetic" id="math_mult_factor">
+                                                <field name="OP">MULTIPLY</field>
+                                                <value name="A">
+                                                    <block type="math_arithmetic" id="math_mult_rate">
+                                                        <field name="OP">MULTIPLY</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="get_principal_1">
+                                                                <field name="VAR" id="L?TF*:TD(pAgOj@WNY7`">principal</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <block type="variables_get" id="get_monthly_rate_2">
+                                                                <field name="VAR" id="rFQG.*]9nvSb%eRK-z(#">monthly_rate</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="variables_get" id="get_factor_1">
+                                                        <field name="VAR" id="=At%5^/2_V_@MuPO%lZ+">factor</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="variables_set" id="set_denominator">
+                                                <field name="VAR" id="f?I$VDgxZ.2/GPKj::ur">denominator</field>
+                                                <value name="VALUE">
+                                                    <block type="math_arithmetic" id="math_sub_1">
+                                                        <field name="OP">MINUS</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="get_factor_2">
+                                                                <field name="VAR" id="=At%5^/2_V_@MuPO%lZ+">factor</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <block type="math_number" id="num_1b">
+                                                                <field name="NUM">1</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </statement>
+        <value name="RETURN">
+            <block type="math_arithmetic" id="math_div_denom">
+                <field name="OP">DIVIDE</field>
+                <value name="A">
+                    <block type="variables_get" id="get_numerator_1">
+                        <field name="VAR" id="oYMg0~qH@e/dqSj+_?/N">numerator</field>
+                    </block>
+                </value>
+                <value name="B">
+                    <block type="variables_get" id="get_denominator_1">
+                        <field name="VAR" id="f?I$VDgxZ.2/GPKj::ur">denominator</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+    </block>
+    <block type="variables_set" id="set_loan" x="10" y="330">
+        <field name="VAR" id="8+nD/e4/CrG_2981Q*KI">loan</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_loan">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_loan">
+                        <field name="TEXT">Enter loan amount</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_rate">
+                <field name="VAR" id="XofCzrO^^,rta.v.G|lI">rate</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_rate">
+                        <mutation type="NUMBER"></mutation>
+                        <field name="TYPE">NUMBER</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_prompt_rate">
+                                <field name="TEXT">Enter annual interest rate (%)</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_term">
+                        <field name="VAR" id="SyhED[q=,qF|O$^71bb{">term</field>
+                        <value name="VALUE">
+                            <block type="text_prompt_ext" id="prompt_term">
+                                <mutation type="NUMBER"></mutation>
+                                <field name="TYPE">NUMBER</field>
+                                <value name="TEXT">
+                                    <block type="text" id="text_prompt_term">
+                                        <field name="TEXT">Enter loan term (years)</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_payment">
+                                <field name="VAR" id="tH1+EtE-e]{ej;S]}OGw">payment</field>
+                                <value name="VALUE">
+                                    <block type="procedures_callreturn" id="call_calc_payment">
+                                        <mutation name="calcPayment">
+                                            <arg name="principal"></arg>
+                                            <arg name="annual_rate"></arg>
+                                            <arg name="years"></arg>
+                                        </mutation>
+                                        <value name="ARG0">
+                                            <block type="variables_get" id="get_loan_1">
+                                                <field name="VAR" id="8+nD/e4/CrG_2981Q*KI">loan</field>
+                                            </block>
+                                        </value>
+                                        <value name="ARG1">
+                                            <block type="variables_get" id="get_rate_1">
+                                                <field name="VAR" id="XofCzrO^^,rta.v.G|lI">rate</field>
+                                            </block>
+                                        </value>
+                                        <value name="ARG2">
+                                            <block type="variables_get" id="get_term_1">
+                                                <field name="VAR" id="SyhED[q=,qF|O$^71bb{">term</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_total_paid">
+                                        <field name="VAR" id="SM?B|2TpdJsADv2Fd7SQ">total_paid</field>
+                                        <value name="VALUE">
+                                            <block type="math_arithmetic" id="math_total_paid">
+                                                <field name="OP">MULTIPLY</field>
+                                                <value name="A">
+                                                    <block type="math_arithmetic" id="math_payment_term">
+                                                        <field name="OP">MULTIPLY</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="get_payment_1">
+                                                                <field name="VAR" id="tH1+EtE-e]{ej;S]}OGw">payment</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <block type="variables_get" id="get_term_2">
+                                                                <field name="VAR" id="SyhED[q=,qF|O$^71bb{">term</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="math_number" id="num_12c">
+                                                        <field name="NUM">12</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="variables_set" id="set_interest">
+                                                <field name="VAR" id="u(_eZk(bsU!$!z]/F?|B">interest</field>
+                                                <value name="VALUE">
+                                                    <block type="math_arithmetic" id="math_sub_loan">
+                                                        <field name="OP">MINUS</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="get_total_paid_1">
+                                                                <field name="VAR" id="SM?B|2TpdJsADv2Fd7SQ">total_paid</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <block type="variables_get" id="get_loan_2">
+                                                                <field name="VAR" id="8+nD/e4/CrG_2981Q*KI">loan</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="text_print" id="print_payment" x="10" y="630">
+        <value name="TEXT">
+            <block type="text_join" id="join_payment">
+                <mutation items="2"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_payment_label">
+                        <field name="TEXT">Monthly Payment: $</field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="math_round" id="round_payment">
+                        <field name="OP">ROUND</field>
+                        <value name="NUM">
+                            <block type="variables_get" id="get_payment_2">
+                                <field name="VAR" id="tH1+EtE-e]{ej;S]}OGw">payment</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_total">
+                <value name="TEXT">
+                    <block type="text_join" id="join_total">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_total_label">
+                                <field name="TEXT">Total Paid: $</field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="math_round" id="round_total">
+                                <field name="OP">ROUND</field>
+                                <value name="NUM">
+                                    <block type="variables_get" id="get_total_paid_2">
+                                        <field name="VAR" id="SM?B|2TpdJsADv2Fd7SQ">total_paid</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_interest">
+                        <value name="TEXT">
+                            <block type="text_join" id="join_interest">
+                                <mutation items="2"></mutation>
+                                <value name="ADD0">
+                                    <block type="text" id="text_interest_label">
+                                        <field name="TEXT">Total Interest: $</field>
+                                    </block>
+                                </value>
+                                <value name="ADD1">
+                                    <block type="math_round" id="round_interest">
+                                        <field name="OP">ROUND</field>
+                                        <value name="NUM">
+                                            <block type="variables_get" id="get_interest_1">
+                                                <field name="VAR" id="u(_eZk(bsU!$!z]/F?|B">interest</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

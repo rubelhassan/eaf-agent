@@ -1,0 +1,94 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="~u-h4bIDIA_j(6U{sl|H">x</variable>
+        <variable id="var_number">number</variable>
+    </variables>
+    <block type="procedures_defnoreturn" id="4a;{`JJ|:#6A4.B-5%T)" x="30" y="-70">
+        <mutation>
+            <arg name="x" varid="~u-h4bIDIA_j(6U{sl|H"></arg>
+        </mutation>
+        <field name="NAME">evenOrOdd</field>
+        <comment pinned="false" h="80" w="160">Describe this function...</comment>
+        <statement name="STACK">
+            <block type="controls_if" id="if_1">
+                <mutation else="1"></mutation>
+                <value name="IF0">
+                    <block type="math_number_property" id="prop_1">
+                        <mutation divisor_input="false"></mutation>
+                        <field name="PROPERTY">EVEN</field>
+                        <value name="NUMBER_TO_CHECK">
+                            <block type="variables_get" id="`P/r#3l4{%l~{S~XQoz{">
+                                <field name="VAR" id="~u-h4bIDIA_j(6U{sl|H">x</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <statement name="DO0">
+                    <block type="text_print" id="print_3">
+                        <value name="TEXT">
+                            <block type="text" id="text_2">
+                                <field name="TEXT">That number is even!</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+                <statement name="ELSE">
+                    <block type="text_print" id="print_4">
+                        <value name="TEXT">
+                            <block type="text" id="text_3">
+                                <field name="TEXT">That number is odd!</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+            </block>
+        </statement>
+    </block>
+    <block type="text_print" id="print_1" x="30" y="130">
+        <value name="TEXT">
+            <block type="text" id="text_1">
+                <field name="TEXT">Even or Odd Checker</field>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_1">
+                <field name="VAR" id="var_number">number</field>
+                <value name="VALUE">
+                    <block type="math_number" id="num_1">
+                        <field name="NUM">7</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_2">
+                        <value name="TEXT">
+                            <block type="variables_get" id="get_1">
+                                <field name="VAR" id="var_number">number</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="procedures_callnoreturn" id="jw,bMT2~8YA2ePDkPAG+">
+                                <mutation name="evenOrOdd">
+                                    <arg name="x"></arg>
+                                </mutation>
+                                <value name="ARG0">
+                                    <block type="variables_get" id="w-^Wtb+%Uctv5WO^$xjP">
+                                        <field name="VAR" id="var_number">number</field>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="text_print" id="print_5">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_4">
+                                                <field name="TEXT">Check complete!</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

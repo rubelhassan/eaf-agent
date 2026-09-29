@@ -1,3 +1,5 @@
+import {blockTypes} from '../blocks/registry';
+
 /**
  * Manages flyout block compatibility filtering based on connection type constraints
  */
@@ -66,7 +68,18 @@ export class FlyoutCompatibilityManager {
         if (!destConnection || !candidateBlock) {
             return false;
         }
+        // Custom block types may redirect the target, adapt their shape, or add rules.
+        return blockTypes.isInsertCompatible(candidateBlock, destConnection,
+            (target, block) => this.fitsStructurally(target, block));
+    }
 
+    /**
+     * Shape and type-check compatibility only (no custom block rules).
+     * @param {!Blockly.RenderedConnection} destConnection The connection to attach to.
+     * @param {!Blockly.BlockSvg} candidateBlock The block being considered.
+     * @returns {boolean}
+     */
+    fitsStructurally(destConnection, candidateBlock) {
         const destType = destConnection.type;
         const destCheck = this.getConnectionCheck(destConnection);
 

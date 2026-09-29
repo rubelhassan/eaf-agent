@@ -1,0 +1,75 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_myList">myList</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="-70" y="-150">
+        <field name="VAR" id="var_myList">myList</field>
+        <value name="VALUE">
+            <block type="lists_create_with" id="list_1">
+                <mutation items="3"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_1">
+                        <field name="TEXT">Milk</field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="text" id=")Of;kec$jb+e~EY%BO?D">
+                        <field name="TEXT">Egg</field>
+                    </block>
+                </value>
+                <value name="ADD2">
+                    <block type="text" id="aO{3R}MwKD|ewB$H(2JF">
+                        <field name="TEXT">Apple</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+    </block>
+    <block type="text_print" id="print_1" x="-70" y="-10">
+        <value name="TEXT">
+            <block type="text_join" id="=Vf:n1l.{@B?+CSo;(E+">
+                <mutation items="2"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_4">
+                        <field name="TEXT">Items to buy: </field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="lists_length" id="Y1l@XnBd(GJQ8wLqhQR2">
+                        <value name="VALUE">
+                            <block type="variables_get" id="c@E$q4qxv@4I5I9Gw3rm">
+                                <field name="VAR" id="var_myList">myList</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_2">
+                <value name="TEXT">
+                    <block type="text_join" id="@?%RvV%#~FnmLAqXd(R]">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id=".HW9A7)g;_2F1BOa]iAH">
+                                <field name="TEXT">First item: </field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="lists_getIndex" id="A~|3,i|jGt0jM??d;qj%">
+                                <mutation statement="false" at="false"></mutation>
+                                <field name="MODE">GET</field>
+                                <field name="WHERE">FIRST</field>
+                                <value name="VALUE">
+                                    <block type="variables_get" id="o1;mJNRzw1T4gjbi;P]@">
+                                        <field name="VAR" id="var_myList">myList</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+</xml>

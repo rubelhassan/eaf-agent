@@ -1,0 +1,128 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_n">n</variable>
+        <variable id="var_total">total</variable>
+        <variable id="var_i">i</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_n">n</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="xgEwjNY?{DE}RoA-gykb">
+                        <field name="TEXT">Books?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_2">
+                <field name="VAR" id="var_total">total</field>
+                <value name="VALUE">
+                    <block type="math_number" id="num_1">
+                        <field name="NUM">1</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_if" id="if_1">
+                        <mutation else="1"></mutation>
+                        <value name="IF0">
+                            <block type="logic_compare" id="cmp_1">
+                                <field name="OP">LT</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_1">
+                                        <field name="VAR" id="var_n">n</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_0">
+                                        <field name="NUM">0</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO0">
+                            <block type="text_print" id="print_1">
+                                <value name="TEXT">
+                                    <block type="text" id="~W:,g2nZM+]A2{Ny!53Y">
+                                        <field name="TEXT">Please enter positive numbers</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                        <statement name="ELSE">
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <block type="text" id="F%:DQMp*{wEuwBJH?(=Y">
+                                        <field name="TEXT">Calculating..</field>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="controls_for" id="for_1">
+                                        <field name="VAR" id="var_i">i</field>
+                                        <value name="FROM">
+                                            <block type="math_number" id="num_from_1">
+                                                <field name="NUM">1</field>
+                                            </block>
+                                        </value>
+                                        <value name="TO">
+                                            <block type="variables_get" id="get_2">
+                                                <field name="VAR" id="var_n">n</field>
+                                            </block>
+                                        </value>
+                                        <value name="BY">
+                                            <block type="math_number" id="num_by_1">
+                                                <field name="NUM">1</field>
+                                            </block>
+                                        </value>
+                                        <statement name="DO">
+                                            <block type="variables_set" id="set_3">
+                                                <field name="VAR" id="var_total">total</field>
+                                                <value name="VALUE">
+                                                    <block type="math_arithmetic" id="arith_1">
+                                                        <field name="OP">MULTIPLY</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="get_3">
+                                                                <field name="VAR" id="var_total">total</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <block type="variables_get" id="get_4">
+                                                                <field name="VAR" id="var_i">i</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </statement>
+                                    </block>
+                                </next>
+                            </block>
+                        </statement>
+                        <next>
+                            <block type="text_print" id="print_4">
+                                <value name="TEXT">
+                                    <block type="text_join" id="$A?p9oy?$^C@-hYY/1DJ">
+                                        <mutation items="2"></mutation>
+                                        <value name="ADD0">
+                                            <block type="text" id="X~R:h,DGbM-Va:8LkW}w">
+                                                <field name="TEXT">ways: </field>
+                                            </block>
+                                        </value>
+                                        <value name="ADD1">
+                                            <block type="variables_get" id="get_5">
+                                                <field name="VAR" id="var_total">total</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

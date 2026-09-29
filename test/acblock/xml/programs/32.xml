@@ -1,0 +1,88 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_word">word</variable>
+        <variable id="var_reversed">reversed</variable>
+        <variable id="var_i">i</variable>
+    </variables>
+    <block type="variables_set" id="set_3" x="20" y="46">
+        <field name="VAR" id="var_word">word</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="TEXT"></mutation>
+                <field name="TYPE">TEXT</field>
+                <value name="TEXT">
+                    <block type="text" id="htEB]C})]^C7g4u]kd,}">
+                        <field name="TEXT">Enter a word</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_4">
+                <field name="VAR" id="var_reversed">reversed</field>
+                <value name="VALUE">
+                    <block type="text" id="text_1">
+                        <field name="TEXT"></field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_for" id="for_1">
+                        <field name="VAR" id="var_i">i</field>
+                        <value name="FROM">
+                            <block type="math_number" id="num_1">
+                                <field name="NUM">1</field>
+                            </block>
+                        </value>
+                        <value name="TO">
+                            <block type="text_length" id="2r=BpO4]s,jAk7HNKH]R">
+                                <value name="VALUE">
+                                    <shadow type="text" id=":#UGtO4@iG{Q*al}-)__">
+                                        <field name="TEXT">abc</field>
+                                    </shadow>
+                                    <block type="variables_get" id="H]+Pz%(vK*JQ48BpF/.b">
+                                        <field name="VAR" id="var_word">word</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <value name="BY">
+                            <block type="math_number" id="num_2">
+                                <field name="NUM">1</field>
+                            </block>
+                        </value>
+                        <statement name="DO">
+                            <block type="text_append" id="append_1">
+                                <field name="VAR" id="var_reversed">reversed</field>
+                                <value name="TEXT">
+                                    <block type="text_charAt" id="charAt_1">
+                                        <mutation at="true"></mutation>
+                                        <field name="WHERE">FROM_END</field>
+                                        <value name="VALUE">
+                                            <block type="variables_get" id="get_word_1">
+                                                <field name="VAR" id="var_word">word</field>
+                                            </block>
+                                        </value>
+                                        <value name="AT">
+                                            <block type="variables_get" id="get_i_1">
+                                                <field name="VAR" id="var_i">i</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                        <next>
+                            <block type="text_print" id="print_1">
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_rev_1">
+                                        <field name="VAR" id="var_reversed">reversed</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

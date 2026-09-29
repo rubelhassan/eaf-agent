@@ -1,0 +1,97 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_groceries">groceries</variable>
+        <variable id="var_item">item</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_groceries">groceries</field>
+        <value name="VALUE">
+            <block type="lists_create_with" id="list_1">
+                <mutation items="4"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="di.^[~l,RMNyb.ryxjA0">
+                        <field name="TEXT">milk</field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="text" id="kW0-3vB:fFU(vzvM_^/m">
+                        <field name="TEXT">bread</field>
+                    </block>
+                </value>
+                <value name="ADD2">
+                    <block type="text" id="GA#~v--C-[xPAN6DP#-+">
+                        <field name="TEXT">eggs</field>
+                    </block>
+                </value>
+                <value name="ADD3">
+                    <block type="text" id="|tIH^I;Uzz[7Kf,-F{#}">
+                        <field name="TEXT">apples</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_2">
+                <field name="VAR" id="var_groceries">groceries</field>
+                <value name="VALUE">
+                    <block type="lists_sort" id="sort_1">
+                        <field name="TYPE">TEXT</field>
+                        <field name="DIRECTION">1</field>
+                        <value name="LIST">
+                            <block type="variables_get" id="zN(aOx,JWtSX!9*[6*MC">
+                                <field name="VAR" id="var_groceries">groceries</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_1">
+                        <value name="TEXT">
+                            <block type="text" id="text_1">
+                                <field name="TEXT">My sorted grocery list:</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="controls_forEach" id="foreach_1">
+                                <field name="VAR" id="var_item">item</field>
+                                <value name="LIST">
+                                    <block type="variables_get" id="get_1">
+                                        <field name="VAR" id="var_groceries">groceries</field>
+                                    </block>
+                                </value>
+                                <statement name="DO">
+                                    <block type="text_print" id="print_2">
+                                        <value name="TEXT">
+                                            <block type="variables_get" id="get_2">
+                                                <field name="VAR" id="var_item">item</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                                <next>
+                                    <block type="variables_set" id="set_3">
+                                        <field name="VAR" id="var_groceries">groceries</field>
+                                        <value name="VALUE">
+                                            <block type="variables_get" id="get_3">
+                                                <field name="VAR" id="var_groceries">groceries</field>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="text_print" id="print_3">
+                                                <value name="TEXT">
+                                                    <block type="text" id="text_2">
+                                                        <field name="TEXT">Done</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

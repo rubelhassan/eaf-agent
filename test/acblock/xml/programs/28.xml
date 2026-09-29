@@ -1,0 +1,114 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_name">name</variable>
+        <variable id="var_length">length</variable>
+    </variables>
+    <block type="text_print" id="print_1" x="20" y="20">
+        <value name="TEXT">
+            <block type="text" id="text_1">
+                <field name="TEXT">Code Name Generator</field>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_1">
+                <field name="VAR" id="var_name">name</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_1">
+                        <mutation type="TEXT"></mutation>
+                        <field name="TYPE">TEXT</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_2">
+                                <field name="TEXT">Enter your name:</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_2">
+                        <field name="VAR" id="var_length">length</field>
+                        <value name="VALUE">
+                            <block type="text_length" id="len_1">
+                                <value name="VALUE">
+                                    <block type="variables_get" id="get_1">
+                                        <field name="VAR" id="var_name">name</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <block type="text_join" id="join_1">
+                                        <mutation items="3"></mutation>
+                                        <value name="ADD0">
+                                            <block type="text" id="text_3">
+                                                <field name="TEXT">Your name has </field>
+                                            </block>
+                                        </value>
+                                        <value name="ADD1">
+                                            <block type="variables_get" id="get_2">
+                                                <field name="VAR" id="var_length">length</field>
+                                            </block>
+                                        </value>
+                                        <value name="ADD2">
+                                            <block type="text" id="text_4">
+                                                <field name="TEXT"> letters!</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="controls_if" id="if_1">
+                                        <mutation else="1"></mutation>
+                                        <value name="IF0">
+                                            <block type="logic_compare" id="compare_1">
+                                                <field name="OP">GT</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_3">
+                                                        <field name="VAR" id="var_length">length</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="math_number" id="num_5">
+                                                        <field name="NUM">5</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <statement name="DO0">
+                                            <block type="text_print" id="print_3">
+                                                <value name="TEXT">
+                                                    <block type="text" id="text_5">
+                                                        <field name="TEXT">Code name: THUNDER</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </statement>
+                                        <statement name="ELSE">
+                                            <block type="text_print" id="print_4">
+                                                <value name="TEXT">
+                                                    <block type="text" id="text_6">
+                                                        <field name="TEXT">Code name: SPARK</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </statement>
+                                        <next>
+                                            <block type="text_print" id="print_5">
+                                                <value name="TEXT">
+                                                    <block type="text" id="text_7">
+                                                        <field name="TEXT">Mission ready!</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

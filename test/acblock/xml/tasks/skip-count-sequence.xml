@@ -1,0 +1,68 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <!-- Sequence: one question for the whole loop body (from Program 18). -->
+  <variables>
+    <variable id="var_number">number</variable>
+  </variables>
+  <block type="text_print" id="print_1" x="20" y="20">
+    <value name="TEXT">
+      <block type="text" id="text_1"><field name="TEXT">Let's skip count by 4!</field></block>
+    </value>
+    <next>
+      <block type="variables_set" id="set_1">
+        <field name="VAR" id="var_number">number</field>
+        <value name="VALUE">
+          <block type="math_number" id="num_0"><field name="NUM">0</field></block>
+        </value>
+        <next>
+          <block type="controls_repeat_ext" id="repeat_1">
+            <value name="TIMES">
+              <block type="math_number" id="num_5"><field name="NUM">5</field></block>
+            </value>
+            <statement name="DO">
+              <block type="question" id="q_body">
+                <mutation expects="sequence" min_blocks="2">
+                  <intended type="variables_set"/>
+                  <intended type="text_print"/>
+                  <prompt>Count up by 4 and say each number.</prompt>
+                  <instruction>Inside the loop, first make number 4 bigger, then print it.</instruction>
+                  <hint>You need two blocks: one that changes number, and one that prints it.</hint>
+                  <hint>Start with a set number block.</hint>
+                  <ai level="point" count="2" quiz="false">First set number to number plus 4, then print number.</ai>
+                  <reference>
+                    <block type="variables_set">
+                      <field name="VAR" id="var_number">number</field>
+                      <value name="VALUE">
+                        <block type="math_arithmetic">
+                          <field name="OP">ADD</field>
+                          <value name="A"><block type="variables_get"><field name="VAR" id="var_number">number</field></block></value>
+                          <value name="B"><block type="math_number"><field name="NUM">4</field></block></value>
+                        </block>
+                      </value>
+                      <next>
+                        <block type="text_print">
+                          <value name="TEXT"><block type="variables_get"><field name="VAR" id="var_number">number</field></block></value>
+                        </block>
+                      </next>
+                    </block>
+                  </reference>
+                </mutation>
+              </block>
+            </statement>
+            <next>
+              <block type="text_print" id="print_3">
+                <value name="TEXT">
+                  <block type="text" id="text_2"><field name="TEXT">Done!</field></block>
+                </value>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+  <tests>
+    <test>
+      <output>4</output><output>8</output><output>12</output><output>16</output><output>20</output><output>Done!</output>
+    </test>
+  </tests>
+</xml>

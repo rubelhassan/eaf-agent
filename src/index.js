@@ -17,6 +17,22 @@ import {InputBuilder} from "./agent/input_builder";
 import {PromptBuilder} from "./agent/prompt_builder";
 import {AgentActor} from "./agent/agent_actor";
 import {AgentController, createAgentController, Phase, Intent} from "./agent/agent_controller";
+import {
+  registerCustomBlocks,
+  attachCustomBlocks,
+  blockTypes,
+  withConnectionRulesSuspended,
+  Activity,
+  LearnerLevel,
+  getPolicy,
+  setPolicy,
+  onPolicyChange,
+  QuestionBlock,
+} from "./blocks/index.js";
+import {describeBlockLocation} from "./labels_and_comments/location.js";
+import {AgentError, AgentErrorCode} from "./agent/contracts.js";
+import {createFakeAgentServices} from "./agent/fake_services.js";
+import {createAgentServices} from "./agent/agent_services.js";
 
 
 export {
@@ -29,5 +45,19 @@ export {
   InputBuilder,
   PromptBuilder,
   AgentActor,
-  AgentController, createAgentController, Phase, Intent
+  AgentController, createAgentController, Phase, Intent,
+  registerCustomBlocks,
+  attachCustomBlocks,
+  blockTypes,
+  withConnectionRulesSuspended,
+  Activity,
+  LearnerLevel,
+  getPolicy,
+  setPolicy,
+  onPolicyChange,
+  QuestionBlock,
+  describeBlockLocation,
+  AgentError, AgentErrorCode,
+  createFakeAgentServices,
+  createAgentServices,
 };

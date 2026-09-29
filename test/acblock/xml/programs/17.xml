@@ -1,0 +1,108 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_health">health</variable>
+    </variables>
+    <block type="variables_set" id="set_3" x="10" y="30">
+        <field name="VAR" id="var_health">health</field>
+        <value name="VALUE">
+            <block type="math_number" id="num_10">
+                <field name="NUM">10</field>
+            </block>
+        </value>
+        <next>
+            <block type="controls_repeat_ext" id="repeat_1">
+                <value name="TIMES">
+                    <block type="math_number" id="num_3">
+                        <field name="NUM">3</field>
+                    </block>
+                </value>
+                <statement name="DO">
+                    <block type="text_print" id="print_1">
+                        <value name="TEXT">
+                            <block type="text" id="text_1">
+                                <field name="TEXT">Slime attack!</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_4">
+                                <field name="VAR" id="var_health">health</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="arith_1">
+                                        <field name="OP">MINUS</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_1">
+                                                <field name="VAR" id="var_health">health</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_3_damage">
+                                                <field name="NUM">3</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="text_print" id="print_2">
+                                        <value name="TEXT">
+                                            <block type="text_join" id="join_1">
+                                                <mutation items="2"></mutation>
+                                                <value name="ADD0">
+                                                    <block type="text" id="text_2">
+                                                        <field name="TEXT">Health left: </field>
+                                                    </block>
+                                                </value>
+                                                <value name="ADD1">
+                                                    <block type="variables_get" id="get_2">
+                                                        <field name="VAR" id="var_health">health</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </statement>
+                <next>
+                    <block type="controls_if" id="if_1">
+                        <mutation else="1"></mutation>
+                        <value name="IF0">
+                            <block type="logic_compare" id="compare_1">
+                                <field name="OP">GT</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_3">
+                                        <field name="VAR" id="var_health">health</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_0">
+                                        <field name="NUM">0</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO0">
+                            <block type="text_print" id="print_3">
+                                <value name="TEXT">
+                                    <block type="text" id="text_3">
+                                        <field name="TEXT">You survived the slimes!</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                        <statement name="ELSE">
+                            <block type="text_print" id="print_4">
+                                <value name="TEXT">
+                                    <block type="text" id="text_4">
+                                        <field name="TEXT">Game Over!</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

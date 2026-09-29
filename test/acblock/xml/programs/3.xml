@@ -1,0 +1,36 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <block type="text_print" id="print_1" x="60" y="60">
+        <value name="TEXT">
+            <block type="text" id="text_1">
+                <field name="TEXT">Clap!</field>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_2">
+                <value name="TEXT">
+                    <block type="text" id="text_2">
+                        <field name="TEXT">Stomp!</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_3">
+                        <value name="TEXT">
+                            <block type="text" id="text_3">
+                                <field name="TEXT">Clap!</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_4">
+                                <value name="TEXT">
+                                    <block type="text" id="text_4">
+                                        <field name="TEXT">Yay!</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>
