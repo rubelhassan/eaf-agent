@@ -1,13 +1,13 @@
 /**
  * Blockly Neon - Main Orchestrator
- * Coordinates panel, voice, chat, and state to provide an accessible AI assistant
+ * Coordinates the panel, chat, voice conversation and the assistant. Replies are spoken by the output manager
+ * in the assistant's voice.
  */
 
 import { PilotState, VoiceState } from './pilot_state.js';
 import { PilotPanel } from './pilot_panel.js';
-import { PilotVoice, ConversationState } from './pilot_voice.js';
 import { PilotChat, ActionType } from './pilot_chat.js';
-import { PilotMiddleware, createContext, createResult, dummyCommandMiddleware } from './pilot_middleware.js';
+import { PilotMiddleware, createContext } from './pilot_middleware.js';
 
 /**
  * BlocklyPilot - Main orchestrator class
@@ -16,24 +16,36 @@ export class BlocklyPilot {
     /**
      * @param {Object} options
      * @param {Blockly.WorkspaceSvg} options.workspace - The Blockly workspace
-     * @param {AgentController} options.agentController - Agent controller instance
+     * @param {Object} options.assistant - From createCoordinator (src/interaction/coordinator.js)
+     * @param {Object} options.output - From createOutputManager (src/output/output_manager.js)
+     * @param {?Object} options.recognizer - A Recognizer (src/voice/engines.js), or null without voice
+     * @param {function(): !Array<string>} [options.hotwords] - Words the recognizer should favour
+     * @param {Object} [options.voice] - More options for the conversation controller (vad, spotter, fallback,
+     *     settings, isBusy, isWaiting, onEvent, mark)
      */
-    constructor({ workspace, agentController }) {
+    constructor({ workspace, assistant, output, recognizer = null, hotwords = () => [], voice = {} }) {
         if (!workspace) {
             throw new Error('BlocklyPilot requires a workspace');
         }
-        if (!agentController) {
-            throw new Error('BlocklyPilot requires an agentController');
+        if (!assistant) {
+            throw new Error('BlocklyPilot requires an assistant');
+        }
+        if (!output) {
+            throw new Error('BlocklyPilot requires an output manager');
         }
 
         this.workspace = workspace;
-        this.agentController = agentController;
+        this.assistant = assistant;
+        this.output = output;
+        this.recognizer = recognizer;
+        this.hotwords = hotwords;
+        this.voiceOptions = voice;
 
         // Create modules
         this.state = new PilotState();
         this.panel = new PilotPanel({ state: this.state });
-        this.voice = new PilotVoice({ state: this.state });
         this.chat = null; // Created after panel init
+        this.conversation = null;
 
         // Middleware pipeline for business logic
         this.middleware = new PilotMiddleware();
@@ -41,16 +53,13 @@ export class BlocklyPilot {
         // Bound handlers
         this.boundKeyHandler = null;
 
-        // track input medium
-        this.inputMedium = 'text'; // 'text' | 'voice'
+        // Called after each reply is shown (the host resets the navigation lock's message)
+        this.onReply = null;
 
-        // "Neon is working" update timer during long API waits
+        // "Still working" updates while a spoken request waits for its reply
         this.workingUpdateTimer = null;
         this.workingUpdateInterval = 10000; // 10 seconds
-        this.isWorkingUpdateActive = false;
-
-        // Track if voice greeting has been given this session
-        this.hasGivenVoiceGreeting = false;
+        this.requestCount = 0;
     }
 
     /**
@@ -60,15 +69,6 @@ export class BlocklyPilot {
      */
     use(hook) {
         return this.middleware.before(hook);
-    }
-
-    /**
-     * Register an "after" middleware hook
-     * @param {Function} hook - async (context, result) => result | void
-     * @returns {Function} Unregister function
-     */
-    useAfter(hook) {
-        return this.middleware.after(hook);
     }
 
     /**
@@ -83,8 +83,9 @@ export class BlocklyPilot {
      * Initialize the pilot
      */
     init() {
-        // Initialize panel first (creates DOM)
+        // Initialize panel first (creates DOM); its messages go through the output manager
         this.panel.init();
+        this.panel.speak = (text) => this.output.say({ source: 'system', text });
 
         // Initialize chat with container from panel
         this.chat = new PilotChat({
@@ -93,33 +94,50 @@ export class BlocklyPilot {
         });
         this.chat.init();
 
-        // Initialize voice
-        this.voice.init();
+        // The text box is the draft: spoken words are added to it, typing fixes them.
+        this.conversation = createConversationController({
+            ...this.voiceOptions,
+            output: this.output,
+            recognizer: this.recognizer,
+            draft: {
+                value: () => this.panel.inputTextarea.value,
+                set: (text) => {
+                    this.panel.setInputValue(text);
+                    if (text) this.focusDraft();
+                },
+                setPartial: (text) => {
+                    this.panel.setPartial(text);
+                    if (text) this.focusDraft();
+                },
+            },
+            submit: (text, medium) => this.handleUserInput(text, medium),
+            hotwords: this.hotwords,
+            onState: (state) => this.showVoiceState(state),
+            onMicrophoneState: (state) => {
+                const on = state !== 'off';
+                this.panel.voiceButton.setAttribute('aria-pressed', String(on));
+                this.panel.voiceButton.setAttribute('aria-label', on ? 'Turn microphone off' : 'Turn microphone on');
+                this.panel.voiceButton.setAttribute('title', on ? 'Turn microphone off' : 'Turn microphone on');
+                const status = {off: 'Microphone off', starting: 'Voice is loading', listening: 'Listening', wake: 'Listening for Hey Neon'};
+                this.panel.setVoiceStatus(status[state]);
+            },
+        });
+
+        // Typing in the draft keeps a voice session from going idle
+        this.panel.inputTextarea.addEventListener('input', () => this.conversation.noteActivity());
 
         // Wire up panel callbacks
-        this.panel.onSend = (text) => this.handleUserInput(text, 'text');
-        this.panel.onVoiceToggle = () => this.handleVoiceToggle();
+        this.panel.onSend = () => this.conversation.send();
+        this.panel.onVoiceToggle = () => this.conversation.toggleMicrophone();
         this.panel.onClose = () => this.close();
         this.panel.onClear = () => this.chat.clear();
         this.panel.onToggle = () => this.toggle();
-
-        // Wire up voice callbacks
-        this.voice.onResult = (transcript) => this.handleVoiceResult(transcript);
-        this.voice.onError = (message) => this.handleVoiceError(message);
-        this.voice.onWakeWordDetected = (phrase) => this.handleWakeWordDetected(phrase);
-        this.voice.onPartialResult = (partial) => this.handlePartialVoiceResult(partial);
-        this.voice.onSilenceTimeout = () => this.handleSilenceTimeout();
-        this.voice.onDirectInput = (transcript) => this.handleDirectVoiceInput(transcript);
-        this.voice.onConversationStateChange = (state) => this.handleConversationStateChange(state);
 
         // Wire up chat action callback
         this.chat.onAction = (action, messageIndex) => this.handleAction(action, messageIndex);
 
         // Bind global keyboard shortcuts
         this.bindKeyboardShortcuts();
-
-        // TODO: rubel middleware
-        // this.middleware.before(dummyCommandMiddleware().before);
 
         console.log('[BlocklyPilot] Initialized');
     }
@@ -130,6 +148,13 @@ export class BlocklyPilot {
      */
     bindKeyboardShortcuts() {
         this.boundKeyHandler = (e) => {
+            // Ctrl+Enter (Cmd+Enter on a Mac) sends the draft from anywhere
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && this.state.panelVisible) {
+                e.preventDefault();
+                this.conversation.send();
+                return;
+            }
+
             // Shift+P to toggle panel
             if (e.shiftKey && (e.key === 'p' || e.key === 'P')) {
                 e.preventDefault();
@@ -137,27 +162,88 @@ export class BlocklyPilot {
                 return;
             }
 
-            // Escape to close
+            // Escape in the text box empties a draft; otherwise it closes the panel (a working task is stopped
+            // by the assistant keys first). In a voice conversation it goes back to the workspace, keeping the draft.
             if (e.key === 'Escape' && this.state.panelVisible) {
                 e.preventDefault();
+                if (e.target === this.panel.inputTextarea && this.inConversation()) {
+                    this.focusWorkspace();
+                    return;
+                }
+                if (e.target === this.panel.inputTextarea && this.panel.inputTextarea.value.trim()) {
+                    this.conversation.discard();
+                    return;
+                }
                 this.close();
                 return;
             }
 
-            // Ctrl+Shift+V to open panel (if closed) and toggle voice
-            if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+            // Ctrl+Shift+V starts or ends a voice conversation (opening the panel if needed)
+            if (e.ctrlKey && e.shiftKey && (e.key === 'V' || e.key === 'v')) {
                 e.preventDefault();
-                // Open panel if not visible
                 if (!this.state.panelVisible) {
                     this.open();
                 }
-                // Activate voice after panel opens
-                setTimeout(() => this.activateVoiceWithGreeting(), 100);
+                this.conversation.toggle();
                 return;
             }
         };
 
         document.addEventListener('keydown', this.boundKeyHandler);
+    }
+
+    inConversation() {
+        return this.conversation.state() === SessionState.ACTIVE;
+    }
+
+    /**
+     * In a voice conversation the text box has focus while the learner talks and the assistant answers, so Enter
+     * sends; the workspace gets it back when the exchange ends.
+     * @private
+     */
+    focusDraft() {
+        clearTimeout(this.returnTimer);
+        this.offReturn?.();
+        if (this.inConversation() && document.activeElement !== this.panel.inputTextarea) this.panel.focusInput();
+    }
+
+    /** @private */
+    focusWorkspace() {
+        this.workspace.getParentSvg()?.focus();
+    }
+
+    /**
+     * After a reply that doesn't wait for an answer has been spoken, focus goes back to the same place in the
+     * workspace (the cursor stays where it was), unless the learner has started a new message.
+     * @private
+     */
+    returnAfterSpeech() {
+        this.offReturn?.();
+        let spoke = this.output.state() === 'speaking';
+        const back = () => {
+            this.offReturn?.();
+            const box = this.panel.inputTextarea;
+            if (this.inConversation() && document.activeElement === box && !box.value.trim()) this.focusWorkspace();
+        };
+        const off = this.output.onState((s) => {
+            if (s === 'speaking') spoke = true;
+            else if (spoke) back();
+        });
+        this.offReturn = () => {
+            off();
+            clearTimeout(this.returnTimer);
+            this.offReturn = null;
+        };
+        // Nothing to speak (e.g. "go there" moved the cursor): back at once.
+        this.returnTimer = setTimeout(() => !spoke && back(), 300);
+    }
+
+    /**
+     * Ctrl+Shift+I: stop the assistant voice and listen (opening the panel if needed).
+     */
+    talk() {
+        if (!this.state.panelVisible) this.open();
+        this.conversation.talk();
     }
 
     /**
@@ -171,10 +257,8 @@ export class BlocklyPilot {
      * Close the pilot panel
      */
     close() {
-        // Stop any voice activity
-        this.voice.stopListening();
-        this.voice.stopSpeaking();
-
+        this.conversation.end();
+        this.output.interrupt();
         this.state.panelVisible = false;
     }
 
@@ -190,6 +274,29 @@ export class BlocklyPilot {
     }
 
     /**
+     * The voice button and status line follow the conversation's state.
+     * @param {string} state - SessionState value
+     * @private
+     */
+    showVoiceState(state) {
+        if (state === SessionState.STARTING) {
+            this.state.voiceState = VoiceState.PROCESSING;
+            this.panel.setVoiceStatus('Voice is loading');
+        } else if (state === SessionState.ACTIVE) {
+            this.state.voiceState = VoiceState.LISTENING;
+            this.panel.setVoiceStatus('Listening');
+            // The first time the assistant itself says "I'm listening."
+            if (this.listenedBefore) this.panel.announce('Listening');
+            this.listenedBefore = true;
+        } else {
+            const wasListening = this.state.voiceState === VoiceState.LISTENING;
+            this.state.voiceState = VoiceState.IDLE;
+            this.panel.setVoiceStatus(wasListening ? 'Stopped listening' : '');
+            if (wasListening) this.panel.announce('Stopped listening');
+        }
+    }
+
+    /**
      * Handle user input (from text or voice)
      * @param {string} text
      * @param {string} medium - 'text' | 'voice'
@@ -199,172 +306,37 @@ export class BlocklyPilot {
             return;
         }
 
-        this.inputMedium = medium;
-
         // Add user message to chat
         this.chat.addUserMessage(text);
 
-        // Process with agent controller (two-step flow)
-        await this.processWithAgent(text);
+        await this.processWithAgent(text, medium);
     }
 
     /**
-     * Check if there's a pending follow-up question
-     * @returns {boolean}
-     */
-    hasPendingFollowUp() {
-        return this.agentController?.hasPendingFollowUp() || false;
-    }
-
-    /**
-     * Process user input with the agent controller (two-step flow)
+     * Sends a request or an answer to the assistant and shows its reply.
      * @param {string} text
+     * @param {string} medium - 'text' | 'voice'
      * @private
      */
-    async processWithAgent(text) {
+    async processWithAgent(text, medium) {
+        const taskId = `request-${++this.requestCount}`;
         this.state.isProcessing = true;
         this.chat.showThinking();
-
-        // Create middleware context (mode will be set by AgentController)
-        let context = createContext({
-            input: text,
-            mode: null, // Will be determined by AgentController
-            workspace: this.workspace
-        });
-
+        let context = createContext({ input: text, mode: null, workspace: this.workspace });
         try {
-            // Run "before" middleware hooks
             context = await this.middleware.runBefore(context);
-
-            let result;
-
-            // Check if middleware wants to skip API
             if (context.skipApi && context.customResponse) {
-                console.log("[BlocklyPilot] Middleware provided custom response");
-                result = {
-                    phase: Phase.COMPLETE,
-                    wait: false,
-                    intent: context.mode,
-                    mode: context.mode,
-                    llmResponse: context.customResponse,
-                    actor: null,
-                    voiceLine: context.customResponse.voiceLine || null
-                };
-            } else {
-                console.log("[BlocklyPilot] Calling AgentController");
-
-                // Start "Neon is working" updates for voice users
-                if (this.inputMedium === 'voice') {
-                    this.startWorkingUpdates();
-                }
-
-                // Use AgentController's two-step flow (pass inputMedium for follow-up handling)
-                result = await this.agentController.process({
-                    userInput: text,
-                    workspace: this.workspace,
-                    inputMedium: this.inputMedium,
-                    onIntermediateResponse: (intermediate) => {
-                        this.handleIntermediateResponse(intermediate);
-                    }
-                });
-
-                // Stop working updates before speaking final response
-                this.stopWorkingUpdates();
-
-                console.log("Rubel: we have got result in pilot", { phase: result.phase, intent: result.intent, mode: result.mode, hasFollowUp: result.hasFollowUp });
-            }
-
-            // Handle CLARIFICATION intent differently
-            if (result.phase === Phase.CLARIFICATION) {
-                this.handleClarificationResponse(result);
+                this.displayReply({ say: context.customResponse.voiceLine || '', actions: [], expectsAnswer: false }, taskId);
                 return;
             }
-
-            // Handle FOLLOW_UP_ANSWER phase
-            if (result.phase === Phase.FOLLOW_UP_ANSWER) {
-                this.handleFollowUpAnswerResponse(result);
-                return;
-            }
-
-            // Handle ERROR phase
-            if (result.phase === Phase.ERROR) {
-                throw new Error(result.message);
-            }
-
-            // Store result for action buttons
-            this.state.lastResult = result;
-
-            // Build initial response
-            const responseText = this.buildResponseText(result);
-            const actions = this.buildActions(result);
-
-            // Create result object for "after" middleware
-            let middlewareResult = createResult({
-                result,
-                responseText,
-                actions,
-                speak: false
-            });
-
-            // Run "after" middleware hooks
-            middlewareResult = await this.middleware.runAfter(context, middlewareResult);
-
-            // Display final response (with follow-up question if present)
-            this.displayResponse(middlewareResult);
-
-        } catch (err) {
-            console.error('[BlocklyPilot] Agent error:', err);
-
-            // Stop working updates on error
+            if (medium === 'voice') this.startWorkingUpdates(taskId);
+            const reply = await this.assistant.ask(text);
             this.stopWorkingUpdates();
-
-            // Try custom error handler first
-            const customError = await this.middleware.handleError(err, context);
-
-            if (customError) {
-                this.chat.addAssistantMessage(customError.responseText, customError.actions || []);
-                this.panel.announce(customError.responseText);
-
-                if (this.inputMedium === 'voice') {
-                    const wasListening = !!this.voice?.isListening;
-                    if (wasListening) this.voice.stopListening();
-                    this.voice.speak('Error processing request').finally(() => {
-                        // Wait 2.5s after speaking before resuming listening
-                        if (wasListening) {
-                            setTimeout(() => {
-                                if (this.voice.isConversationActive() && !this.voice.isListening) {
-                                    this.voice.startListening();
-                                }
-                            }, 3000);
-                        }
-                    });
-                }
-
-            } else {
-                // Default error handling
-                const errorMessage = err.name === 'AbortError'
-                    ? 'Request was cancelled.'
-                    : `I encountered an error: ${err.message || 'Unknown error'}`;
-
-                this.chat.addAssistantMessage(errorMessage);
-                this.panel.announce('Error processing request');
-
-                if (this.inputMedium === 'voice') {
-                    const wasListening = !!this.voice?.isListening;
-                    if (wasListening) this.voice.stopListening();
-                    this.voice.speak(errorMessage).finally(() => {
-                        // Wait 2.5s after speaking before resuming listening
-                        if (wasListening) {
-                            setTimeout(() => {
-                                if (this.voice.isConversationActive() && !this.voice.isListening) {
-                                    this.voice.startListening();
-                                }
-                            }, 3000);
-                        }
-                    });
-                }
-            }
-
+            this.displayReply(reply, reply.taskId || taskId);
+        } catch (err) {
+            this.stopWorkingUpdates();
+            const custom = await this.middleware.handleError(err, context);
+            this.displayReply({ say: custom?.responseText || 'Sorry, something went wrong. Please try again.', actions: [], expectsAnswer: false }, taskId, 'error');
         } finally {
             this.state.isProcessing = false;
             this.chat.hideThinking();
@@ -372,575 +344,76 @@ export class BlocklyPilot {
     }
 
     /**
-     * Handle follow-up answer response from AgentController
-     * @param {Object} result
+     * Shows a reply in the chat and speaks it in the assistant's voice. Its commands become buttons.
+     * @param {{say: string, actions: !Array<{name: string, label: string}>, expectsAnswer: boolean, kind?: string,
+     *     taskId?: ?string}} reply
+     * @param {string=} taskId
+     * @param {string=} kind - for the output manager; the reply's own kind by default
      * @private
      */
-    handleFollowUpAnswerResponse(result) {
-        console.log('[BlocklyPilot] Follow-up answer response:', result);
-
-        // Hide thinking indicator
-        this.chat.hideThinking();
-        this.state.isProcessing = false;
-
-        // Show response message
-        this.chat.addAssistantMessage(result.message, []);
-        this.panel.announce(result.message);
-
-        // If re-asking the follow-up (unclear answer), keep follow-up mode active for voice
-        if (result.reAskFollowUp && this.inputMedium === 'voice') {
-            console.log('[BlocklyPilot] Re-asking follow-up question, keeping follow-up mode');
-            this.voice.enableFollowUpMode();
-        } else {
-            // Disable follow-up mode since the answer was processed
-            this.voice.disableFollowUpMode();
+    displayReply(reply, taskId = null, kind = null) {
+        const actions = reply.actions.map((a) => ({ type: ActionType.COMMAND, name: a.name, label: a.label }));
+        this.onReply?.(reply);
+        if (this.inConversation()) {
+            if (reply.say) this.focusDraft();
+            if (!reply.expectsAnswer) this.returnAfterSpeech();
         }
-
-        // Speak for voice users
-        if (this.inputMedium === 'voice') {
-            // Stop listening while speaking
-            if (this.voice.isListening) {
-                this.voice.stopListening();
-            }
-
-            this.voice.speak(result.message).finally(() => {
-                // Auto-start listening after TTS if conversation is active
-                // Wait 3 seconds to avoid picking up echo/residual audio
-                if (this.voice.isConversationActive()) {
-                    setTimeout(() => {
-                        if (this.voice.isConversationActive() && !this.voice.isListening) {
-                            this.voice.startListening();
-                        }
-                    }, 3000);
-                }
-            });
-        }
-
-        // Clear voice status
-        this.panel.setVoiceStatus('');
+        if (!reply.say) return;
+        this.chat.addAssistantMessage(reply.say, actions);
+        const said = kind || reply.kind || 'answer';
+        this.voiceOptions.onEvent?.('ai.said', { replyKind: said, text: reply.say, taskId: reply.taskId || null });
+        this.output.say({ source: 'ai', kind: said, text: reply.say, taskId: taskId || reply.taskId || null });
     }
 
     /**
-     * Handle intermediate response from AgentController
-     * @param {Object} intermediate
-     * @private
+     * A command from a key or button: yes, all, stop, undo, repeat, go.
+     * @param {string} name
+     * @param {string=} input - 'key' or 'button'
      */
-    handleIntermediateResponse(intermediate) {
-        console.log('[BlocklyPilot] Intermediate response:', intermediate);
-
-        // Update UI to show what intent was detected
-        if (intermediate.phase === Phase.INTENT_DETECTED && intermediate.wait) {
-            // Show intent detection message in voice status
-            this.panel.setVoiceStatus(intermediate.message);
-
-            // Announce to screen readers
-            this.panel.announce(intermediate.message);
-
-            // Speak for voice users
-            if (this.inputMedium === 'voice') {
-                // Don't wait for speech to complete since we're still processing
-                this.voice.speak(intermediate.message);
-            }
-        }
+    async runCommand(name, input = 'key') {
+        this.voiceOptions.onEvent?.('message.submitted', { input, text: name });
+        this.displayReply(await this.assistant.act(name));
     }
 
     /**
-     * Handle CLARIFICATION response from AgentController
-     * @param {Object} result
-     * @private
+     * A line to say while a task works (e.g. the program changed and the assistant checks again).
+     * @param {string} text
+     * @param {string} taskId
      */
-    handleClarificationResponse(result) {
-        console.log('[BlocklyPilot] Clarification needed:', result);
-
-        // Hide thinking indicator
-        this.chat.hideThinking();
-        this.state.isProcessing = false;
-
-        // Show clarification question as assistant message
-        this.chat.addAssistantMessage(result.message, []);
-        this.panel.announce(result.message);
-
-        // Speak for voice users — auto-listen since we're asking a question
-        if (this.inputMedium === 'voice') {
-            // Stop listening while speaking
-            if (this.voice.isListening) {
-                this.voice.stopListening();
-            }
-
-            // Activate conversation silently since we're about to speak
-            this.voice.activateConversation(true);
-
-            this.voice.speak(result.message).finally(() => {
-                // Auto-start listening after TTS finishes
-                // Wait 3 seconds to avoid picking up echo/residual audio
-                setTimeout(() => {
-                    if (this.voice.isConversationActive() && !this.voice.isListening) {
-                        this.voice.startListening();
-                    }
-                }, 3000);
-            });
-        }
-
-        // Clear voice status
-        this.panel.setVoiceStatus('');
+    sayProgress(text, taskId) {
+        this.voiceOptions.onEvent?.('ai.said', { replyKind: 'progress', text, taskId });
+        this.output.say({ source: 'ai', kind: 'progress', text, taskId });
     }
 
     /**
-     * Build response text from agent result
-     * @param {Object} result
-     * @returns {string}
-     * @private
-     */
-    buildResponseText(result) {
-        const { mode, intent, llmResponse, voiceLine } = result;
-        console.log('Rubel: [BlocklyPilot] llmResponse:', llmResponse);
-        const effectiveMode = mode || intent;
-
-        let responseText = '';
-
-        const noIssuesMessage = 'No issues found at the current location.';
-
-        // Voice interaction: always use voiceLine for all modes
-        if (this.inputMedium === 'voice') {
-            if (effectiveMode === Intent.DEBUG) {
-                const hasIssues = llmResponse?.diagnostics?.issues?.length > 0;
-                responseText = hasIssues ? (voiceLine || noIssuesMessage) : (voiceLine || noIssuesMessage);
-            } else {
-                responseText = voiceLine || '';
-            }
-        } else {
-            // Text interaction: use mode-specific content
-            if (effectiveMode === Intent.COMPREHEND) {
-                // For COMPREHEND with text input, prefer comprehension.summary
-                responseText = llmResponse?.comprehension?.summary || voiceLine || '';
-            } else if (effectiveMode === Intent.DEBUG) {
-                // For DEBUG with text input, use diagnostics.issues[0].message
-                const issues = llmResponse?.diagnostics?.issues;
-                if (issues && issues.length > 0) {
-                    responseText = issues[0].message || voiceLine || '';
-                } else {
-                    responseText = noIssuesMessage;
-                }
-            } else {
-                // For EDIT_GUIDE with text input, use voiceLine
-                responseText = voiceLine || '';
-            }
-        }
-
-        // Fallbacks if responseText is still empty
-        if (!responseText && llmResponse) {
-            if (effectiveMode === Intent.COMPREHEND && llmResponse.summary) {
-                responseText = llmResponse.summary;
-            }
-
-            if (effectiveMode === Intent.EDIT_GUIDE) {
-                const steps = llmResponse.editPlan?.steps?.length || 0;
-                if (steps > 0) {
-                    responseText = `I have ${steps} edit step(s) for your program.`;
-                }
-            }
-        }
-
-        return responseText || 'I analyzed your blocks. Let me know if you have any questions!';
-    }
-
-    /**
-     * Display the final response after middleware processing
-     * @param {Object} middlewareResult
-     * @private
-     */
-    displayResponse(middlewareResult) {
-        const { result, responseText, actions, speak } = middlewareResult;
-
-        // Build full response text including follow-up question
-        let fullResponseText = responseText;
-        if (result?.hasFollowUp && result?.followUpQuestion) {
-            fullResponseText = `${responseText}\n\n${result.followUpQuestion}`;
-        }
-
-        // Add assistant message
-        this.chat.addAssistantMessage(fullResponseText, actions);
-
-        // Announce to screen reader
-        this.panel.announce(fullResponseText);
-
-        // Clear voice status
-        this.panel.setVoiceStatus('');
-
-        // Enable follow-up mode for voice if there's a follow-up question
-        if (result?.hasFollowUp && this.inputMedium === 'voice') {
-            this.voice.enableFollowUpMode();
-            console.log('[BlocklyPilot] Follow-up mode enabled for voice input');
-        }
-
-        // Speak if medium is voice
-        const shouldSpeakForVoiceUser = (this.inputMedium === 'voice');
-
-        if (shouldSpeakForVoiceUser) {
-            // Stop listening while speaking to avoid recognizer picking up TTS
-            if (this.voice.isListening) {
-                this.voice.stopListening();
-            }
-
-            this.voice.speak(fullResponseText).finally(() => {
-                // Auto-start listening after TTS finishes if conversation is active
-                // Wait 3 seconds to avoid picking up echo/residual audio
-                if (this.voice.isConversationActive()) {
-                    setTimeout(() => {
-                        // Double-check conversation is still active before starting
-                        if (this.voice.isConversationActive() && !this.voice.isListening) {
-                            this.voice.startListening();
-                        }
-                    }, 3000);
-                }
-            });
-        } else if (speak && result?.voiceLine) {
-            this.voice.speak(result.voiceLine);
-        }
-    }
-
-    /**
-     * Build action buttons based on agent result
-     * @param {Object} result
-     * @returns {Array}
-     * @private
-     */
-    buildActions(result) {
-        const actions = [];
-        const { mode, intent, llmResponse, actor } = result;
-        const effectiveMode = mode || intent;
-
-        // Always offer "hear again" if there's a voice line
-        if (result.voiceLine) {
-            actions.push({
-                type: ActionType.HEAR_AGAIN,
-                label: 'Hear again'
-            });
-        }
-
-        // Check for patches in various locations
-        const hasPatches = llmResponse?.patches?.length > 0 ||
-                           llmResponse?.diagnostics?.proposedFixes?.length > 0 ||
-                           llmResponse?.editPlan?.steps?.some(s => s.patch);
-
-        // Add mode-specific actions
-        if (effectiveMode === Intent.DEBUG && hasPatches) {
-            actions.push({
-                type: ActionType.APPLY_FIX,
-                label: 'Apply fix'
-            });
-        }
-
-        if (effectiveMode === Intent.EDIT_GUIDE && hasPatches) {
-            actions.push({
-                type: ActionType.APPLY_SUGGESTION,
-                label: 'Apply suggestion'
-            });
-        }
-
-        return actions;
-    }
-
-    /**
-     * Handle action button click
+     * A reply's button: the same command as saying it.
      * @param {Object} action
-     * @param {number} messageIndex
      * @private
      */
-    async handleAction(action, messageIndex) {
-        const result = this.state.lastResult;
-
-        switch (action.type) {
-            case ActionType.HEAR_AGAIN:
-                if (result?.voiceLine) {
-                    await this.voice.speak(result.voiceLine);
-                }
-                break;
-
-            case ActionType.APPLY_FIX:
-            case ActionType.APPLY_SUGGESTION: {
-                if (!result?.actor || !result?.llmResponse) break;
-
-                const isFix = action.type === ActionType.APPLY_FIX;
-                const label = isFix ? 'fix' : 'suggestion';
-
-                // Collect patches from the correct response shape
-                const items = isFix
-                    ? (result.llmResponse.diagnostics?.proposedFixes?.filter(f => f.patch) || [])
-                    : (result.llmResponse.editPlan?.steps?.filter(s => s.patch) || []);
-
-                if (items.length === 0) {
-                    this.chat.addAssistantMessage(`No ${label}s found to apply.`);
-                    break;
-                }
-
-                try {
-                    let appliedCount = 0;
-                    let skippedCount = 0;
-                    for (const item of items) {
-                        const res = result.actor.applyPatch(item.patch);
-                        console.log("rubel: res: " + JSON.stringify(res));
-                        if (res.skipped) {
-                            skippedCount++;
-                        } else if (res.applied) {
-                            appliedCount++;
-                        }
-                    }
-
-                    if (appliedCount > 0) {
-                        this.chat.addAssistantMessage(`Applied ${appliedCount} ${label}(s) to your workspace.`);
-                        this.panel.announce(`Applied ${appliedCount} ${label}s`);
-                    } else if (skippedCount > 0) {
-                        this.chat.addAssistantMessage(`These ${label}s were already applied.`);
-                    } else {
-                        this.chat.addAssistantMessage(`No changes were needed.`);
-                    }
-                } catch (err) {
-                    console.error('[BlocklyPilot] Error applying patches:', err);
-                    this.chat.addAssistantMessage(`Could not apply changes: ${err.message}`);
-                }
-                break;
-            }
-        }
+    async handleAction(action) {
+        if (action.type !== ActionType.COMMAND || this.state.isProcessing) return;
+        await this.runCommand(action.name, 'button');
     }
 
     /**
-     * Handle voice toggle
+     * Says "I'm still working on it." every 10 seconds until the reply comes; the reply replaces a waiting one.
+     * @param {string} taskId
      * @private
      */
-    handleVoiceToggle() {
-        if (!PilotVoice.isRecognitionSupported()) {
-            this.panel.announce('Voice input is not supported in this browser.');
-            return;
-        }
-
-        this.voice.toggleListening();
-    }
-
-    /**
-     * Activate voice input with a greeting (for first-time activation)
-     * @private
-     */
-    activateVoiceWithGreeting() {
-        if (!PilotVoice.isRecognitionSupported()) {
-            this.panel.announce('Voice input is not supported in this browser.');
-            return;
-        }
-
-        // If already listening, do nothing
-        if (this.voice.isListening) {
-            return;
-        }
-
-        // Give greeting on first voice activation
-        if (!this.hasGivenVoiceGreeting) {
-            this.hasGivenVoiceGreeting = true;
-
-            const greeting = "Hi, I'm Neon. How can I help you?";
-            this.panel.announce(greeting);
-
-            // Activate conversation silently since we're about to speak greeting
-            this.voice.activateConversation(true);
-
-            // Speak greeting, then start listening after delay
-            this.voice.speak(greeting).then(() => {
-                // Wait 3 seconds after greeting before starting to listen
-                setTimeout(() => {
-                    if (this.voice.isConversationActive() && !this.voice.isListening) {
-                        this.voice.startListening();
-                    }
-                }, 3000);
-            });
-        } else {
-            // Already greeted - activate with beep and start listening
-            this.voice.activateConversation();
-            this.voice.startListening();
-        }
-    }
-
-    /**
-     * Handle wake word detection
-     * @param {string} phrase - The wake phrase that was detected
-     * @private
-     */
-    handleWakeWordDetected(phrase) {
-        this.panel.setVoiceStatus('Neon is listening...');
-        this.panel.announce('Neon is listening');
-    }
-
-    /**
-     * Handle silence timeout - user stopped speaking
-     * @private
-     */
-    handleSilenceTimeout() {
-        this.panel.setVoiceStatus('Processing...');
-    }
-
-    /**
-     * Handle partial voice recognition result (interim)
-     * @param {string} partial
-     * @private
-     */
-    handlePartialVoiceResult(partial) {
-        // Show partial transcript in voice status for feedback
-        if (this.voice.hasWakePhrase(partial)) {
-            this.panel.setVoiceStatus(`Hearing: "${partial}"`);
-        }
-    }
-
-    /**
-     * Handle voice recognition result
-     * @param {string} transcript
-     * @param {boolean} [isDirectInput=false] - If true, skip wake word check (for follow-up mode)
-     * @private
-     */
-    handleVoiceResult(transcript, isDirectInput = false) {
-        // Clear voice status
-        this.panel.setVoiceStatus('');
-
-        // Empty transcript means wake word only - prompt user (unless in direct input mode)
-        if (!transcript && !isDirectInput) {
-            this.panel.announce('Yes? How can I help you?');
-            this.panel.setVoiceStatus('Say your command...');
-            setTimeout(() => this.panel.setVoiceStatus(''), 3000);
-            return;
-        }
-
-        // If empty in direct input mode (follow-up), treat as unclear
-        if (!transcript && isDirectInput) {
-            console.log('[BlocklyPilot] Empty voice input in follow-up mode');
-            return;
-        }
-
-        // Show transcript in input briefly, then process
-        this.panel.setInputValue(transcript);
-
-        // Small delay so user can see what was recognized
-        setTimeout(() => {
-            this.handleUserInput(transcript, 'voice');
-            this.panel.setInputValue('');
-        }, 500);
-    }
-
-    /**
-     * Handle raw voice input (called when wake word is skipped for follow-up)
-     * @param {string} transcript
-     * @private
-     */
-    handleDirectVoiceInput(transcript) {
-        console.log('[BlocklyPilot] Direct voice input (follow-up mode):', transcript);
-        this.handleVoiceResult(transcript, true);
-    }
-
-    /**
-     * Handle voice recognition error
-     * @param {string} message
-     * @private
-     */
-    handleVoiceError(message) {
-        this.panel.announce(message);
-        this.panel.setVoiceStatus(message);
-
-        // Clear status after delay
-        setTimeout(() => {
-            this.panel.setVoiceStatus('');
-        }, 3000);
-    }
-
-    /**
-     * Handle conversation state change (ACTIVE/INACTIVE)
-     * @param {string} state - ConversationState.ACTIVE or ConversationState.INACTIVE
-     * @private
-     */
-    handleConversationStateChange(state) {
-        console.log('[BlocklyPilot] Conversation state changed:', state);
-
-        if (state === ConversationState.ACTIVE) {
-            this.panel.setVoiceStatus('Neon is listening...');
-        } else if (state === ConversationState.INACTIVE) {
-            this.panel.setVoiceStatus('');
-            // Clear any pending working updates when deactivating
-            this.stopWorkingUpdates();
-        }
-    }
-
-    // ========= "Neon is working" Updates =========
-
-    /**
-     * Start the "Neon is working" update timer
-     * Speaks "I'm working on it" every 10s while waiting for API
-     * @private
-     */
-    startWorkingUpdates() {
-        this.stopWorkingUpdates(); // Clear any existing timer
-
-        // Ensure listening is stopped during processing to prevent TTS capture
-        if (this.voice.isListening) {
-            this.voice.stopListening();
-        }
-
-        this.isWorkingUpdateActive = true;
-
-        // First update after 10 seconds
-        this.workingUpdateTimer = setTimeout(() => {
-            this.speakWorkingUpdate();
+    startWorkingUpdates(taskId) {
+        this.stopWorkingUpdates();
+        this.workingUpdateTimer = setInterval(() => {
+            this.output.say({ source: 'ai', kind: 'progress', text: "I'm still working on it.", taskId });
         }, this.workingUpdateInterval);
-
-        console.log('[BlocklyPilot] Started working updates timer');
     }
 
     /**
-     * Speak a working update and schedule the next one
-     * @private
-     */
-    speakWorkingUpdate() {
-        if (!this.isWorkingUpdateActive) {
-            return;
-        }
-
-        console.log('[BlocklyPilot] Speaking working update');
-
-        // Ensure listening is stopped to prevent TTS from being captured
-        if (this.voice.isListening) {
-            this.voice.stopListening();
-        }
-
-        // Speak the update (don't await - let it run in background)
-        // Note: Don't resume listening after working update - only after final response
-        this.voice.speak("I'm working on it.").then(() => {
-            // Schedule next update after speaking completes
-            if (this.isWorkingUpdateActive) {
-                this.workingUpdateTimer = setTimeout(() => {
-                    this.speakWorkingUpdate();
-                }, this.workingUpdateInterval);
-            }
-        }).catch(() => {
-            // If speech fails, still schedule next update
-            if (this.isWorkingUpdateActive) {
-                this.workingUpdateTimer = setTimeout(() => {
-                    this.speakWorkingUpdate();
-                }, this.workingUpdateInterval);
-            }
-        });
-    }
-
-    /**
-     * Stop the "Neon is working" update timer
      * @private
      */
     stopWorkingUpdates() {
-        this.isWorkingUpdateActive = false;
-
         if (this.workingUpdateTimer) {
-            clearTimeout(this.workingUpdateTimer);
+            clearInterval(this.workingUpdateTimer);
             this.workingUpdateTimer = null;
-            console.log('[BlocklyPilot] Stopped working updates timer');
-        }
-
-        // Cancel any in-progress "working on it" speech to avoid overlap
-        // with the final response
-        if (this.voice.isSpeaking()) {
-            this.voice.stopSpeaking();
         }
     }
 
@@ -952,10 +425,9 @@ export class BlocklyPilot {
             document.removeEventListener('keydown', this.boundKeyHandler);
         }
 
-        // Clear working updates timer
         this.stopWorkingUpdates();
-
-        this.voice.dispose();
+        this.offReturn?.();
+        this.conversation.dispose();
         this.chat.dispose();
         this.panel.dispose();
 

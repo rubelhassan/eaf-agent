@@ -6,7 +6,6 @@
 export { BlocklyPilot } from './blockly_pilot.js';
 export { PilotState, VoiceState } from './pilot_state.js';
 export { PilotPanel } from './pilot_panel.js';
-export { PilotVoice, WAKE_PHRASES, ConversationState } from './pilot_voice.js';
 export { PilotChat, ActionType } from './pilot_chat.js';
 export {
     PilotMiddleware,

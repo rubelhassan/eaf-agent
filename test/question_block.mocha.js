@@ -36,7 +36,7 @@ import {checkScaffold, fallbackScaffold} from '../src/blocks/question/scaffold/r
 import {findSpots, gapPlan, rankSpots} from '../src/blocks/question/scaffold/spots.js';
 import {markAttempted, setPendingChoice} from '../src/blocks/question/session.js';
 import {AiHintService, aiHintLevels, buildHintRequest, checkHint} from '../src/blocks/question/ai_hints.js';
-import {createFakeAgentServices} from '../src/agent/fake_services.js';
+import {createFakeAgentServices} from '../src/agent/services/fake_services.js';
 import {getTaskTests, matchInOrder, runTests, setTaskTests} from '../src/blocks/question/task_tests.js';
 import {assess, learnerRunWarning, questionStatuses} from '../src/blocks/question/check.js';
 
@@ -852,6 +852,18 @@ suite('Question block', function() {
       assert.equal(getPolicy(ws).activity, Activity.QUIZ);
       assert.isTrue(isTaskBlock(ws.getBlockById('p1')));
       assert.isTrue(isTaskBlock(ws.getBlockById('q1')));
+    });
+
+    test('the whole-plan setting is saved with a task and read back, off by default', function() {
+      loadTaskXml(ws, TASK);
+      assert.isFalse(getPolicy(ws).wholePlan);
+      assert.notInclude(cleanTaskXml(ws), 'whole-plan');
+      setPolicy(ws, {wholePlan: true});
+      const saved = cleanTaskXml(ws);
+      assert.include(saved, 'whole-plan="true"');
+      setPolicy(ws, {wholePlan: false});
+      loadTaskXml(ws, saved);
+      assert.isTrue(getPolicy(ws).wholePlan);
     });
 
     test('learners cannot move or delete questions; teachers can', async function() {

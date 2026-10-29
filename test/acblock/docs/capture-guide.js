@@ -137,7 +137,7 @@ async function main() {
   // 6. Task tools in Settings.
   await settings(true);
   await page.evaluate(() => document.getElementById('teacherToolsRow').scrollIntoView({block: 'end'}));
-  await shot('task-tools', '#settingsPanel', ['#activitySelect', '#exportTaskBtn', '#importTaskBtn', '#makeScaffoldBtn', '#taskTestsBtn'], 4);
+  await shot('task-tools', '#settingsPanel', ['#activitySelect', '#wholePlanToggle', '#exportTaskBtn', '#importTaskBtn', '#makeScaffoldBtn', '#taskTestsBtn'], 4);
 
   // 7. Task tests dialog.
   await page.click('#taskTestsBtn');

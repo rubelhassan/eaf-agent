@@ -60,6 +60,45 @@ function openFromSettings(open) {
     open();
 }
 
+/**
+ * What the assistant reads from the app and may do in it: the cursor, the stack letters learners hear,
+ * moving to a block the learner asked for, and opening a question's help.
+ */
+function assistantView(workspace) {
+    return {
+        cursor() {
+            const node = workspace.getCursor()?.getCurNode();
+            if (!node) return { block: null };
+            if (node.getType() === Blockly.ASTNode.types.WORKSPACE) {
+                const at = node.getWsCoordinate();
+                return { block: null, at: at ? { x: at.x, y: at.y } : null };
+            }
+            if (node.getType() === Blockly.ASTNode.types.FIELD) {
+                const field = node.getLocation();
+                return { block: field.getSourceBlock()?.id || null, field: field.name || null };
+            }
+            return { block: node.getSourceBlock()?.id || null };
+        },
+        stackLetters: () => getStackLabelManager(workspace)?.stackLetters() || null,
+        // To a block, or back to a cursor taken earlier (a block, or a spot on empty workspace).
+        moveCursor(target, { focus = true } = {}) {
+            const where = typeof target === 'string' ? { block: target } : target;
+            const block = where.block && workspace.getBlockById(where.block);
+            let node = null;
+            if (block) node = Blockly.ASTNode.createBlockNode(block);
+            else if (where.at) node = Blockly.ASTNode.createWorkspaceNode(workspace, new Blockly.utils.Coordinate(where.at.x, where.at.y));
+            if (!node) return;
+            workspace.getCursor()?.setCurNode(node);
+            if (block) workspace.centerOnBlock(block.id);
+            if (focus) workspace.getParentSvg()?.focus();
+        },
+        openQuestion(id) {
+            const block = workspace.getBlockById(id);
+            if (block) blockTypes.activate(block, { workspace, speech: navController.speech });
+        },
+    };
+}
+
 function agentReady() {
     if (!window.eafAgent) throw new AgentError(AgentErrorCode.UNAVAILABLE, 'The agent is not ready yet.');
     return window.eafAgent;
@@ -84,6 +123,8 @@ function setupTeacherMode(workspace, runOnRun) {
     const toggle = document.getElementById('teacherModeToggle');
     const state = document.getElementById('teacherModeState');
     const activity = document.getElementById('activitySelect');
+    const wholePlan = document.getElementById('wholePlanToggle');
+    const voiceFallback = document.getElementById('voiceFallbackToggle');
     modeRow.hidden = false;
 
     const render = () => {
@@ -92,6 +133,10 @@ function setupTeacherMode(workspace, runOnRun) {
         state.textContent = on ? 'On' : 'Off';
         toolsRow.hidden = !on;
         activity.value = getPolicy(workspace).activity;
+        wholePlan.setAttribute('aria-checked', String(getPolicy(workspace).wholePlan));
+        document.getElementById('wholePlanState').textContent = getPolicy(workspace).wholePlan ? 'On' : 'Off';
+        voiceFallback.setAttribute('aria-checked', String(getPolicy(workspace).voiceFallback));
+        document.getElementById('voiceFallbackState').textContent = getPolicy(workspace).voiceFallback ? 'On' : 'Off';
         // Questions are ordinary blocks in teacher mode (nothing vanishes), so make the role obvious.
         const badge = document.getElementById('roleBadge');
         badge.hidden = false;
@@ -104,6 +149,8 @@ function setupTeacherMode(workspace, runOnRun) {
     };
     toggle.addEventListener('click', () => setPolicy(workspace, { teacherMode: !getPolicy(workspace).teacherMode }));
     activity.addEventListener('change', () => setPolicy(workspace, { activity: activity.value }));
+    wholePlan.addEventListener('click', () => setPolicy(workspace, { wholePlan: !getPolicy(workspace).wholePlan }));
+    voiceFallback.addEventListener('click', () => setPolicy(workspace, { voiceFallback: !getPolicy(workspace).voiceFallback }));
     onPolicyChange(workspace, (next, previous) => {
         if (next.teacherMode !== previous.teacherMode) workspace.updateToolbox(toolboxFor(next.teacherMode));
         render();
@@ -233,6 +280,8 @@ function loadXmlToWorkspace(workspace, xmlString) {
     try {
         // Loads with gap rules suspended, applies the file's activity (practice/quiz),
         // and records its blocks as the task (for quiz locks).
+        // A loaded program is not the learner's own work.
+        window.eafActivity?.ignoreUntilLoaded();
         QuestionBlock.loadTaskXml(workspace, xmlString);
         navController?.resetNavigation(workspace);
         document.getElementById('activitySelect').value = getPolicy(workspace).activity;
@@ -330,6 +379,8 @@ function initWorkspace() {
     nav.init();
     nav.addWorkspace(workspace);
     navController = nav;
+    // Speech and sound cues go through the output manager from here on.
+    window.eafOutput = setupOutput(workspace);
     // Keyboard navigation is on from the start: every key the walkthroughs teach needs it.
     nav.enable(workspace);
     setupNavToggle(workspace);
@@ -345,6 +396,8 @@ function initWorkspace() {
     // Question gap tracking and answer badges; announcements go through the screen reader speech.
     attachCustomBlocks(workspace, {
         announce: (text) => nav.speech.update(text),
+        // Hint events go to the event sender, which index.html sets up later.
+        onEvent: (kind, data) => window.eafEvents?.record(kind, data),
         // index.html sets window.eafAgent once the agent config has loaded.
         agent: {
             generateHint: (request, options) => agentReady().generateHint(request, options),
@@ -435,6 +488,7 @@ function generateCode(workspace = Blockly.getMainWorkspace()) {
  * after the normal run. Spoken too while keyboard navigation is on.
  */
 function runProgram(workspace, speech) {
+    window.eafActivity?.noteRun();
     // Close Blockly Pilot panel if open
     if (window.blocklyPilot && window.blocklyPilot.state.panelVisible) {
         window.blocklyPilot.close();

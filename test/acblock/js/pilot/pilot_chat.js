@@ -8,9 +8,12 @@
  * @enum {string}
  */
 export const ActionType = {
-    APPLY_FIX: 'apply_fix',
-    APPLY_SUGGESTION: 'apply_suggestion',
-    HEAR_AGAIN: 'hear_again'
+    /** An assistant command (yes, all, stop, undo, go, repeat); `name` says which. */
+    COMMAND: 'command'
+};
+
+const COMMAND_ICONS = {
+    yes: 'fa-check', all: 'fa-forward', stop: 'fa-stop', undo: 'fa-rotate-left', go: 'fa-location-arrow', repeat: 'fa-volume-up'
 };
 
 /**
@@ -132,7 +135,7 @@ export class PilotChat {
 
         actions.forEach((action) => {
             const btn = document.createElement('button');
-            btn.className = `pilot-action-btn pilot-action-btn--${action.type}`;
+            btn.className = `pilot-action-btn pilot-action-btn--${action.name || action.type}`;
             btn.setAttribute('type', 'button');
             btn.setAttribute('data-action', action.type);
             btn.setAttribute('data-message-index', messageIndex);
@@ -141,22 +144,7 @@ export class PilotChat {
             let icon = '';
             let label = action.label || '';
 
-            switch (action.type) {
-                case ActionType.APPLY_FIX:
-                    icon = '<i class="fas fa-wrench" aria-hidden="true"></i>';
-                    label = label || 'Apply fix';
-                    break;
-                case ActionType.APPLY_SUGGESTION:
-                    icon = '<i class="fas fa-lightbulb" aria-hidden="true"></i>';
-                    label = label || 'Apply suggestion';
-                    break;
-                case ActionType.HEAR_AGAIN:
-                    icon = '<i class="fas fa-volume-up" aria-hidden="true"></i>';
-                    label = label || 'Hear again';
-                    break;
-                default:
-                    icon = '<i class="fas fa-play" aria-hidden="true"></i>';
-            }
+            icon = `<i class="fas ${COMMAND_ICONS[action.name] || 'fa-play'}" aria-hidden="true"></i>`;
 
             btn.innerHTML = `${icon} <span>${label}</span>`;
             btn.setAttribute('aria-label', label);

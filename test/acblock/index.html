@@ -18,6 +18,7 @@
     <script src="./keyboard-navigation/index.js"></script>
     <script src="./js/Toolbox.js"></script>
     <script src="./js/key_overlay.js"></script>
+    <script src="./js/output.js"></script>
     <script src="./js/main.js"></script>
     <script src="./js/settings.js"></script>
     <script src="./js/teacher_guide.js"></script>
@@ -79,7 +80,12 @@
                             <button id="logPayloadBtn" class="settings-action" type="button">
                                 <i class="fas fa-terminal" aria-hidden="true"></i> Log payload
                             </button>
-                            <p class="settings-hint">Prints the workspace snapshot and agent request to the browser console.</p>
+                            <p class="settings-hint">Prints the program view the assistant would send now to the browser console.</p>
+                            <button id="logEventsToggle" class="settings-switch" type="button" role="switch" aria-checked="false">
+                                <span class="switch-track" aria-hidden="true"></span>
+                                Log events <strong id="logEventsState">Off</strong>
+                            </button>
+                            <p class="settings-hint">Prints the assistant's task events to the browser console, as they would go to the server log.</p>
                             <p id="settingsNote" class="settings-hint" role="status" aria-live="polite"></p>
                         </div>
                         <div class="settings-row">
@@ -90,6 +96,98 @@
                                 <option value="advanced">Advanced</option>
                             </select>
                             <p class="settings-hint">Beginners hear extra help, like which blocks fit a question.</p>
+                        </div>
+                        <div class="settings-row">
+                            <button id="pauseEditingToggle" class="settings-switch" type="button" role="switch" aria-checked="true">
+                                <span class="switch-track" aria-hidden="true"></span>
+                                Pause editing while the assistant works <strong id="pauseEditingState">On</strong>
+                            </button>
+                            <p class="settings-hint">While the assistant works, keys and the mouse don't change your program. While it waits for your answer, you can look around but not edit.</p>
+                        </div>
+                        <div class="settings-row">
+                            <button id="soundSettingsBtn" class="settings-action settings-disclosure" type="button"
+                                    aria-expanded="false" aria-controls="soundSettings">
+                                <i class="fas fa-volume-high" aria-hidden="true"></i> Sound and speech
+                                <i class="fas fa-chevron-down settings-chevron" aria-hidden="true"></i>
+                            </button>
+                            <div id="soundSettings" class="settings-group" hidden>
+                                <div class="settings-grid">
+                                <div class="settings-field">
+                                    <label class="settings-label" for="systemOutputSelect">Navigation speech</label>
+                                    <select id="systemOutputSelect" class="settings-select">
+                                        <option value="screenReader">Screen reader</option>
+                                        <option value="systemVoice">Built-in voice</option>
+                                    </select>
+                                </div>
+                                <div class="settings-field">
+                                    <label class="settings-label" for="systemVoiceSelect">Built-in voice</label>
+                                    <select id="systemVoiceSelect" class="settings-select"></select>
+                                </div>
+                                <div class="settings-field">
+                                    <label class="settings-label" for="systemRateSelect">Built-in speed</label>
+                                    <select id="systemRateSelect" class="settings-select">
+                                        <option value="0.8">Slower</option>
+                                        <option value="1">Normal</option>
+                                        <option value="1.2">Faster</option>
+                                        <option value="1.5">Fastest</option>
+                                    </select>
+                                </div>
+                                <div class="settings-field">
+                                    <label class="settings-label" for="aiVoiceSelect">Assistant voice</label>
+                                    <select id="aiVoiceSelect" class="settings-select"></select>
+                                </div>
+                                <div class="settings-field">
+                                    <label class="settings-label" for="aiRateSelect">Assistant speed</label>
+                                    <select id="aiRateSelect" class="settings-select">
+                                        <option value="0.8">Slower</option>
+                                        <option value="1">Normal</option>
+                                        <option value="1.2">Faster</option>
+                                        <option value="1.5">Fastest</option>
+                                    </select>
+                                </div>
+                                <div class="settings-field settings-field--end">
+                                    <button id="hearAiVoiceBtn" class="settings-action" type="button" aria-label="Hear the assistant voice">
+                                        <i class="fas fa-volume-high" aria-hidden="true"></i> Hear it
+                                    </button>
+                                </div>
+                                <div class="settings-field settings-field--end">
+                                    <button id="bargeInToggle" class="settings-switch" type="button" role="switch" aria-checked="true">
+                                        <span class="switch-track" aria-hidden="true"></span>
+                                        Interrupt by speaking <strong id="bargeInState">On</strong>
+                                    </button>
+                                </div>
+                                <div class="settings-field settings-field--end">
+                                    <button id="wakePhraseToggle" class="settings-switch" type="button" role="switch" aria-checked="false">
+                                        <span class="switch-track" aria-hidden="true"></span>
+                                        Listen for Hey Neon <strong id="wakePhraseState">Off</strong>
+                                    </button>
+                                </div>
+                                <div class="settings-field settings-field--end">
+                                    <button id="cuesToggle" class="settings-switch" type="button" role="switch" aria-checked="true">
+                                        <span class="switch-track" aria-hidden="true"></span>
+                                        Sound cues <strong id="cuesState">On</strong>
+                                    </button>
+                                </div>
+                                <div class="settings-field">
+                                    <label class="settings-label" for="cueVolumeSelect">Cue volume</label>
+                                    <select id="cueVolumeSelect" class="settings-select">
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                                <div class="settings-field">
+                                    <label class="settings-label" for="cuePreviewSelect">Hear a cue</label>
+                                    <select id="cuePreviewSelect" class="settings-select"></select>
+                                </div>
+                                <div class="settings-field settings-field--end">
+                                    <button id="playCueBtn" class="settings-action" type="button">
+                                        <i class="fas fa-play" aria-hidden="true"></i> Play cue
+                                    </button>
+                                </div>
+                                </div>
+                                <p class="settings-hint">Navigation speech is who speaks your moves and messages; the assistant always talks in its own voice. Cues are short sounds, like a block connecting or entering a stack. With Hey Neon on, the microphone stays open to hear it, on this device only.</p>
+                            </div>
                         </div>
                         <div class="settings-row">
                             <button id="saveWorkBtn" class="settings-action" type="button">
@@ -114,6 +212,16 @@
                                 <option value="practice">Practice</option>
                                 <option value="quiz">Quiz (only the questions can be changed)</option>
                             </select>
+                            <button id="wholePlanToggle" class="settings-switch" type="button" role="switch" aria-checked="false">
+                                <span class="switch-track" aria-hidden="true"></span>
+                                Whole plan <strong id="wholePlanState">Off</strong>
+                            </button>
+                            <p class="settings-hint">Learners may let the assistant do all steps of a change at once. Saved with the task.</p>
+                            <button id="voiceFallbackToggle" class="settings-switch" type="button" role="switch" aria-checked="false">
+                                <span class="switch-track" aria-hidden="true"></span>
+                                Browser speech fallback <strong id="voiceFallbackState">Off</strong>
+                            </button>
+                            <p class="settings-hint">If the voice engine can't load, learners may use the browser's speech recognition, which can send their voice to the browser's company. Saved with the task.</p>
                             <button id="exportTaskBtn" class="settings-action" type="button">
                                 <i class="fas fa-file-export" aria-hidden="true"></i> Export task XML
                             </button>
@@ -179,52 +287,178 @@
 </body>
 <script type="module">
     import { BlocklyPilot } from './js/pilot/index.js';
+    import { createAudioCapture } from './js/voice/audio_capture.js';
+    import { createSherpaRecognizer } from './js/voice/sherpa_recognizer.js';
+    import { createSherpaVad } from './js/voice/sherpa_vad.js';
+    import { createSherpaKeywordSpotter } from './js/voice/sherpa_kws.js';
+    import { createWebSpeechRecognizer } from './js/voice/web_speech_recognizer.js';
+    import { createSherpaSynth } from './js/voice/sherpa_tts.js';
 
-    // Keys and model choices come from the untracked config.local.js (copy config.example.js).
+    // The agent server's address comes from the untracked config.local.js (copy config.example.js). Keys, models and
+    // prompts live on the server; the browser never holds them.
     let localConfig = {};
     try {
         localConfig = (await import('./config.local.js')).default || {};
-    } catch (e) {
-        console.warn('[Blockly Neon] config.local.js not found; using dummy responses. Copy config.example.js to config.local.js.');
+    } catch (e) { /* the default address */ }
+    const { agentServer = 'http://localhost:8787', testing } = localConfig;
+    const sessionId = `s_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const server = createAgentServerClient({ url: agentServer, session: { id: sessionId, learnerCode: null } });
+    // Without the server, or in testing mode, the assistant answers offline and nothing goes over the network.
+    const health = testing === true ? null : await server.health();
+    const offline = !health;
+    if (offline && testing !== true) {
+        console.warn(`[Blockly Neon] The agent server at ${agentServer} doesn't answer; the assistant answers offline. Start it with: cd server && npm run dev`);
+    } else if (health && !health.keySet) {
+        console.warn('[Blockly Neon] The agent server has no OpenRouter key; put OPENROUTER_API_KEY in server/.env.');
     }
-    const { apiKey, ...agentConfig } = localConfig;
-
-    // Initialize agent controller with two-step flow
-    const agentController = createAgentController(apiKey || 'no-key', {
-        ...agentConfig,
-        testing: !apiKey || agentConfig.testing === true
-    });
+    const client = offline ? createOfflineAgentClient() : server;
 
     // Agent services for question blocks (hints, scaffolds): the fake without a key or in testing mode.
-    window.eafAgent = agentConfig.testing === true || !apiKey ?
+    window.eafAgent = offline ?
         createFakeAgentServices() :
-        createAgentServices(agentController);
-
-    // Debug button to log payload
-    document.getElementById('logPayloadBtn')?.addEventListener('click', () => {
-        const note = document.getElementById('settingsNote');
-        if (window.workspace) {
-            agentController.logPayload(window.workspace, { includeXML: false });
-            if (note) note.textContent = 'Payload logged to the browser console.';
-        } else {
-            console.warn('Workspace not ready');
-            if (note) note.textContent = 'Workspace not ready yet.';
-        }
-    });
+        createAgentServices({ client, workspace: () => window.workspace });
 
     // Initialize Blockly Pilot once the workspace exists (polls; the config await above
     // may finish after DOMContentLoaded, so don't depend on that event).
     const initPilot = () => {
-        if (!window.workspace) {
+        if (!window.workspace || !window.eafOutput) {
             setTimeout(initPilot, 100);
             return;
         }
+        // An on/off setting remembered per browser.
+        const persistentSwitch = (id, key, initial) => {
+            const button = document.getElementById(id);
+            const state = document.getElementById(id.replace('Toggle', 'State'));
+            let on = initial;
+            try {
+                const saved = localStorage.getItem(key);
+                if (saved !== null) on = saved === 'true';
+            } catch (e) { /* storage unavailable: the default */ }
+            const show = () => {
+                button.setAttribute('aria-checked', String(on));
+                state.textContent = on ? 'On' : 'Off';
+            };
+            show();
+            button.addEventListener('click', () => {
+                on = !on;
+                show();
+                try {
+                    localStorage.setItem(key, String(on));
+                } catch (e) { /* applied, not remembered */ }
+            });
+            return () => on;
+        };
+        const logEvents = persistentSwitch('logEventsToggle', 'eaf.logEvents', false);
+        const pauseEditing = persistentSwitch('pauseEditingToggle', 'eaf.pauseEditing', true);
 
-        const pilot = new BlocklyPilot({
-            workspace: window.workspace,
-            agentController: agentController
+        // Events go to the agent server (text masked there), and to the console when Log events is on.
+        const activity = createActivityCounter(window.workspace);
+        window.eafActivity = activity;
+        const events = createEventSender({
+            sessionId,
+            summary: () => activity.counts(),
+            client: () => ({
+                output: window.eafOutput?.settings?.() || null,
+                learnerLevel: getPolicy(window.workspace).learnerLevel,
+                // Declared below; read only when a batch goes out.
+                bargeIn: bargeIn(), wakePhrase: wakePhrase(),
+            }),
+            sink: (batch, how) => {
+                if (logEvents()) console.info('[events]', batch);
+                return offline ? undefined : server.events(batch, how);
+            },
+        });
+        // Question help (hints) reports through the same sender.
+        window.eafEvents = events;
+        window.addEventListener('pagehide', () => events.flush({ final: true }));
+
+        let pilot = null;
+        const assistant = createCoordinator({
+            workspace: window.workspace, client, ...assistantView(window.workspace),
+            onProgress: (text, taskId) => pilot?.sayProgress(text, taskId),
+            onEvent: (kind, data) => events.record(kind, data),
+        });
+        // Block names from the toolbox, stack names and the answers are words the recognizer should favour.
+        const hotwords = () => [
+            ...new Set((window.workspace.allowedTypeCatalog || []).map(type => blockTypeName(type).toLowerCase())),
+            ...'abcdefgh'.split('').map(letter => `stack ${letter}`),
+            'yes do it', 'do all', 'undo', 'undo it', 'take it back', 'stop', 'go there', 'say that again',
+        ];
+        // Voice engines share one microphone. The AI voice and the recognizer warm up once the page is idle; voice activity loads
+        // when a session starts with barge-in on, the keyword spotter only when "Listen for Hey Neon" is on.
+        const output = window.eafOutput;
+        const capture = createAudioCapture();
+        const recognizer = createSherpaRecognizer(capture);
+        const bargeIn = persistentSwitch('bargeInToggle', 'eaf.bargeIn', true);
+        const wakePhrase = persistentSwitch('wakePhraseToggle', 'eaf.wakePhrase', false);
+        pilot = new BlocklyPilot({
+            workspace: window.workspace, assistant, output, recognizer, hotwords,
+            voice: {
+                vad: createSherpaVad(capture),
+                spotter: createSherpaKeywordSpotter(capture),
+                fallback: createWebSpeechRecognizer(),
+                settings: () => ({ bargeIn: bargeIn(), wakePhrase: wakePhrase(), fallbackAllowed: getPolicy(window.workspace).voiceFallback }),
+                isBusy: () => assistant.lock() === 'frozen',
+                isWaiting: () => assistant.lock() === 'read-only',
+                echoCancelled: () => aiVoiceEngine.voice.playsInPage(),
+                onEvent: (kind, data) => events.record(kind, data),
+                mark: (name) => performance.mark(name),
+            },
         });
         pilot.init();
+        document.getElementById('wakePhraseToggle').addEventListener('click', () => pilot.conversation.refreshWake());
+        pilot.conversation.refreshWake();
+        output.onSpeak((sentence) => performance.mark('ai:sentence'));
+        aiVoiceEngine.set(createSherpaSynth());
+        const warmUp = () => {
+            aiVoiceEngine.voice.ready();
+            recognizer.ready().then(() => recognizer.setHotwords(hotwords())).catch((e) => console.warn('[voice]', e.message));
+        };
+        if ('requestIdleCallback' in window) requestIdleCallback(warmUp, { timeout: 3000 });
+        else setTimeout(warmUp, 1000);
+
+        // The navigation lock: frozen while the assistant works, read-only while it waits for an answer.
+        const LOCK_SAYS = {
+            frozen: 'The assistant is working. Press Escape to stop it.',
+            'read-only': 'You can look around, but editing waits until you answer. Say yes, stop, or undo.',
+        };
+        // Answer keys (Alt+Shift+Y, A, N, U, R), Escape to stop a working task, a Ctrl tap to stop the AI voice,
+        // Ctrl+Shift+I to stop it and talk (from the text box too). Bound before the lock.
+        bindAssistantKeys({
+            available: () => assistant.available(),
+            run: (command) => pilot.runCommand(command),
+            cancel: () => {
+                const stopped = assistant.cancel();
+                if (stopped) pilot.displayReply(stopped);
+                return !!stopped;
+            },
+            say: (text) => output.say({ source: 'system', text }),
+            interrupt: () => {
+                if (output.state() !== 'speaking') return;
+                output.interrupt();
+                events.record('speech.interrupted', { by: 'ctrl' });
+            },
+            talk: () => pilot.talk(),
+        });
+
+        const lock = new NavigationLock(window.workspace, {
+            // Frozen while the AI voice speaks, too.
+            getLock: () => (!pauseEditing() ? 'free' : output.state() === 'speaking' ? 'frozen' : assistant.lock()),
+            // The reason once per lock, then only the cue.
+            onBlocked: (state, first) => {
+                // Once per lock, not per key.
+                if (first) events.record('navigation.blocked', { lock: state });
+                window.eafOutput.say({ source: 'system', kind: 'blocked', cue: 'blocked', text: first ? LOCK_SAYS[state] : '' });
+            },
+        });
+        pilot.onReply = () => lock.reset();
+
+        // Settings > Log payload: the program view a request would send now.
+        document.getElementById('logPayloadBtn')?.addEventListener('click', () => {
+            console.log(assistant.view());
+            const note = document.getElementById('settingsNote');
+            if (note) note.textContent = 'Program view logged to the browser console.';
+        });
 
         // Expose pilot globally for debugging
         window.blocklyPilot = pilot;

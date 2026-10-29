@@ -20,6 +20,8 @@ export class PilotPanel {
         this.sendButton = null;
         this.voiceStatus = null;
         this.announcer = null;
+        // Set by the pilot: speaks through the output manager (screen reader or built-in voice)
+        this.speak = null;
 
         // Store references to containers we'll hide/show
         this.outputContainer = null;
@@ -160,7 +162,8 @@ export class PilotPanel {
         messagesArea.id = 'pilotMessages';
         messagesArea.className = 'pilot-messages';
         messagesArea.setAttribute('role', 'log');
-        messagesArea.setAttribute('aria-live', 'polite');
+        // The assistant speaks its replies in its own voice, so screen readers don't read them again.
+        messagesArea.setAttribute('aria-live', 'off');
         messagesArea.setAttribute('aria-label', 'Conversation history');
 
         // Welcome message
@@ -172,7 +175,7 @@ export class PilotPanel {
             </div>
             <h3>Hi! I'm Neon</h3>
             <p>I can help you understand, edit, and debug your blocks.</p>
-            <p class="pilot-welcome-hint">Type a message or use voice: say <strong>"Hey Neon"</strong> followed by your command</p>
+            <p class="pilot-welcome-hint">Type a message, or press <strong>Control Shift V</strong> to talk. Enter sends.</p>
         `;
         messagesArea.appendChild(welcome);
 
@@ -183,8 +186,7 @@ export class PilotPanel {
         // Voice status
         const voiceStatus = document.createElement('div');
         voiceStatus.className = 'pilot-voice-status';
-        voiceStatus.setAttribute('aria-live', 'polite');
-        voiceStatus.setAttribute('aria-atomic', 'true');
+        // Shown only; "Listening" and "Stopped listening" are spoken through the output manager.
 
         // Input row
         const inputRow = document.createElement('div');
@@ -195,7 +197,7 @@ export class PilotPanel {
         voiceBtn.setAttribute('type', 'button');
         voiceBtn.setAttribute('aria-label', 'Start voice input');
         voiceBtn.setAttribute('aria-pressed', 'false');
-        voiceBtn.setAttribute('title', 'Voice input - say "Hey Neon" then your command (Ctrl+Shift+V)');
+        voiceBtn.setAttribute('title', 'Talk instead of typing (Ctrl+Shift+V)');
         voiceBtn.innerHTML = '<i class="fas fa-microphone" aria-hidden="true"></i>';
 
         const textarea = document.createElement('textarea');
@@ -215,8 +217,14 @@ export class PilotPanel {
         inputRow.appendChild(textarea);
         inputRow.appendChild(sendBtn);
 
+        // Words still being recognized; screen readers skip it (the draft gets the finished words).
+        const partial = document.createElement('div');
+        partial.className = 'pilot-partial';
+        partial.setAttribute('aria-hidden', 'true');
+
         inputArea.appendChild(voiceStatus);
         inputArea.appendChild(inputRow);
+        inputArea.appendChild(partial);
 
         // Screen reader announcer
         const announcer = document.createElement('div');
@@ -238,6 +246,7 @@ export class PilotPanel {
         this.voiceButton = voiceBtn;
         this.sendButton = sendBtn;
         this.voiceStatus = voiceStatus;
+        this.partialLine = partial;
         this.announcer = announcer;
         this.clearButton = clearBtn;
         this.closeButton = closeBtn;
@@ -298,12 +307,7 @@ export class PilotPanel {
      * @private
      */
     handleSend() {
-        const text = this.inputTextarea.value.trim();
-        if (text && this.onSend) {
-            this.onSend(text);
-            this.inputTextarea.value = '';
-            this.autoResizeTextarea();
-        }
+        if (this.onSend) this.onSend();
     }
 
     /**
@@ -340,7 +344,7 @@ export class PilotPanel {
                 this.inputTextarea.focus();
             }, 350);
 
-            this.announce('Neon opened. Type your message or use voice input.');
+            this.announce('Neon opened. Type a message, or press Control Shift V to talk.');
         } else {
             // Hide panel, show output/code
             this.panelElement.classList.remove('pilot-panel--open');
@@ -421,8 +425,9 @@ export class PilotPanel {
      * @private
      */
     updateProcessingUI(processing) {
-        this.sendButton.disabled = processing;
-        this.inputTextarea.disabled = processing;
+        // The text box stays usable: a new message while the assistant works replaces that task, and a disabled
+        // box would lose focus.
+        this.sendButton.setAttribute('aria-busy', String(processing));
 
         if (processing) {
             this.sendButton.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
@@ -442,10 +447,14 @@ export class PilotPanel {
     }
 
     /**
-     * Announce text to screen readers
+     * Announce text: through the output manager when the pilot set one, else the panel's live region
      * @param {string} text
      */
     announce(text) {
+        if (this.speak) {
+            this.speak(text);
+            return;
+        }
         if (this.announcer) {
             this.announcer.textContent = '';
             requestAnimationFrame(() => {
@@ -474,6 +483,14 @@ export class PilotPanel {
     }
 
     /**
+     * Show the words still being recognized under the text box
+     * @param {string} text
+     */
+    setPartial(text) {
+        this.partialLine.textContent = text;
+    }
+
+    /**
      * Focus the input
      */
     focusInput() {
@@ -489,14 +506,6 @@ export class PilotPanel {
         if (welcome) {
             welcome.style.display = show ? '' : 'none';
         }
-    }
-
-    /**
-     * Check if voice recognition is supported
-     * @returns {boolean}
-     */
-    static isVoiceSupported() {
-        return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
     }
 
     /**

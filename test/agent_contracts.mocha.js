@@ -1,10 +1,14 @@
 /**
- * The fake agent must honour the same contract as the real one (src/agent/contracts.js).
+ * The fake agent must honour the same contract as the real one (src/agent/services/contracts.js).
  */
 
 import {assert} from 'chai';
-import {AgentError, AgentErrorCode} from '../src/agent/contracts.js';
-import {createFakeAgentServices} from '../src/agent/fake_services.js';
+import {AgentError, AgentErrorCode} from '../src/agent/services/contracts.js';
+import {createFakeAgentServices} from '../src/agent/services/fake_services.js';
+import {createAgentServices} from '../src/agent/services/agent_services.js';
+import {createScriptedAgent} from './helpers/scripted_agent.js';
+import {loadItems} from '../eval/runner/items.js';
+import {itemWorkspace} from '../eval/runner/programs.js';
 
 suite('Fake agent services', function() {
   const agent = createFakeAgentServices({delayMs: 0});
@@ -54,5 +58,30 @@ suite('Fake agent services', function() {
     const down = createFakeAgentServices({delayMs: 0, unavailable: true});
     const error = await down.generateHint({level: 'nudge', previousHints: []}).catch((e) => e);
     assert.equal(error.code, AgentErrorCode.UNAVAILABLE);
+  });
+});
+
+suite('Agent services on the harness', function() {
+  const item = loadItems('dev').find((i) => i.id === 'dev-18-hint-1');
+
+  test('a hint request runs the harness hint on the program; a bad hint fails with invalid-output', async function() {
+    const ws = itemWorkspace(item);
+    const good = createScriptedAgent([{hint: 'Look in the Math category.'}]);
+    const agent = createAgentServices({client: good, workspace: () => ws});
+    const result = await agent.generateHint({gap: item.gap, level: 'point', previousHints: []});
+    assert.equal(result.hint, 'Look in the Math category.');
+    assert.include(good.sent[0].messages[1].content, 'Level: point');
+
+    const bad = createAgentServices({client: createScriptedAgent([{hint: 'Use the arithmetic block.'}]), workspace: () => ws});
+    const error = await bad.generateHint({gap: item.gap, level: 'point', previousHints: []}).catch((e) => e);
+    assert.equal(error.code, AgentErrorCode.INVALID_OUTPUT);
+  });
+
+  test('an aborted call rejects with aborted', async function() {
+    const controller = new AbortController();
+    controller.abort();
+    const agent = createAgentServices({client: createScriptedAgent([{hint: 'x'}]), workspace: () => itemWorkspace(item)});
+    const error = await agent.generateHint({gap: item.gap, level: 'nudge', previousHints: []}, {signal: controller.signal}).catch((e) => e);
+    assert.equal(error.code, AgentErrorCode.ABORTED);
   });
 });
