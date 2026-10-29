@@ -2,11 +2,22 @@ import * as Blockly from 'blockly/core';
 import {Constants} from "../index";
 import * as Util from "../util/util";
 import {blockTypes} from "../blocks/registry";
+import {getOutputManager} from "../output/active.js";
+
+
+/** The stack a cursor node is in (its top block id), or null on the workspace. */
+function stackOf(node) {
+    if (!node) return null;
+    if (node.getType() === Blockly.ASTNode.types.WORKSPACE) return null;
+    const block = node.getType() === Blockly.ASTNode.types.STACK ? node.getLocation() : node.getSourceBlock?.();
+    return block?.getRootBlock?.().id ?? null;
+}
 
 export class Speech {
     constructor() {
         this.toggle = false;
         this.readTimeouts = [];
+        this.lastStack = undefined;
         this.dirWordMap = {
             [Blockly.ASTNode.types.NEXT]: 'bottom',
             [Blockly.ASTNode.types.PREVIOUS]: 'top',
@@ -15,13 +26,32 @@ export class Speech {
         }
     }
 
+    /** 'enteredStack' or 'leftStack' when the cursor is in another stack than at the last message. */
+    stackCue() {
+        const node = Blockly.getMainWorkspace?.()?.getCursor?.()?.getCurNode?.();
+        const stack = stackOf(node);
+        const before = this.lastStack;
+        this.lastStack = stack;
+        if (before === undefined || stack === before) return null;
+        return stack ? 'enteredStack' : 'leftStack';
+    }
+
     clearPreviousSpeeches() {
         this.readTimeouts.forEach(id => cancelAnimationFrame(id));
         this.readTimeouts = [];
     }
 
-    update(text) {
+    /**
+     * @param {string} text
+     * @param {{cue?: string}=} options  cue: an earcon played before the words (with an output manager)
+     */
+    update(text, {cue} = {}) {
         console.log("Speech: " + text);
+        const output = getOutputManager();
+        if (output) {
+            output.say({text, source: 'navigation', kind: 'navigation', cue: cue || this.stackCue()});
+            return;
+        }
         this.clearPreviousSpeeches();
         // Schedule single DOM change so screen reader announce exactly once
         const speak = () => {
