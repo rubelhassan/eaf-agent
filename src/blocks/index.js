@@ -38,7 +38,7 @@ export function registerCustomBlocks(options = {}) {
  * badges). Call once after Blockly.inject.
  * @param {!Blockly.Workspace} workspace
  * @param {{announce?: function(string): void,
- *          agent?: import('../agent/contracts.js').AgentServices}=} options
+ *          agent?: import('../agent/services/contracts.js').AgentServices}=} options
  *     `announce` speaks to the learner (e.g. NavigationController's speech);
  *     `agent` generates AI hints and scaffolds (createFakeAgentServices() works without a model).
  * @returns {{dispose: function()}}

@@ -4,7 +4,7 @@
  * with template text when the agent is missing or its output doesn't hold up.
  */
 
-import {AGENT_TIMEOUT_MS} from '../../../agent/contracts.js';
+import {AGENT_TIMEOUT_MS} from '../../../agent/services/contracts.js';
 import {blockTypeName} from '../../block_names.js';
 import {blockTypes} from '../../registry.js';
 import {overlaps, rankSpots} from './spots.js';
@@ -40,7 +40,7 @@ function programCode(workspace) {
  * @param {!Blockly.Workspace} workspace
  * @param {!Array<!Object>} spots  From findSpots, already limited to the level's kinds.
  * @param {{concept: string, level: string, gapCount: {min: number, max: number}}} plan
- * @returns {!import('../../../agent/contracts.js').ScaffoldRequest}
+ * @returns {!import('../../../agent/services/contracts.js').ScaffoldRequest}
  */
 export function buildScaffoldRequest(workspace, spots, plan) {
   return {

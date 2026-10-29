@@ -1,7 +1,7 @@
 /**
  * Task files: which blocks belong to the task (vs. the learner's own),
  * loading a task file, exporting a clean task, and saving a learner's work.
- * A task file carries the activity (root attribute) and the task tests (<tests>).
+ * A task file carries the activity, whole-plan and voice-fallback settings (root attributes) and the task tests (<tests>).
  */
 
 import * as Blockly from 'blockly/core';
@@ -51,6 +51,8 @@ setTaskBlockCheck(isTaskBlock);
 export function loadTaskXml(workspace, xmlText) {
   const dom = Blockly.utils.xml.textToDom(xmlText);
   const activity = dom.getAttribute('activity') === Activity.QUIZ ? Activity.QUIZ : Activity.PRACTICE;
+  const wholePlan = dom.getAttribute('whole-plan') === 'true';
+  const voiceFallback = dom.getAttribute('voice-fallback') === 'true';
   setTaskTests(workspace, takeTestsFromDom(dom));
   withConnectionRulesSuspended(() => {
     if (workspace.setResizesEnabled) {
@@ -60,7 +62,7 @@ export function loadTaskXml(workspace, xmlText) {
       Blockly.Xml.domToWorkspace(dom, workspace);
     }
   });
-  setPolicy(workspace, {activity});
+  setPolicy(workspace, {activity, wholePlan, voiceFallback});
   markTaskBlocks(workspace);
 }
 
@@ -99,9 +101,11 @@ export function workXml(workspace) {
   return Blockly.Xml.domToPrettyText(withTaskInfo(Blockly.Xml.workspaceToDom(workspace), workspace));
 }
 
-/** Adds the activity attribute and the <tests> element to an exported root. */
+/** Adds the activity, whole-plan and voice-fallback attributes and the <tests> element to an exported root. */
 function withTaskInfo(dom, workspace) {
   if (getPolicy(workspace).activity === Activity.QUIZ) dom.setAttribute('activity', Activity.QUIZ);
+  if (getPolicy(workspace).wholePlan) dom.setAttribute('whole-plan', 'true');
+  if (getPolicy(workspace).voiceFallback) dom.setAttribute('voice-fallback', 'true');
   const tests = testsToDom(getTaskTests(workspace));
   if (tests) dom.appendChild(tests);
   return dom;

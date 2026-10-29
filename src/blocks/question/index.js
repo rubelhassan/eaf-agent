@@ -106,6 +106,7 @@ export const questionBlockType = {
         aiHints: new AiHintService(options?.agent || null),
         canEdit: (block) => editing.canEdit(block),
         edit: (block) => editing.edit(block),
+        onEvent: options?.onEvent,
       }).attach());
     }
     return {dispose: () => parts.forEach((p) => p.dispose())};

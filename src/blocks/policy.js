@@ -4,6 +4,9 @@
  * - activity: 'practice' | 'quiz'  Set by the task teacher. Quiz tightens rules.
  * - teacherMode: boolean            Teachers may edit and move custom blocks; learners may not.
  * - learnerLevel: 'beginner' | 'intermediate' | 'advanced'  Controls feedback detail.
+ * - wholePlan: boolean              The assistant may apply a whole edit plan after one yes. Set by the teacher.
+ * - voiceFallback: boolean          The browser's speech recognition may stand in when the voice engine can't load
+ *                                   (it may send audio to the browser's company). Set by the teacher.
  */
 
 export const Activity = Object.freeze({PRACTICE: 'practice', QUIZ: 'quiz'});
@@ -17,6 +20,8 @@ const DEFAULT_POLICY = Object.freeze({
   activity: Activity.PRACTICE,
   teacherMode: false,
   learnerLevel: LearnerLevel.BEGINNER,
+  wholePlan: false,
+  voiceFallback: false,
 });
 
 /** @type {!WeakMap<!Object, !Object>} */
@@ -47,7 +52,7 @@ function rootWorkspace(workspace) {
 
 /**
  * @param {?Object} workspace  A Blockly workspace (headless or rendered).
- * @returns {{activity: string, teacherMode: boolean, learnerLevel: string}}
+ * @returns {{activity: string, teacherMode: boolean, learnerLevel: string, wholePlan: boolean, voiceFallback: boolean}}
  */
 export function getPolicy(workspace) {
   const ws = rootWorkspace(workspace);
@@ -57,7 +62,7 @@ export function getPolicy(workspace) {
 /**
  * Merges the given fields into the workspace's policy. Unknown values are ignored.
  * @param {!Object} workspace
- * @param {{activity?: string, teacherMode?: boolean, learnerLevel?: string}} changes
+ * @param {{activity?: string, teacherMode?: boolean, learnerLevel?: string, wholePlan?: boolean, voiceFallback?: boolean}} changes
  */
 export function setPolicy(workspace, changes) {
   const ws = rootWorkspace(workspace);
@@ -65,6 +70,8 @@ export function setPolicy(workspace, changes) {
   const next = {...getPolicy(ws)};
   if (Object.values(Activity).includes(changes?.activity)) next.activity = changes.activity;
   if (typeof changes?.teacherMode === 'boolean') next.teacherMode = changes.teacherMode;
+  if (typeof changes?.wholePlan === 'boolean') next.wholePlan = changes.wholePlan;
+  if (typeof changes?.voiceFallback === 'boolean') next.voiceFallback = changes.voiceFallback;
   if (Object.values(LearnerLevel).includes(changes?.learnerLevel)) next.learnerLevel = changes.learnerLevel;
   const previous = getPolicy(ws);
   policies.set(ws, next);

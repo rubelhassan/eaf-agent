@@ -207,7 +207,8 @@ export class BlockTypeRegistry {
   /**
    * Runs every type's per-workspace setup.
    * @param {!Blockly.Workspace} workspace
-   * @param {{announce?: function(string): void}=} options  Host services (e.g. speech).
+   * @param {{announce?: function(string): void, onEvent?: function(string, !Object): void}=} options  Host services
+   *     (speech, and the event log).
    * @returns {{dispose: function()}}
    */
   attachAll(workspace, options = {}) {

@@ -18,6 +18,7 @@ import {addAiHint, aiHintsGiven, isAttempted, revealNextHint, revealedHints, set
 import {chipImage} from '../shapes.js';
 import {detailsText, misfitReason, needPhrase, revealsFit} from '../speech.js';
 import {toolboxCatalog} from './snapshots.js';
+import {systemVoiceOn} from '../../../output/active.js';
 import {PopoverAction, PopoverModel} from './popover_model.js';
 
 const CLS = 'eaf-qp';
@@ -73,12 +74,13 @@ export class QuestionPopover {
   /**
    * @param {!Blockly.WorkspaceSvg} workspace
    * @param {{announce?: function(string): void, canEdit?: function(!Blockly.Block): boolean,
-   *     edit?: function(!Blockly.Block): void, aiHints?: !Object}=} options
-   *     `edit` opens the teacher form; `aiHints` is an AiHintService.
+   *     edit?: function(!Blockly.Block): void, aiHints?: !Object, onEvent?: function(string, !Object): void}=} options
+   *     `edit` opens the teacher form; `aiHints` is an AiHintService; `onEvent` gets hint.opened and hint.shown.
    */
   constructor(workspace, options = {}) {
     this.workspace = workspace;
     this.aiHints_ = options.aiHints || null;
+    this.onEvent_ = options.onEvent || (() => {});
     this.thinking_ = false;
     this.announce_ = options.announce || (() => {});
     this.canEdit_ = options.canEdit || (() => false);
@@ -152,6 +154,7 @@ export class QuestionPopover {
     this.question_ = question;
     this.thinking_ = false;
     this.hintIndex_ = this.givenHints_().length - 1;
+    this.onEvent_('hint.opened', {questionId: question.gap});
 
     this.element_ = document.createElement('div');
     this.element_.className = CLS;
@@ -414,6 +417,7 @@ export class QuestionPopover {
     const {config, gap} = this.question_;
     if (revealedHints(this.workspace, gap) < config.hints.length) {
       revealNextHint(this.workspace, gap, config.hints.length);
+      this.onEvent_('hint.shown', {questionId: gap, level: `written ${revealedHints(this.workspace, gap)}`, ai: false});
       this.showHint_(this.givenHints_().length - 1);
       return;
     }
@@ -425,10 +429,12 @@ export class QuestionPopover {
     this.thinking_ = true;
     this.render_();
     this.focusCurrent_();
-    this.live_.textContent = 'Thinking of a hint…';
+    this.say_('Thinking of a hint…');
     const previous = this.givenHints_().map((h) => h.text);
-    const text = await this.aiHints_.generate(block, this.question_, levels[aiGiven.length], previous);
+    const level = levels[aiGiven.length];
+    const text = await this.aiHints_.generate(block, this.question_, level, previous);
     addAiHint(this.workspace, gap, text);
+    this.onEvent_('hint.shown', {questionId: gap, level, ai: true});
     // The popover may have closed or moved to another question meanwhile.
     if (!this.element_ || this.question_?.gap !== gap) return;
     this.thinking_ = false;
@@ -440,7 +446,13 @@ export class QuestionPopover {
     this.hintIndex_ = index;
     this.render_(); // keeps the model's focus in range
     this.focusCurrent_();
-    this.live_.textContent = this.hintLabel_(index);
+    this.say_(this.hintLabel_(index));
+  }
+
+  /** The popover's live region for a screen reader; the system voice speaks it instead. */
+  say_(text) {
+    if (systemVoiceOn()) this.announce_(text);
+    else this.live_.textContent = text;
   }
 
   // ---- Keyboard and focus -----------------------------------------------
@@ -455,7 +467,7 @@ export class QuestionPopover {
     event.preventDefault();
     if (result.action === PopoverAction.CLOSE) this.close();
     else if (result.action === PopoverAction.FOCUS) this.focusCurrent_();
-    if (result.message) this.live_.textContent = result.message;
+    if (result.message) this.say_(result.message);
   }
 
   focusCurrent_() {

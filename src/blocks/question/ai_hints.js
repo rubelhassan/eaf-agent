@@ -4,7 +4,7 @@
  * the agent is unavailable or its output fails the checks.
  */
 
-import {AGENT_TIMEOUT_MS} from '../../agent/contracts.js';
+import {AGENT_TIMEOUT_MS} from '../../agent/services/contracts.js';
 import {Activity, getPolicy} from '../policy.js';
 import {blockTypeName} from '../block_names.js';
 import {blockTypes} from '../registry.js';
@@ -80,6 +80,7 @@ export function buildHintRequest(block, question, level, previousHints) {
   const {config, gap} = question;
   const {program, answer} = programContext(block, gap);
   return {
+    gap,
     level,
     levelRule: LEVEL_RULES[level],
     learnerLevel: getPolicy(block.workspace).learnerLevel,
@@ -130,7 +131,7 @@ export function checkHint(text, level, config) {
 
 /** Generates, checks, and caches AI hints for a workspace. */
 export class AiHintService {
-  /** @param {?import('../../agent/contracts.js').AgentServices} agent */
+  /** @param {?import('../../agent/services/contracts.js').AgentServices} agent */
   constructor(agent) {
     this.agent_ = agent;
     /** @type {!Map<string, string>} */
