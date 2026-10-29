@@ -11,6 +11,7 @@
  */
 
 import * as Blockly from 'blockly/core';
+import {setStackName, stackName} from './stack_name.js';
 
 // Global registry to track all StackLabelManager instances by workspace ID
 const stackLabelManagerRegistry = new Map();
@@ -52,7 +53,7 @@ export function getStackLabelFromStackNode(stackNode, workspace) {
   if (!mgr) return null;
 
   const letter = mgr.stackLetters()?.get(top.id) || '';
-  const custom = mgr.stackLabelTexts()?.get(top.id) || '';
+  const custom = stackName(top);
 
   if (!letter && !custom) {
     return null;
@@ -96,20 +97,6 @@ export class StackLabelManager {
      * @private
      */
     this.stackLetters_ = new Map();
-
-    /**
-     * Map of block IDs to their custom label texts.
-     * @type {!Map<string, string>}
-     * @private
-     */
-    this.customLabels_ = new Map();
-
-    /**
-     * Map of block IDs to their custom text labels (for editor).
-     * @type {!Map<string, string>}
-     * @private
-     */
-    this.stackLabelTexts_ = new Map();
 
     /**
      * Set of all assigned labels to avoid reuse.
@@ -156,10 +143,6 @@ export class StackLabelManager {
 
   stackLetters() {
     return this.stackLetters_;
-  }
-
-  stackLabelTexts() {
-    return this.stackLabelTexts_;
   }
 
   /**
@@ -281,6 +264,11 @@ export class StackLabelManager {
 
         this.lastBlockCount_ = currentCount;
         this.lastBlockIds_ = currentBlockIds;
+      }
+      const names = this.nameSignature_();
+      if (names !== this.namesSeen_) {
+        this.namesSeen_ = names;
+        for (const id of this.stackLetters_.keys()) this.showLabelText_(id);
       }
     }, 150); // Check more frequently to catch keyboard connections
 
@@ -484,7 +472,7 @@ export class StackLabelManager {
     }
 
     // Get the custom text part (without the letter prefix)
-    const currentLabel = this.stackLabelTexts_.get(blockId) || '';
+    const currentLabel = stackName(block);
 
     // Get the position of the label element in the DOM
     const stackLabelDomElement = document.querySelector('.blocklyStackLabel[data-block-id="' + blockId + '"]');
@@ -763,22 +751,29 @@ export class StackLabelManager {
       this.usedLabels_.add(letter);
     }
 
-    // Save the custom text (this is just the user's custom part, not including the letter)
-    this.stackLabelTexts_ = this.stackLabelTexts_ || new Map();
-    this.stackLabelTexts_.set(blockId, customText);
+    // The custom part is saved with the program and undoable.
+    setStackName(block, customText);
+    this.namesSeen_ = this.nameSignature_();
 
-    // Update the label element in the DOM with the combined format: "A Apple"
+    this.showLabelText_(blockId);
+
+    // Close the editor
+    this.closeEditor_();
+  }
+
+  /** Shows a stack's label as its letter plus its name ("A Apple"). */
+  showLabelText_(blockId) {
+    const block = this.workspace_.getBlockById(blockId);
+    const letter = this.stackLetters_.get(blockId);
+    if (!block || !letter) return;
+    const customText = stackName(block);
+    const displayText = letter + (customText ? ' ' + customText : '');
     const stackLabelDomElement = document.querySelector('.blocklyStackLabel[data-block-id="' + blockId + '"]');
-    console.log('Looking for label element with selector:', '.blocklyStackLabel[data-block-id="' + blockId + '"]');
     if (stackLabelDomElement) {
-      // Format: Letter + (space + customText if customText exists)
-      const displayText = letter + (customText ? ' ' + customText : '');
-
       // Find the text element within the label group
       const textElement = stackLabelDomElement.querySelector('text');
       if (textElement) {
         textElement.textContent = displayText;
-        console.log('Updated label display text to:', displayText);
 
         // Also update background size to fit new text
         const background = stackLabelDomElement.querySelector('rect');
@@ -811,9 +806,11 @@ export class StackLabelManager {
       // If element doesn't exist, update all labels
       this.updateAllStackLabels_();
     }
+  }
 
-    // Close the editor
-    this.closeEditor_();
+  /** The names of all stacks, to notice a change (undo changes a name without an event). */
+  nameSignature_() {
+    return [...this.stackLetters_.keys()].map((id) => `${id}:${stackName(this.workspace_.getBlockById(id))}`).join('|');
   }
 
   /**
@@ -871,7 +868,6 @@ export class StackLabelManager {
     // Clear maps
     this.stackLabels_.clear();
     this.stackLetters_.clear();
-    this.customLabels_.clear();
 
     // Unregister from the global registry
     if (this.workspace_ && this.workspace_.id) {
@@ -1118,7 +1114,7 @@ export class StackLabelManager {
           block.toString(undefined, ' ').trim() : 'Block';
 
       // Get custom text if any
-      const customText = this.customLabels_.get(block.id) || '';
+      const customText = stackName(block);
       const fullLabel = customText ? `${letterLabel} ${customText}` : letterLabel;
 
       // Get existing ARIA label if any
@@ -1255,14 +1251,8 @@ export class StackLabelManager {
         label = existingLabel;
         letter = existingLetter;
       } else {
-        // First check for a custom label
-        letter = this.customLabels_.get(block.id);
-
-        // If no custom label, get the next available letter
-        if (!letter) {
-          letter = this.getNextAvailableLetter_();
-          console.log('Stack labels: Assigned letter', letter, 'to block', block.id);
-        }
+        letter = this.getNextAvailableLetter_();
+        console.log('Stack labels: Assigned letter', letter, 'to block', block.id);
 
 
         // Create the label element
@@ -1313,7 +1303,7 @@ export class StackLabelManager {
     textElement.setAttribute('fill', '#ffffff');
 
     // Add the text content
-    const customText = this.customLabels_.get(block.id) || '';
+    const customText = stackName(block);
     const fullLabel = customText ? `${letter} ${customText}` : letter;
     textElement.textContent = fullLabel;
 
@@ -1372,7 +1362,7 @@ export class StackLabelManager {
     this.removeLabel_(block.id);
 
     // Get any custom text for this block
-    const customText = this.customLabels_.get(block.id) || '';
+    const customText = stackName(block);
 
     // Create the label with custom text if available
     const labelElement = this.createLabelElement_(letterLabel, customText, block.id);
@@ -1727,7 +1717,7 @@ export class StackLabelManager {
     // First check if this is a top block
     if (this.stackLetters_.has(blockId)) {
       const letter = this.stackLetters_.get(blockId);
-      const customText = this.customLabels_.get(blockId) || '';
+      const customText = stackName(this.workspace_.getBlockById(blockId));
       return customText ? `${letter} ${customText}` : letter;
     }
 
@@ -1772,8 +1762,6 @@ export class StackLabelManager {
     // Clear all tracking sets and maps
     this.usedLabels_.clear();
     this.stackLetters_.clear();
-    this.customLabels_.clear();
-
     // Remove all label DOM elements
     for (const [blockId, label] of this.stackLabels_.entries()) {
       if (label && label.parentNode) {

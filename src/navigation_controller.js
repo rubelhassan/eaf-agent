@@ -834,12 +834,12 @@ export class NavigationController {
                 };
                 if (flyoutBlock.isEnabled && !flyoutBlock.isEnabled()) {
                   const disabledBlockName = this.speech.friendlyName(flyoutBlock) || 'block';
-                  this.speech.update(customRejection() || `${disabledBlockName} is disabled and cannot be inserted.`);
+                  this.speech.update(customRejection() || `${disabledBlockName} is disabled and cannot be inserted.`, {cue: 'rejected'});
                   return true;
                 }
                 const inserted = this.navigation.insertFromFlyout(workspace);
                 if (!inserted) {
-                  this.speech.update(customRejection() || 'The selected block is not compatible with the marked connection.');
+                  this.speech.update(customRejection() || 'The selected block is not compatible with the marked connection.', {cue: 'rejected'});
                   return true;
                 }
                 const newBlock = workspace.getCursor().getCurNode();
@@ -1614,7 +1614,7 @@ export class NavigationController {
           } else if (wasDisabled) {
             blockToAttach.setEnabled(false);
           }
-          this.speech.update('The block is not compatible with this connection.');
+          this.speech.update('The block is not compatible with this connection.', {cue: 'rejected'});
           return true;
         }
 
@@ -2835,14 +2835,11 @@ export class NavigationController {
   }
 
   /**
-   * Announce message to screen reader using blockReader element
+   * Announce a message through Speech (screen reader or system voice)
    * @param {string} message The message to announce
    * @protected
    */
   announceToScreenReader(message) {
-    const blockReader = document.getElementById('blockReader');
-    if (blockReader) {
-      blockReader.textContent = message;
-    }
+    this.speech.update(message);
   }
 }

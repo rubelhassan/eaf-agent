@@ -12,6 +12,8 @@
 
 import * as Blockly from 'blockly/core';
 import { getStackLabelManager } from './stack_labels.js';
+import { systemVoiceOn } from '../output/active.js';
+import {stackName} from './stack_name.js';
 
 // Global registry to track all StackSearchManager instances by workspace ID
 const stackSearchManagerRegistry = new Map();
@@ -140,7 +142,7 @@ export class StackSearchManager {
     const block = workspace.getBlockById(targetBlockId);
     if (!block) return null;
 
-    const customText = stackLabelManager.customLabels_?.get(targetBlockId) || '';
+    const customText = stackName(block);
     const label = customText ? `${L} with custom label ${customText}` : L;
 
     return { block, blockId: targetBlockId, letter: L, customText, label };
@@ -204,8 +206,7 @@ export class StackSearchManager {
               topBlock = topBlock.previousConnection.targetBlock();
             }
 
-            // Get custom label if available (stored in stackLabelTexts_)
-            const customText = stackLabelManager.stackLabelTexts_?.get(blockId) || '';
+            const customText = stackName(topBlock);
             const fullLabel = customText ? `${letter} ${customText}` : letter;
 
             stacks.push({
@@ -751,7 +752,7 @@ export class StackSearchManager {
       cursor.setCurNode(astNode);
 
       // Get label for announcement
-      const customText = stackLabelManager.customLabels_?.get(targetBlockId) || '';
+      const customText = stackName(targetBlock);
       const fullLabel = customText ? `${letter} ${customText}` : letter;
 
       // Announce successful navigation
@@ -1067,6 +1068,11 @@ export class StackSearchManager {
    * @private
    */
   announceMessage_(message) {
+    // The system voice speaks it; a screen reader reads the temporary live region below.
+    if (systemVoiceOn()) {
+      this.speech?.update(message);
+      return;
+    }
     try {
       // Create temporary announcement element for screen readers
       const announcement = document.createElement('div');

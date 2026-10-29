@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "predeploy": "blockly-scripts predeploy",
     "start": "blockly-scripts start",
+    "pretest": "npm --prefix server run build",
     "test": "blockly-scripts test"
   },
   "keywords": [

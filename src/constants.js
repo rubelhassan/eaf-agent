@@ -241,6 +241,51 @@ export const SHORTCUT_HELP_ROWS = [
     sr: 'Shortcut keys Shift plus O. Access the output panel'
   },
   {
+    keys: ['Alt', 'Shift', 'Y'],
+    title: 'Assistant: yes, do the offered step',
+    sr: 'Shortcut keys Alt plus Shift plus Y. Assistant: yes, do the offered step.'
+  },
+  {
+    keys: ['Alt', 'Shift', 'A'],
+    title: 'Assistant: do all the remaining steps (when the task allows it)',
+    sr: 'Shortcut keys Alt plus Shift plus A. Assistant: do all the remaining steps, when the task allows it.'
+  },
+  {
+    keys: ['Alt', 'Shift', 'N'],
+    title: 'Assistant: stop (no)',
+    sr: 'Shortcut keys Alt plus Shift plus N. Assistant: stop. The assistant does not make the offered change.'
+  },
+  {
+    keys: ['Alt', 'Shift', 'U'],
+    title: 'Assistant: undo the last step it made',
+    sr: 'Shortcut keys Alt plus Shift plus U. Assistant: undo the last step the assistant made.'
+  },
+  {
+    keys: ['Alt', 'Shift', 'R'],
+    title: 'Assistant: repeat what it said',
+    sr: 'Shortcut keys Alt plus Shift plus R. Assistant: repeat what the assistant said.'
+  },
+  {
+    keys: ['Control'],
+    title: 'Assistant: a tap of Control stops its voice',
+    sr: 'Shortcut key Control, pressed alone. Stops the assistant voice.'
+  },
+  {
+    keys: ['Control', 'Shift', 'I'],
+    title: 'Assistant: stop its voice and talk',
+    sr: 'Shortcut keys Control plus Shift plus I. Stops the assistant voice and listens to you.'
+  },
+  {
+    keys: ['Control', 'Shift', 'V'],
+    title: 'Assistant: start or end a voice conversation',
+    sr: 'Shortcut keys Control plus Shift plus V. Start or end a voice conversation with the assistant.'
+  },
+  {
+    keys: ['Escape'],
+    title: 'Assistant: stop what it is working on',
+    sr: 'Shortcut key Escape. Stop what the assistant is working on.'
+  },
+  {
     keys: ['MOD', 'Shift', 'K'],
     title: 'Enable/disable keyboard accessibility',
     sr: 'Shortcut keys Command (Mac) or Control (Windows) plus Shift plus K. Enable or disable keyboard accessibility.'
