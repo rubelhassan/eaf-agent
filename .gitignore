@@ -25,3 +25,22 @@ temp/
 .idea/
 secret/
 test/acblock/config.local.js
+
+# Eval runner build and raw results (summaries are kept)
+eval/.build/
+eval/results/*
+!eval/results/*.summary.md
+
+.env
+
+# Voice engine build tools and outputs (test/acblock/models/build_engines.sh)
+tools/
+test/acblock/models/*
+!test/acblock/models/build_engines.sh
+!test/acblock/models/engines.json
+
+server/node_modules/
+
+node_modules/
+
+server/.env

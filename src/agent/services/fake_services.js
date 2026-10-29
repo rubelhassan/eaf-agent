@@ -1,10 +1,5 @@
 // @ts-check
-/**
- * Deterministic stand-in for AgentServices (see contracts.js): canned, valid
- * results with a short delay, so UI flows and tests run without a model.
- * It mirrors what the UI expects from the real agent, not how good the real
- * output will be.
- */
+// Deterministic AgentServices for UI work and tests: canned valid results after a short delay.
 
 import {AgentError, AgentErrorCode} from './contracts.js';
 

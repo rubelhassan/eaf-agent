@@ -1,26 +1,14 @@
 // @ts-check
-/**
- * Contracts between the learning features (question blocks, hints, scaffolds)
- * and the agent. The plugin depends only on these shapes; prompts, models and the
- * harness behind them can change freely.
- *
- * A host passes an AgentServices object to attachCustomBlocks({agent}).
- * fake_services.js implements it deterministically for UI work and tests.
- *
- * Rules every implementation follows:
- * - Same request → same result (low temperature and/or a cache keyed by the request).
- * - Resolve with the result shape below, or reject with an AgentError. Never
- *   resolve with partial or unvalidated data; the plugin still checks the output
- *   and falls back to safe text, but relies on the shape.
- * - Honour `signal` (AbortSignal): reject with AgentErrorCode.ABORTED.
- * - Never put a question's hidden reference answer into any prompt.
- */
+// Contract between learning features and the agent. Implementations must be deterministic,
+// resolve with the documented shape or reject with AgentError, honour `signal`,
+// and never put a hidden reference answer in a prompt.
 
 /** @typedef {'nudge' | 'point' | 'kind'} HintLevel */
 
 /**
  * One AI hint for a question, built by the plugin (src/blocks/question/ai_hints.js).
  * @typedef {Object} HintRequest
+ * @property {string} gap  The question's gap id; the harness builds its own program view from it.
  * @property {HintLevel} level  How much the hint may reveal.
  * @property {string} levelRule  Plain-language limit for this level.
  * @property {string} learnerLevel  'beginner' | 'intermediate' | 'advanced'
