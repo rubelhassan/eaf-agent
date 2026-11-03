@@ -31,26 +31,36 @@ const CUE_LABELS = {
     leftStack: 'Left a stack',
 };
 
+// Kristin's engine files: missing, or a failed load, shows teachers how to set her up.
+const KRISTIN_FILE = './models/tts/sherpa-onnx-wasm-main-tts.wasm';
+// null until the check answers.
+const kristin = { available: null, changed: () => {} };
+
 function setupOutput(workspace) {
     let saved = {};
     try {
         saved = JSON.parse(localStorage.getItem(OUTPUT_KEY) || '{}');
     } catch (e) { /* storage unavailable: defaults */ }
     let output = null;
-    const current = () => output.settings();
     output = createOutputManager({
-        systemVoice: systemVoice({ voice: () => current().systemVoice }),
+        // One locked US English system voice for navigation; the assistant is Kristin, or that voice without her.
+        systemVoice: systemVoice(),
         aiVoice: aiVoiceEngine.voice = preferPageVoice({
             page: pageVoice({ synth: aiVoiceEngine.synth }),
-            native: nativeAiVoice({ voice: () => current().aiVoice, systemVoiceName: () => current().systemVoice }),
-            systemPicked: () => !!current().aiVoice,
+            native: nativeAiVoice(),
+            onPageFailed: () => {
+                kristin.available = false;
+                kristin.changed();
+            },
         }),
         liveRegion: () => document.getElementById('blockReader'),
+        aiLiveRegion: () => document.getElementById('assistantReader'),
         settings: { ...DEFAULT_OUTPUT_SETTINGS, ...saved },
     });
     setOutputManager(output);
     watchOperationCues(workspace, output);
     setupOutputSettings(output);
+    bindTypingEcho({ document, output });
     return output;
 }
 
@@ -71,17 +81,19 @@ function setupOutputSettings(output) {
         $('soundSettings').hidden = !open;
     });
 
-    const fillVoices = () => {
-        const voices = localVoices();
-        for (const [id, key, first] of [['systemVoiceSelect', 'systemVoice', 'Default'], ['aiVoiceSelect', 'aiVoice', 'Kristin (built in)']]) {
-            const select = $(id);
-            select.innerHTML = '';
-            select.append(new Option(first, ''), ...voices.map(v => new Option(v.name, v.name)));
-            select.value = output.settings()[key] || '';
-        }
+    // Teachers see why the assistant uses the system voice: Kristin isn't set up, or failed to load.
+    const teacher = ['teacher', 'author'].some((k) => new URLSearchParams(location.search).get(k) === '1');
+    const showKristin = () => {
+        $('kristinHint').hidden = !teacher || kristin.available !== false;
     };
-    fillVoices();
-    if (typeof speechSynthesis !== 'undefined') speechSynthesis.addEventListener('voiceschanged', fillVoices);
+    kristin.changed = showKristin;
+    fetch(KRISTIN_FILE, { method: 'HEAD' }).then((r) => {
+        kristin.available = r.ok;
+        showKristin();
+    }).catch(() => {
+        kristin.available = false;
+        showKristin();
+    });
 
     const bindSelect = (id, key, parse = (v) => v) => {
         const select = $(id);
@@ -93,10 +105,21 @@ function setupOutputSettings(output) {
         output.say({ source: 'system', text: e.target.value === 'systemVoice' ?
             'Navigation is spoken by the built-in voice.' : 'Navigation goes to your screen reader.' });
     });
-    bindSelect('systemVoiceSelect', 'systemVoice', (v) => v || null);
     bindSelect('systemRateSelect', 'systemRate', Number);
-    bindSelect('aiVoiceSelect', 'aiVoice', (v) => v || null);
     bindSelect('aiRateSelect', 'aiRate', Number);
+    bindSelect('typingEchoSelect', 'typingEcho');
+    // On the screen reader route the assistant's voice and speed aren't used.
+    const showAiRoute = () => {
+        const sr = output.settings().aiOutput === 'screenReader';
+        $('aiRateSelect').disabled = sr;
+    };
+    showAiRoute();
+    bindSelect('aiOutputSelect', 'aiOutput').addEventListener('change', (e) => {
+        showAiRoute();
+        if (e.target.value !== 'screenReader') aiVoiceEngine.voice?.ready();
+        output.say({ source: 'ai', kind: 'answer', text: e.target.value === 'screenReader' ?
+            'Assistant replies go to your screen reader.' : 'The assistant talks in its own voice.' });
+    });
     bindSelect('cueVolumeSelect', 'cueVolume');
 
     const cuesToggle = $('cuesToggle');
