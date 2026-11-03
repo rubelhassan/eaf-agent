@@ -489,7 +489,7 @@ export class AccessibleCursor extends Blockly.Cursor {
             return null;
         }
 
-        let newNode = this.getNextNode(curNode, this.isValidVerticalNode.bind(this));
+        let newNode = this.getNextNode(curNode, this.isValidVerticalNode.bind(this)) || this.valueFallback(curNode, 'next');
 
         if (newNode) {
             console.log("NEXT Node Final Type:" + newNode.getType());
@@ -904,6 +904,31 @@ export class AccessibleCursor extends Blockly.Cursor {
         return horizontalInputTypes.includes(block.type) && input.connection;
     }
 
+    /** A value block's filled value inputs, in order (a shadow holds the value too). */
+    valueChildren(block) {
+        return block.inputList
+            .filter((input) => input.connection?.type === Blockly.ConnectionType.INPUT_VALUE && input.connection.targetBlock())
+            .map((input) => input.connection.targetBlock());
+    }
+
+    /**
+     * Where D, S, W or A go inside nested value blocks when the rules above find nothing: D into a value block's
+     * first child, S and W between the children of a value block, A back to the block a value is plugged into.
+     */
+    valueFallback(curNode, key) {
+        if (curNode?.getType() !== Blockly.ASTNode.types.BLOCK) return null;
+        const block = curNode.getSourceBlock();
+        const parent = block?.outputConnection?.targetBlock();
+        let target = null;
+        if (key === 'in' && block?.outputConnection) target = this.valueChildren(block)[0];
+        if ((key === 'next' || key === 'prev') && parent?.outputConnection) {
+            const siblings = this.valueChildren(parent);
+            target = siblings[siblings.indexOf(block) + (key === 'next' ? 1 : -1)];
+        }
+        if (key === 'out') target = parent;
+        return target ? Blockly.ASTNode.createBlockNode(target) : null;
+    }
+
     in() {
         console.log("AC Cursor D: in");
 
@@ -958,6 +983,7 @@ export class AccessibleCursor extends Blockly.Cursor {
         if (!this.hasStatementInputFromASTNode(curNode) && !this.hasFullParentBlock(curNode)) {
             newNode = this.getNextRightNode(curNode, this.isValidDNode.bind(this));
         }
+        newNode = newNode || this.valueFallback(curNode, 'in');
 
         if (newNode) {
             console.log("IN Node Final Type:", newNode.getType());
@@ -1038,7 +1064,7 @@ export class AccessibleCursor extends Blockly.Cursor {
             return null;
         }
 
-        let newNode = this.getPrevNode(curNode, this.isValidVerticalNode.bind(this));
+        let newNode = this.getPrevNode(curNode, this.isValidVerticalNode.bind(this)) || this.valueFallback(curNode, 'prev');
 
         if (newNode) {
             console.log("PREV Node Final Type:" + newNode.getType());
@@ -1229,7 +1255,9 @@ export class AccessibleCursor extends Blockly.Cursor {
         if (!newNode && (this.isOutputConnection(curNode) || this.isOutputConnection(curNode.prev()))) {
             newNode = this.getOutNode(curNode, this.isValidHorizontalNode.bind(this));
             if (!this.hasStatementInputFromASTNode(newNode) && !this.hasSingleValueBlock(curNode)) {
-                return null;
+                newNode = this.valueFallback(curNode, 'out');
+                if (newNode) this.setCurNode(newNode);
+                return newNode;
             }
         }
 
@@ -1240,6 +1268,7 @@ export class AccessibleCursor extends Blockly.Cursor {
             }
         }
 
+        newNode = newNode || this.valueFallback(curNode, 'out');
         if (newNode) {
             console.log("PREV Node Final Type:" + newNode.getType());
             this.setCurNode(newNode);
