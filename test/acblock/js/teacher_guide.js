@@ -1,23 +1,22 @@
 /**
- * Teacher guide panel (?teacher=1): loads docs/teacher-guide.html into the right
- * column in place of Output and Code, with numbered markers on the screenshots
- * (positions from docs/guide-markers.json, written by docs/capture-guide.js).
- * Maximize fills the window; Escape or Minimize brings it back to the column.
+ * Guide panel: the student guide (Settings, everyone) or the teacher guide (?teacher=1).
+ * Loads docs/<name>-guide.html into the right column in place of Output and Code, with
+ * numbered markers on the screenshots (positions from docs/guide-markers.json, written by
+ * docs/capture-guide.js). Maximize fills the window; Escape or Minimize brings it back to the column.
  */
 (function () {
-    let loaded = null;
+    const TITLES = { student: 'Student guide', teacher: 'Teacher guide' };
+    const loaded = {};
+    let markersLoaded = null;
 
-    async function load(body) {
-        if (!loaded) {
-            loaded = Promise.all([
-                fetch('docs/teacher-guide.html', { cache: 'no-store' }).then((r) => r.text()),
-                fetch('docs/guide-markers.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
-            ]).then(([html, markers]) => {
-                body.innerHTML = html;
-                placeMarkers(body, markers);
-            });
-        }
-        return loaded;
+    function load(name) {
+        markersLoaded ||= fetch('docs/guide-markers.json', { cache: 'no-store' })
+            .then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+        loaded[name] ||= Promise.all([
+            fetch(`docs/${name}-guide.html`, { cache: 'no-store' }).then((r) => r.text()),
+            markersLoaded,
+        ]);
+        return loaded[name];
     }
 
     function placeMarkers(body, markers) {
@@ -41,13 +40,17 @@
     document.addEventListener('DOMContentLoaded', () => {
         const panel = document.getElementById('teacherGuide');
         const column = panel?.closest('.execution-panel');
-        const open = document.getElementById('teacherGuideBtn');
+        const title = document.getElementById('guideTitle');
+        const body = document.getElementById('guideBody');
         const size = document.getElementById('guideSizeBtn');
-        if (!panel || !open) return;
+        const closeBtn = document.getElementById('guideCloseBtn');
+        if (!panel) return;
+        let current = null;
 
+        const label = () => (TITLES[current] || 'guide').toLowerCase();
         const setMax = (max) => {
             panel.classList.toggle('guide-max', max);
-            size.setAttribute('aria-label', max ? 'Minimize the teacher guide' : 'Maximize the teacher guide');
+            size.setAttribute('aria-label', `${max ? 'Minimize' : 'Maximize'} the ${label()}`);
             size.title = max ? 'Minimize' : 'Maximize';
             size.querySelector('i').className = `fas ${max ? 'fa-down-left-and-up-right-to-center' : 'fa-up-right-and-down-left-from-center'}`;
         };
@@ -58,15 +61,28 @@
             document.getElementById('settingsButton').focus();
         };
 
-        open.addEventListener('click', async () => {
+        async function open(name) {
             window.eafSettings?.close();
             column.classList.add('guide-open');
             panel.hidden = false;
-            await load(document.getElementById('guideBody'));
-            document.getElementById('guideTitle').focus();
-        });
+            if (current !== name) {
+                current = name;
+                title.textContent = TITLES[name];
+                closeBtn.setAttribute('aria-label', `Close the ${label()}`);
+                setMax(panel.classList.contains('guide-max'));
+                const [html, markers] = await load(name);
+                body.innerHTML = html;
+                placeMarkers(body, markers);
+                body.scrollTop = 0;
+            }
+            title.focus();
+        }
+
+        for (const button of document.querySelectorAll('[data-guide]')) {
+            button.addEventListener('click', () => open(button.dataset.guide));
+        }
         size.addEventListener('click', () => setMax(!panel.classList.contains('guide-max')));
-        document.getElementById('guideCloseBtn').addEventListener('click', close);
+        closeBtn.addEventListener('click', close);
         panel.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape') return;
             e.stopPropagation();
