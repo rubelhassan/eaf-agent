@@ -37,6 +37,7 @@ function runSteps(ws, steps, options) {
     ctx.step = i;
     const problem = shapeProblem(step);
     if (problem) return errors.push({step: i, op: -1, message: problem});
+    options.onStep?.({index: i + (options.from || 0), step, phase: 'before'});
     step.ops.forEach((op, j) => {
       if (errors.length) return;
       try {
@@ -46,6 +47,7 @@ function runSteps(ws, steps, options) {
         errors.push({step: i, op: j, message: e.message});
       }
     });
+    if (!errors.length) options.onStep?.({index: i + (options.from || 0), step, phase: 'after'});
   });
   return {errors, focus};
 }
@@ -80,11 +82,13 @@ export function validatePlan(ws, steps, ctx = {}) {
  * may have changed since the plan was made). Nothing is changed if that fails.
  * @param {!Blockly.Workspace} ws
  * @param {!Array<PlanStep>} steps
- * @param {{from?: number, count?: number, allowedTypes?: ?Array<string>, newStack?: import('./ops.js').OpContext['newStack']}=} options
+ * @param {{from?: number, count?: number, allowedTypes?: ?Array<string>, newStack?: import('./ops.js').OpContext['newStack'],
+ *     onStep?: function({index: number, step: !PlanStep, phase: string}): void}=} options
+ *     onStep: reads the live workspace around each chosen step; never runs during validation and must not change blocks.
  * @returns {{ok: boolean, applied: number, errors: !Array<PlanError>, focus?: ?string}}
  *     focus: the block the cursor goes to (the last one the applied steps added or changed)
  */
-export function applyPlan(ws, steps, {from = 0, count = Infinity, allowedTypes = null, newStack = null} = {}) {
+export function applyPlan(ws, steps, {from = 0, count = Infinity, allowedTypes = null, newStack = null, onStep} = {}) {
   const remaining = Array.isArray(steps) ? steps.slice(from) : [];
   const check = validatePlan(ws, remaining, {allowedTypes, newStack});
   check.result?.dispose();
@@ -97,7 +101,7 @@ export function applyPlan(ws, steps, {from = 0, count = Infinity, allowedTypes =
   let errors;
   let focus;
   try {
-    ({errors, focus} = runSteps(ws, chosen, {allowedTypes, newStack}));
+    ({errors, focus} = runSteps(ws, chosen, {allowedTypes, newStack, from, onStep}));
   } finally {
     if (!group) Blockly.Events.setGroup(false);
   }

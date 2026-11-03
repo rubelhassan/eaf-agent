@@ -3,10 +3,12 @@
 // and logs. Keys and prompts never reach the browser.
 
 /**
- * @param {{url: string, session: {id: string, learnerCode?: ?string}, fetch?: typeof fetch}} options
+ * @param {{url: string, session: {id: string, learnerCode?: ?string, assistantName?: ?string}, fetch?: typeof fetch}} options
  *     url: the server, e.g. http://localhost:8787
+ *     session.assistantName: the name learners call the assistant (one word of letters), which the server never masks;
+ *     without it the server uses Neon
  * @returns {!import('./agent_client.js').AgentClient & {health: function(): !Promise<?Object>,
- *     events: function(!Object, {final?: boolean}=): !Promise<void>}}
+ *     events: function(!Object, {final?: boolean}=): !Promise<void>, work: function(!Object): !Promise<!Object>}}
  */
 export function createAgentServerClient({url, session, fetch: send = (...a) => fetch(...a)}) {
   const base = url.replace(/\/$/, '');
@@ -15,6 +17,13 @@ export function createAgentServerClient({url, session, fetch: send = (...a) => f
   });
 
   return {
+    /** Saves unmasked teacher work locally, separately from model calls and masked events. */
+    async work({task, savedAt, programXml, summary}) {
+      const response = await post('/v1/work', {session: {id: session.id, learnerCode: session.learnerCode ?? null},
+        task, savedAt, programXml, summary}, AbortSignal.timeout(10000));
+      if (!response.ok) throw new Error(`save work: HTTP ${response.status}`);
+      return response.json();
+    },
     async call(call, {signal} = {}) {
       const failed = (code, message) => {
         if (code !== 'ABORTED') console.warn(`[agent] ${call.task} failed: ${message}`);
@@ -22,7 +31,7 @@ export function createAgentServerClient({url, session, fetch: send = (...a) => f
       };
       try {
         const response = await post('/v1/agent/call', {...call, session}, signal);
-        if (!response.ok) return failed('MODEL', `server: HTTP ${response.status}`);
+        if (!response.ok) return failed(response.status === 429 ? 'RATE_LIMIT' : 'MODEL', `server: HTTP ${response.status}`);
         const reply = await response.json();
         if (reply.status === 'error') failed(reply.code, reply.message);
         return reply;

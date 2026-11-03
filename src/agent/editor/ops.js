@@ -11,7 +11,7 @@
 // Each op returns the id of the block the cursor goes to after it.
 
 import * as Blockly from 'blockly/core';
-import {answerInputReason, isLearnerWork, learnerWorkReason, newBlockReason} from '../guardrails/learner_work.js';
+import {answerInputReason, answeringPlaceReason, isLearnerWork, learnerWorkReason, newBlockReason} from '../guardrails/learner_work.js';
 import {setStackName, stackNameProblem} from '../../labels_and_comments/stack_name.js';
 
 export const OP_NAMES = ['setField', 'insert', 'move', 'delete', 'addBranch', 'nameStack'];
@@ -229,11 +229,15 @@ function place(ws, block, op, ctx) {
   if (op.stack !== undefined) return startStack(ws, block, op, ctx);
   if (op.after !== undefined) {
     const anchor = blockById(ws, op.after, 'after', ctx);
+    const reason = answeringPlaceReason(anchor, 'after');
+    if (reason) throw new OpError(reason);
     if (!anchor.nextConnection) throw new OpError(`nothing can follow ${label(anchor)}`);
     return connectStatement(anchor.nextConnection, block, `after ${anchor.id}`);
   }
   if (op.before !== undefined) {
     const anchor = blockById(ws, op.before, 'before', ctx);
+    const reason = answeringPlaceReason(anchor, 'before');
+    if (reason) throw new OpError(reason);
     if (!anchor.previousConnection) throw new OpError(`${label(anchor)} is a value block; use parent and input instead`);
     const above = anchor.previousConnection.targetConnection;
     if (above) return connectStatement(above, block, `before ${anchor.id}`);
@@ -253,13 +257,18 @@ function place(ws, block, op, ctx) {
     // Into a statement input means at its end; "before" its first block puts it first.
     const first = input.connection.targetBlock();
     const last = first && lastInChain(first);
+    const reason = last ? answeringPlaceReason(last, 'after') : null;
+    if (reason) throw new OpError(reason);
     if (last && !last.nextConnection) throw new OpError(`nothing can follow ${label(last)}, the last block in ${op.input} of ${parent.id}`);
     return connectStatement(last ? last.nextConnection : input.connection, block, `in ${op.input} of ${parent.id}`);
   }
   if (!block.outputConnection) throw new OpError(`${label(block)} is a statement block; it can't go in value input ${op.input}`);
   const old = input.connection.targetBlock();
-  if (old && !old.isShadow()) {
+  if (old) {
     guardLearnerWork(old);
+    if (hasLearnerWork(old)) throw new OpError(`${old.id} holds a question or a learner's answer; it can't be replaced`);
+  }
+  if (old && !old.isShadow()) {
     noteRemoved(old.getDescendants(false), `replaced by the new block in ${op.input} of ${parent.id}`, ctx);
     old.dispose(false);
   }
@@ -300,6 +309,7 @@ const OPS = {
   move(ws, op, ctx) {
     const block = blockById(ws, op.block, 'block', ctx);
     guardLearnerWork(block);
+    if (hasLearnerWork(block)) throw new OpError(`${block.id} holds a question or a learner's answer; it can't be moved`);
     for (const key of ['after', 'before', 'parent']) {
       const target = op[key] && ws.getBlockById(op[key]);
       if (target && ownBlocks(block).includes(target)) throw new OpError(`can't move ${block.id} into itself`);
@@ -311,6 +321,7 @@ const OPS = {
 
   delete(ws, op, ctx) {
     const block = blockById(ws, op.block, 'block', ctx);
+    guardLearnerWork(block);
     if (hasLearnerWork(block)) throw new OpError(`${block.id} holds a question or a learner's answer; it can't be deleted`);
     noteRemoved(ownBlocks(block), 'deleted', ctx);
     // The cursor goes to the block that takes its place, else the one before it, else its parent.
@@ -323,6 +334,7 @@ const OPS = {
 
   addBranch(ws, op, ctx) {
     const block = blockById(ws, op.block, 'block', ctx);
+    guardLearnerWork(block);
     if (block.type !== 'controls_if') throw new OpError(`addBranch works on if blocks; ${label(block)} is not one`);
     const state = block.saveExtraState?.() || {};
     const next = {elseIfCount: state.elseIfCount || 0, hasElse: !!state.hasElse};
@@ -344,6 +356,7 @@ const OPS = {
 
   nameStack(ws, op, ctx) {
     const block = blockById(ws, op.block, 'block', ctx);
+    guardLearnerWork(block);
     const problem = stackNameProblem(op.name);
     if (problem) throw new OpError(problem);
     setStackName(block, op.name);

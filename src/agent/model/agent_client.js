@@ -36,7 +36,7 @@
  * @property {string=} reply  ok: the model's text.
  * @property {string=} say  blocked: what to tell the learner; no model was called.
  * @property {string=} reason  blocked: distress | policy.
- * @property {string=} code  error: TIMEOUT | ABORTED | MODEL | INVALID_ENVELOPE | LIMIT.
+ * @property {string=} code  error: TIMEOUT | ABORTED | MODEL | RATE_LIMIT | INVALID_ENVELOPE | LIMIT.
  * @property {string=} message  error: details for logs, never spoken.
  * @property {!AgentMeta=} meta
  */
