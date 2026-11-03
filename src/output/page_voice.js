@@ -9,6 +9,12 @@
  */
 
 /**
+ * Silence after each line. Piper ends a line within 40 to 190 ms of its last sound, and the next line starts at once,
+ * so a word-final sound ("helper", "button") could run into the next one or into the device's output buffer.
+ */
+export const TRAILING_SILENCE_MS = 150;
+
+/**
  * @param {{synth: !Synthesizer, createContext?: function(): ?AudioContext}} options
  * @returns {!import('./voices.js').Voice}
  */
@@ -49,7 +55,9 @@ export function pageVoice({synth, createContext = () => (typeof AudioContext ===
       // Before the learner's first key press or click, the browser may not allow audio yet; don't wait forever.
       if (context.state !== 'running') await Promise.race([context.resume(), new Promise((r) => setTimeout(r, 500))]);
       if (context.state !== 'running') return;
-      const buffer = context.createBuffer(1, audio.samples.length, audio.sampleRate);
+      // The buffer starts silent, so the samples go in at the start and the tail stays quiet.
+      const tail = Math.round(audio.sampleRate * TRAILING_SILENCE_MS / 1000);
+      const buffer = context.createBuffer(1, audio.samples.length + tail, audio.sampleRate);
       buffer.copyToChannel(audio.samples, 0);
       const source = context.createBufferSource();
       source.buffer = buffer;

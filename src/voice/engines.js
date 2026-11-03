@@ -4,12 +4,26 @@
 
 /**
  * @typedef {Object} Recognizer
- * @property {function(): !Promise<void>} ready  Rejects when the engine can't load.
- * @property {function({onPartial: function(string): void, onFinal: function(string): void}): !Promise<void>} start
+ * @property {boolean} [cased] Preserves case; absent for upper-case, uncased engines.
+ * @property {function({onConnection?: function(!Object): void, onError?: function(!Error): void, onReplayDrop?: function(number, string): void}=): !Promise<void>} ready
+ *     Rejects when the engine can't load; optional callbacks stay through automatic background retries.
+ * @property {function({onPartial: function(string): void, onFinal: function(string, {utterance?: number, replay?: boolean}=): void, onError?: function(!Error, {utterance?: number, replay?: boolean}=): void, onLimit?: function(): void, onConnection?: function(!Object): void, onReplayDrop?: function(number, string): void}): !Promise<void>} start
  *     Opens the microphone (asking the first time) and starts recognizing. Rejects when the microphone is refused.
+ *     onConnection receives connection (connected, reconnecting, fallback), reason, closeCode, closeReason,
+ *     attempt and sinceLastMessageMs. A session error with retrying=true keeps the adapter's background retries.
+ *     onReplayDrop releases provisional pieces whose audio was dropped (cap, total or cleared).
+ * @property {?Object} [replayBuffer] Adapter-owned memory buffer: begin, end, drop, take, clear, ids and setEnabled.
+ * @property {function(number, !Array<!Object>): boolean} [replay] Sends buffered audio between live utterances.
+ *     Its final carries replay=true and the original public id; it never acts as live speech.
+ * @property {'own'|'vad'} [endpointing] Whether local voice activity must delimit utterances.
+ * @property {function(): ?number} [speechStart] Opens or resumes a live utterance; no-id engines may return nothing.
+ * @property {function(): ?number} [speechEnd] Returns the id whose decode will follow.
+ * @property {function(!Array<string>): void} [setVocabulary]
+ * @property {function(number=): void} [cancel] Drops that live id, or all live ids when omitted.
+ * @property {function(): void} [disconnect] Clears callbacks and retries and closes the transport on mic off, page hide or dispose.
  * @property {function(): void} pause  Ignores the microphone and drops the words of the current utterance.
  * @property {function(): void} resume
- * @property {function(): void} stop  Stops recognizing and closes the microphone.
+ * @property {function(): void} stop  Stops capture, callbacks and retries; an open transport may stay for the next session.
  * @property {function(!Array<string>): void} setHotwords  Words to favour; no-op if the engine can't.
  */
 

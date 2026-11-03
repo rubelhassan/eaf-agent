@@ -1,14 +1,15 @@
 // @ts-check
-// Keys for the assistant: Alt+Shift+Y yes, A all, N stop, U undo, R repeat; Escape stops a working task; a Ctrl tap
+// Keys for the assistant: Alt+Shift+Y yes, A all, N no, C cancel, U undo, R repeat; Escape stops a working task; a Ctrl tap
 // stops the AI voice; Ctrl+Shift+I stops it and listens. Alt+letter alone is the stack jump, so the answer keys
 // keep Shift. Keys are read by e.code: Alt changes e.key on a Mac.
 
-export const ANSWER_KEYS = Object.freeze({KeyY: 'yes', KeyA: 'all', KeyN: 'stop', KeyU: 'undo', KeyR: 'repeat'});
+export const ANSWER_KEYS = Object.freeze({KeyY: 'yes', KeyA: 'all', KeyN: 'no', KeyC: 'cancel', KeyU: 'undo', KeyR: 'repeat'});
 
 const UNAVAILABLE = {
   yes: 'There is nothing to say yes to.',
   all: 'There are no steps to do all at once.',
-  stop: 'There is nothing to stop.',
+  no: 'There is nothing to say no to.',
+  cancel: 'There is nothing to cancel.',
   undo: 'There is nothing to undo.',
   repeat: 'There is nothing to repeat yet.',
 };

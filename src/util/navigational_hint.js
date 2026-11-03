@@ -2,6 +2,7 @@
 import * as Blockly from 'blockly/core';
 import {getStackLabelFromStackNode} from '../labels_and_comments/stack_labels';
 import {Speech} from '../audio/speech';
+import {sayDialog, speakDialogFocus} from './dialog_speech.js';
 
 export class NavigationalHint {
     /**
@@ -195,15 +196,15 @@ export class NavigationalHint {
         this.prevFocus = document.activeElement;
         this.root.classList.add('acc-navhint--open');
         this.index = -1;
+        this.isOpen = true;
 
         // focus sentinel to keep SR in focus mode
         try {
             this.root.querySelector('.acc-navhint__dialog')?.focus();
         } catch {}
 
-        this._say('Navigational assistnat opened. Use W or S to move through hints. Press Escape to close.');
+        this._say('Navigational assistant opened. Use W or S to move through hints. Press Escape to close.');
         document.addEventListener('keydown', this._onKeydownInDialog, true);
-        this.isOpen = true;
     }
 
     close() {
@@ -351,6 +352,10 @@ export class NavigationalHint {
 
         // Stop underlying app from hijacking pointer/focus; allow close button/backdrop.
         const dialog = root.querySelector('.acc-navhint__dialog');
+        dialog.tabIndex = -1;
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-labelledby', 'acc-navhint-title');
+        root.querySelector('.acc-navhint__close').setAttribute('aria-label', 'Close navigational assistant');
         const swallow = (e) => e.stopPropagation();
         dialog.addEventListener('pointerdown', swallow, true);
         dialog.addEventListener('mousedown', swallow, true);
@@ -493,8 +498,11 @@ export class NavigationalHint {
         }
     }
 
-    _onFocusInGuard() {
-        if (this.isOpen) return;
+    _onFocusInGuard(event) {
+        if (this.isOpen) {
+            if (event.target.matches('button')) speakDialogFocus(event.target);
+            return;
+        }
         try { (this.prevFocus || document.body)?.focus?.(); } catch {}
     }
 
@@ -572,6 +580,6 @@ export class NavigationalHint {
     }
 
     _say(msg) {
-        try { this.speech?.update?.(msg); } catch {}
+        sayDialog(msg, {fallback: (line) => this.speech?.update?.(line)});
     }
 }

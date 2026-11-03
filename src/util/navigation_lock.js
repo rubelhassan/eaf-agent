@@ -1,6 +1,6 @@
 // @ts-check
 // Navigation lock while the assistant works or waits for an answer. Frozen: no editor shortcut runs except
-// Escape. Read-only: moving and reading work, editing waits. Keys are stopped before Blockly's own keydown
+// Escape (the magnifier's keys run ahead of the lock). Read-only: moving and reading work, editing waits. Keys are stopped before Blockly's own keydown
 // handler (a capture listener on the document), so the stable navigation files need no change.
 
 import * as Blockly from 'blockly/core';
@@ -16,17 +16,30 @@ const READ_ONLY_ALLOWED = new Set([
   'escape', 'copy',
 ]);
 
+/** While the assistant works only Escape and leaving still run. The magnifier's keys are its own window listener,
+ * ahead of the lock, so they always work. */
+const FROZEN_ALLOWED = new Set(['escape', N.EXIT]);
+
 /** Mouse targets that edit: blocks, the toolbox and its flyout. Scrolling and zooming stay free. */
 const EDITABLE = '.blocklyDraggable, .blocklyToolboxDiv, .blocklyToolbox, .blocklyFlyout';
 
 /** Whether a shortcut may run under a lock ('free', 'read-only' or 'frozen'). */
 export function shortcutAllowed(lock, name) {
   if (lock === 'free') return true;
-  if (lock === 'frozen') return name === 'escape' || name === N.EXIT;
+  if (lock === 'frozen') return FROZEN_ALLOWED.has(name);
   return READ_ONLY_ALLOWED.has(name) || name.startsWith(N.STACK_JUMP_PREFIX);
 }
 
 const isTyping = (target) => target instanceof Element && !!target.closest('input, textarea, select, [contenteditable="true"]');
+// Keys a widget uses itself and keeps from the editor: a listbox's moves and choice (the panel's step list), and
+// pressing a button inside an element marked data-own-keys (the assistant panel). Other keys are checked as usual.
+const LISTBOX_KEYS = new Set(['ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter', ' ', 'w', 's', 'q']);
+const ownKey = (e) => {
+  const target = e.target;
+  if (!(target instanceof Element) || !LISTBOX_KEYS.has(e.key) || e.ctrlKey || e.altKey || e.metaKey) return false;
+  if (target.getAttribute('role') === 'listbox') return true;
+  return (e.key === 'Enter' || e.key === ' ') && target.tagName === 'BUTTON' && !!target.closest('[data-own-keys]');
+};
 
 export class NavigationLock {
   /**
@@ -60,7 +73,7 @@ export class NavigationLock {
   handleKey(e) {
     const lock = this.getLock();
     if (lock === 'free') this.toldFor = null;
-    if (lock === 'free' || isTyping(e.target)) return;
+    if (lock === 'free' || isTyping(e.target) || ownKey(e)) return;
     const names = this.shortcutsFor(e);
     if (!names.length || names.every((name) => shortcutAllowed(lock, name))) return;
     e.preventDefault();

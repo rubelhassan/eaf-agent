@@ -25,29 +25,48 @@ function voicesLoaded(synth) {
   });
 }
 
+const isUs = (v) => /^en[-_]US$/i.test(v.lang);
+const byName = (a, b) => a.name.localeCompare(b.name);
+
 /**
- * @param {{synth?: ?SpeechSynthesis, voice?: function(): ?string, pitch?: number, rate?: number}} options
- *     voice: the chosen voice name, read at each sentence
- * @returns {!Voice}
+ * English voices that run on the device, US English first; network voices (e.g. Google's in desktop Chrome) send
+ * the text away.
  */
-/** English voices that run on the device; network voices (e.g. Google's in desktop Chrome) send the text away. */
 export function localVoices(synth = browserSynth()) {
-  return (synth?.getVoices() || []).filter((v) => v.localService === true && /^en/i.test(v.lang));
+  const english = (synth?.getVoices() || []).filter((v) => v.localService === true && /^en/i.test(v.lang));
+  return [...english.filter(isUs), ...english.filter((v) => !isUs(v))];
 }
 
-function synthVoice({synth, voice = () => null, pitch = 1, rate = 1}) {
-  const pick = () => {
-    const voices = localVoices(synth);
-    return voices.find((v) => v.name === voice()) || voices.find((v) => v.default) || voices[0] || null;
-  };
+/**
+ * The one system voice the app uses, the same on every visit: the device default if it is US English, else the first
+ * US English voice by name, else the default English voice, else the first English voice by name.
+ * @returns {?SpeechSynthesisVoice}
+ */
+export function lockedVoice(synth = browserSynth()) {
+  const voices = localVoices(synth);
+  const us = voices.filter(isUs).sort(byName);
+  return us.find((v) => v.default) || us[0] || voices.find((v) => v.default) || [...voices].sort(byName)[0] || null;
+}
+
+let logged = null;
+function logPick(voice) {
+  if (!voice || logged === voice.name) return;
+  logged = voice.name;
+  console.info(`[voice] system voice: ${voice.name} (${voice.lang})`);
+}
+
+/** @param {{synth?: ?SpeechSynthesis, pitch?: number, rate?: number}} options */
+function synthVoice({synth, pitch = 1, rate = 1}) {
+  const pick = () => lockedVoice(synth);
   return {
-    ready: () => voicesLoaded(synth),
+    ready: () => voicesLoaded(synth).then(() => logPick(pick())),
     available: () => !!pick(),
     speak(text, {rate: speed = 1, signal} = {}) {
       if (!synth || signal?.aborted || !text) return Promise.resolve();
       const selected = pick();
       // A null voice lets the browser choose a default, which may send the text away.
       if (!selected) return Promise.resolve();
+      logPick(selected);
       return new Promise((resolve) => {
         const utterance = new SpeechSynthesisUtterance(text);
         const stop = () => {
@@ -59,6 +78,7 @@ function synthVoice({synth, voice = () => null, pitch = 1, rate = 1}) {
           resolve();
         };
         utterance.voice = selected;
+        utterance.lang = selected.lang;
         utterance.pitch = pitch;
         utterance.rate = rate * speed;
         utterance.onend = done;
@@ -74,59 +94,90 @@ function synthVoice({synth, voice = () => null, pitch = 1, rate = 1}) {
 const browserSynth = () => (typeof speechSynthesis === 'undefined' ? null : speechSynthesis);
 
 /**
- * The learner's OS voice, for navigation and system speech in system voice mode.
- * @param {{synth?: ?SpeechSynthesis, voice?: function(): ?string}=} options
+ * The system voice for navigation and system speech in system voice mode: the locked voice, no choice.
+ * @param {{synth?: ?SpeechSynthesis}=} options
  */
-export function systemVoice({synth = browserSynth(), voice} = {}) {
-  return synthVoice({synth, voice});
-}
-
-// Clear, standard voices, best first. Systems also ship novelty voices (Bubbles, Zarvox...) that are hard to follow.
-const CLEAR_VOICES = ['Samantha', 'Alex', 'Microsoft Aria', 'Microsoft Jenny', 'Microsoft Guy', 'Microsoft Zira',
-  'Microsoft David', 'Chrome OS US English', 'Karen', 'Daniel', 'Moira', 'Tessa'];
-
-/**
- * The AI voice: a clear standard voice on the device at normal pitch and speed, other than the system voice when possible.
- * @param {{synth?: ?SpeechSynthesis, voice?: function(): ?string, systemVoiceName?: function(): ?string}=} options
- */
-export function nativeAiVoice({synth = browserSynth(), voice = () => null, systemVoiceName = () => null} = {}) {
-  const choose = () => {
-    if (voice()) return voice();
-    const voices = localVoices(synth);
-    const system = systemVoiceName() || voices.find((v) => v.default)?.name;
-    const clear = CLEAR_VOICES.map((name) => voices.find((v) => v.name.startsWith(name))).filter(Boolean);
-    return (clear.find((v) => v.name !== system) || clear[0])?.name || null;
-  };
-  return synthVoice({synth, voice: choose});
+export function systemVoice({synth = browserSynth()} = {}) {
+  return synthVoice({synth});
 }
 
 /**
- * The AI voice: the page's own voice once it has loaded, unless the learner picked a system voice; until then (or if
- * it fails to load) the native one.
- * @param {{page: ?Voice, native: !Voice, systemPicked: function(): boolean}} options
+ * The AI voice when Kristin isn't there (not set up, or failed): the same locked system voice, so replies are never silent.
+ * @param {{synth?: ?SpeechSynthesis}=} options
+ */
+export function nativeAiVoice({synth = browserSynth()} = {}) {
+  return synthVoice({synth});
+}
+
+/**
+ * The AI voice is Kristin (the page voice); while she loads it waits, and if she fails the native voice speaks.
+ * @param {{page: ?Voice, native: !Voice, onPageFailed?: function(): void}} options
+ *     onPageFailed: the page voice can't load (no tts engine on this device)
  * @returns {!Voice}
  */
-export function preferPageVoice({page, native, systemPicked}) {
+export function preferPageVoice({page, native, onPageFailed = () => {}}) {
   let loaded = false;
-  const current = () => (loaded && !systemPicked() ? page : native);
+  let failed = false;
+  let loading = null;
+  const current = () => (loaded ? page : native);
+
+  function loadPage() {
+    if (!page) return Promise.resolve();
+    if (!loading) {
+      loading = (async () => {
+        try {
+          await page.ready();
+          loaded = true;
+        } catch (e) {
+          console.warn('[voice] The built-in AI voice did not load; using a system voice.', e);
+          failed = true;
+          onPageFailed();
+        }
+      })();
+    }
+    return loading;
+  }
+
+  async function waitForPage(signal) {
+    if (!signal) return loadPage();
+    if (signal.aborted) return;
+    let stop;
+    const stopped = new Promise((resolve) => {
+      stop = () => resolve();
+      signal.addEventListener('abort', stop, {once: true});
+    });
+    try {
+      await Promise.race([loadPage(), stopped]);
+    } finally {
+      signal.removeEventListener('abort', stop);
+    }
+  }
+
   return {
     async ready() {
       await native.ready();
-      if (!page) return;
-      try {
-        await page.ready();
-        loaded = true;
-      } catch (e) {
-        console.warn('[voice] The built-in AI voice did not load; using a system voice.', e);
-      }
+      await loadPage();
     },
-    prepare: (text, options) => current().prepare?.(text, options),
+    prepare(text, options) {
+      if (!text) return;
+      if (!page) {
+        native.prepare?.(text, options);
+        return;
+      }
+      loadPage().then(() => current().prepare?.(text, options))
+          .catch((error) => console.warn('[voice] Could not prepare the assistant voice.', error));
+    },
     available: () => current().available?.() !== false,
-    speak: (text, options) => current().speak(text, options),
+    async speak(text, options = {}) {
+      if (!text || options.signal?.aborted) return;
+      if (page) await waitForPage(options.signal);
+      if (!options.signal?.aborted) return current().speak(text, options);
+    },
     cancel() {
       page?.cancel();
       native.cancel();
     },
-    playsInPage: () => current() === page,
+    // Kristin will play in the page while she loads or once loaded; after a failed load the system voice speaks.
+    playsInPage: () => !!page && !failed,
   };
 }

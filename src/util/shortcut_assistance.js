@@ -1,6 +1,7 @@
 // shortcut_assistance.js
 import * as Constants from '../constants';
 import { Speech } from '../audio/speech';
+import {sayDialog, speakDialogFocus} from './dialog_speech.js';
 
 export class ShortcutAssistance {
     /**
@@ -74,7 +75,7 @@ export class ShortcutAssistance {
             this.root.querySelector('.acc-shortcuts__dialog')?.focus();
         } catch {}
 
-        this.speech.update(
+        this._say(
             'Shortcut help opened. Use W or S to navigate shortcuts. ' +
             'Press Slash to search. Press Escape key to close.'
         );
@@ -99,7 +100,7 @@ export class ShortcutAssistance {
         this.prevFocus = null;
         this.isOpen = false;
 
-        this.speech.update('Shortcut help closed.');
+        this._say('Shortcut help closed.');
 
         // remove from DOM so nothing can intercept clicks
         this._teardownDOM();
@@ -506,6 +507,10 @@ export class ShortcutAssistance {
 
         // Dialog semantics
         const dialog = root.querySelector('.acc-shortcuts__dialog');
+        dialog.tabIndex = -1;
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-labelledby', 'acc-shortcuts-title');
+        root.querySelector('.acc-shortcuts__close').setAttribute('aria-label', 'Close shortcut help');
         // Stop underlying app from hijacking pointer/focus; allow close button to work.
         const swallow = (e) => e.stopPropagation();
         dialog.addEventListener('pointerdown', swallow, true);
@@ -653,9 +658,9 @@ export class ShortcutAssistance {
             const msg = total === 1
                 ? '1 shortcut found. Press Escape to focus it, then use W or S to navigate.'
                 : `${total} shortcuts found. Press Escape to focus result, then W or S to navigate.`;
-            this.speech.update(msg);
+            this._say(msg);
         } else {
-            this.speech.update(`${this.items.length} shortcuts available.`);
+            this._say(`${this.items.length} shortcuts available.`);
         }
     }
 
@@ -668,7 +673,11 @@ export class ShortcutAssistance {
     _onFocusInGuard(e) {
         if (!this.root || !this.isOpen) return;
         const isHidden = this.root.getAttribute('aria-hidden') === 'true';
-        if (!isHidden) return;
+        if (!isHidden) {
+            const target = e.target;
+            if (target.matches('input, button')) speakDialogFocus(target);
+            return;
+        }
         const fallback = document.querySelector('#blocklyDiv') || document.body;
         try {
             (this.prevFocus || fallback)?.focus?.();
@@ -694,7 +703,7 @@ export class ShortcutAssistance {
             const row = this.rowsView[nextIndex] || {};
             let label = (row.sr && row.sr.trim()) || el.dataset.sr || el.getAttribute('aria-label') || '';
             const pos = `${this.index + 1} of ${this.items.length}`;
-            this.speech.update(`${label}`);
+            this._say(`${label}`);
         }
     }
 
@@ -841,7 +850,10 @@ export class ShortcutAssistance {
             } catch {}
         });
 
-        this.speech.update('Search shortcuts. Type to filter by title. Press Escape to jump to results.');
+    }
+
+    _say(text) {
+        sayDialog(text, {fallback: (line) => this.speech.update(line)});
     }
 
     _onSearchInput(e) {

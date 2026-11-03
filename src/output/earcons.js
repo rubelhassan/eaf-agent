@@ -1,7 +1,7 @@
 // @ts-check
 // Short tones made with Web Audio, no files. Each earcon is a list of tones; its length is known up front.
 
-/** @typedef {{hz: number, toHz?: number, ms: number, wave?: OscillatorType, gap?: number, level?: number}} Tone */
+/** @typedef {{hz: number, toHz?: number, ms: number, wave?: OscillatorType, gap?: number, level?: number, attack?: number}} Tone */
 
 /** @type {!Readonly<Record<string, !Array<Tone>>>} */
 export const EARCONS = Object.freeze({
@@ -9,6 +9,10 @@ export const EARCONS = Object.freeze({
   sent: [{hz: 1400, ms: 40, wave: 'triangle', level: 0.6}],
   listeningOn: [{hz: 440, toHz: 880, ms: 120}],
   listeningOff: [{hz: 880, toHz: 440, ms: 120}],
+  // Every few quiet seconds while listening: the listening-on tone, quieter and with a slow start.
+  listeningReminder: [{hz: 440, toHz: 880, ms: 120, level: 0.48, attack: 40}],
+  // Switched to the basic speech engine: two flat, soft tones, unlike the rising listening tones.
+  engineBasic: [{hz: 587, ms: 80, wave: 'triangle', gap: 40, level: 0.7}, {hz: 587, ms: 80, wave: 'triangle', level: 0.7}],
   blocked: [{hz: 150, ms: 100, wave: 'square', level: 0.4}],
   error: [{hz: 520, ms: 60, gap: 20}, {hz: 390, ms: 70}],
   connected: [{hz: 1046, ms: 70}],
@@ -49,9 +53,9 @@ export function createEarconPlayer({createContext = () => (typeof AudioContext =
         osc.type = tone.wave || 'sine';
         osc.frequency.setValueAtTime(tone.hz, at);
         if (tone.toHz) osc.frequency.linearRampToValueAtTime(tone.toHz, end);
-        // Short attack and release, so tones don't click.
+        // Short attack (unless a tone asks for a slower one) and release, so tones don't click.
         gain.gain.setValueAtTime(0.0001, at);
-        gain.gain.exponentialRampToValueAtTime(level * (tone.level ?? 1), at + 0.005);
+        gain.gain.exponentialRampToValueAtTime(level * (tone.level ?? 1), at + (tone.attack ?? 5) / 1000);
         gain.gain.exponentialRampToValueAtTime(0.0001, end);
         osc.connect(gain).connect(context.destination);
         osc.start(at);

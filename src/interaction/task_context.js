@@ -8,6 +8,7 @@ const STATES = {working: 'working', applying: 'working', awaiting: 'waiting for 
 const LAST_SAID_WORDS = 60;
 
 const quote = (text) => JSON.stringify(String(text));
+const insideSentence = (words) => String(words || '').replace(/\.$/, '');
 const cut = (text, words) => {
   const all = String(text).trim().split(/\s+/);
   return all.length > words ? `${all.slice(0, words).join(' ')}...` : all.join(' ');
@@ -37,11 +38,13 @@ export function taskContext(task) {
   for (const c of task.request.corrections.slice(-3)) lines.push(`Correction: ${quote(c)}`);
   const p = task.proposal;
   if (p && task.state === 'awaiting') {
-    if (p.kind === 'fix' && !p.presented) lines.push(`Offered: the fix: ${p.words[0] || 'a change'}`);
-    else lines.push(`Offered: step ${p.next + 1} of ${p.steps.length}, ${p.words[p.next] || 'a change'}`);
+    if (p.kind === 'fix' && !p.presented) lines.push(p.steps.length > 1 ?
+      `Offered: the fix, in ${p.steps.length} steps: ${p.words.map(insideSentence).join('; ')}` :
+      `Offered: the fix: ${insideSentence(p.words[0]) || 'a change'}`);
+    else lines.push(`Offered: step ${p.next + 1} of ${p.steps.length}, ${insideSentence(p.words[p.next]) || 'a change'}`);
   }
   if (task.action === 'DEBUG' || task.action === 'EDIT_GUIDE') {
-    lines.push(`Applied: ${task.applied.length ? task.applied.join('; ') : 'none'}`);
+    lines.push(`Applied: ${task.applied.length ? task.applied.map(insideSentence).join('; ') : 'none'}`);
   }
   if (task.lastSay) lines.push(`You last said: ${quote(cut(task.lastSay, LAST_SAID_WORDS))}`);
   return lines.join('\n');
@@ -51,18 +54,25 @@ export function taskContext(task) {
  * The answers the learner can give now, with what each does, for the intent step to map loose or misheard replies
  * onto. Repeat is left out: it is nearly always available, and the code match knows its usual words.
  * @param {!Array<string>} names  available commands
- * @param {{proposal?: ?Object, lastApplied?: ?Array<string>, working?: boolean}=} state
+ * @param {{proposal?: ?Object, lastApplied?: ?Array<string>, working?: boolean, question?: ?Object,
+ *     lastReceipt?: ?Object}=} state
  *     proposal: the offered one (TaskForContext.proposal); lastApplied: the last applied step's words
+ *     question: the pending undo question; lastReceipt: the last applied step, with its number and words
  * @returns {!Array<{name: string, does: string}>}
  */
-export function answersNow(names, {proposal: p = null, lastApplied = null, working = false} = {}) {
+export function answersNow(names, {proposal: p = null, lastApplied = null, working = false, question = null,
+  lastReceipt = null} = {}) {
   const step = p && (p.kind === 'fix' && !p.presented ? 'hear the fix' :
-    p.steps.length === 1 ? `make the change: ${p.words[0]}` : `do step ${p.next + 1} of ${p.steps.length}: ${p.words[p.next]}`);
+    p.steps.length === 1 ? `make the change: ${insideSentence(p.words[0])}` :
+      `do step ${p.next + 1} of ${p.steps.length}: ${insideSentence(p.words[p.next])}`);
   const does = {
-    yes: step,
+    yes: question && lastReceipt ? `take back step ${lastReceipt.from + 1}: ${lastReceipt.words.map(insideSentence).join('; ')}` : step,
     all: 'do all the remaining steps',
-    stop: p ? "don't make the offered change" : working ? 'stop the work' : 'drop the question',
-    undo: lastApplied && `take back the last change: ${lastApplied.join('; ')}`,
+    no: question && lastReceipt ? `keep step ${lastReceipt.from + 1}` : working ? 'stop the work' :
+      'keep the offered step waiting; nothing changes',
+    cancel: question && lastReceipt ? `keep step ${lastReceipt.from + 1}` :
+      p ? 'end the offered change; done steps stay' : working ? 'stop the work' : 'drop the question',
+    undo: lastApplied && `take back the last change (asks first): ${lastApplied.map(insideSentence).join('; ')}`,
     continue: 'hear the offered step again',
     go: 'move to the block just found',
   };

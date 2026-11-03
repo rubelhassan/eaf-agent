@@ -1,13 +1,17 @@
 // @ts-check
-// Everything the learner hears goes through here, on one timeline: AI turns in the AI voice, navigation and
-// system speech on the screen reader or the system voice, and earcons. Nothing plays over anything else.
+// Everything the learner hears goes through here, on one timeline: AI turns and the assistant panel's own lines in the
+// AI voice (or, by a setting, on the learner's screen reader), navigation and system speech on the screen reader or the
+// system voice, and earcons. Each item goes to one of them, never two. Nothing plays over anything else.
 
 import {createEarconPlayer} from './earcons.js';
 import {splitSentences} from './sentences.js';
 
 const PRIORITY = {stop: 1, freeze: 1, blocked: 1, question: 2, offer: 3, outcome: 3, answer: 3, error: 3,
-  navigation: 4, system: 4, cue: 4, progress: 5};
+  navigation: 4, system: 4, cue: 4, echo: 4, status: 4, progress: 5};
 const CUE_REPEAT_MS = 100;
+// On the screen reader route the host still sends progress every 10 s; one line every 30 s is enough there.
+// A second of slack, since the host's timer fires a little late or early.
+const SR_PROGRESS_GAP_MS = 29000;
 
 // Blockly 11 fires change events on the next frame, then a timeout. Waiting the same way lets a connected cue
 // arrive before its message plays (Speech already waited a frame before writing the live region).
@@ -20,29 +24,35 @@ export const DEFAULT_OUTPUT_SETTINGS = Object.freeze({
   systemRate: 1,
   aiVoice: null,
   aiRate: 1,
+  aiOutput: 'voice',             // or 'screenReader': AI replies to the learner's screen reader
   cues: true,
   cueVolume: 'medium',
+  typingEcho: 'characters',      // or 'words', 'both', 'off': only with navigation speech on the built-in voice
 });
 
 /**
  * @typedef {Object} OutputItem
  * @property {string} text
- * @property {'ai'|'navigation'|'system'} source
- * @property {string=} kind  AI: question, offer, outcome, answer, error, progress. Others: navigation, system, and the
- *     cues of the navigation lock (blocked, freeze, stop), which pause the AI voice instead of cutting it.
+ * @property {'ai'|'assistant'|'navigation'|'system'} source  assistant: the panel's own lines ("Neon is open",
+ *     "Listening"), heard where AI replies are (the Assistant replies setting) but without the earcon, the name or repeat
+ * @property {string=} kind  AI: question, offer, outcome, answer, error, progress. Assistant: status (default), error.
+ *     Others: navigation, system, echo (typing echo), and the cues of the navigation lock (blocked, freeze, stop), which
+ *     pause the AI voice instead of cutting it.
  * @property {?string=} taskId
  * @property {?string=} cue  An earcon played before the words.
  */
 
 /**
  * @param {{aiVoice: !import('./voices.js').Voice, systemVoice: !import('./voices.js').Voice,
- *     liveRegion: ?Element|function(): ?Element, settings?: !Object, cues?: !Object, now?: function(): number,
- *     defer?: function(function()): void}} options
- *     cues: an earcon player (tests pass a fake); defer: when the waiting messages play
+ *     liveRegion: ?Element|function(): ?Element, aiLiveRegion?: ?Element|function(): ?Element, aiName?: string,
+ *     settings?: !Object, cues?: !Object, now?: function(): number, defer?: function(function()): void}} options
+ *     aiLiveRegion: the polite region AI replies go to on the screen reader route (the navigation one if missing);
+ *     aiName: says who speaks there; cues: an earcon player (tests pass a fake); defer: when the waiting messages play
  */
-export function createOutputManager({aiVoice, systemVoice, liveRegion, settings = {}, cues = createEarconPlayer(),
-  now = () => Date.now(), defer = afterBlocklyEvents}) {
+export function createOutputManager({aiVoice, systemVoice, liveRegion, aiLiveRegion = null, aiName = 'Neon',
+  settings = {}, cues = createEarconPlayer(), now = () => Date.now(), defer = afterBlocklyEvents}) {
   let config = {...DEFAULT_OUTPUT_SETTINGS, ...settings};
+  let name = aiName;
   cues.setVolume(config.cueVolume);
   let epoch = 0;
   let seq = 0;
@@ -58,11 +68,15 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
   const announceListeners = new Set();
   /** The AI turn an interruption cut, and where, so a false interruption can play it again. */
   let lastCut = null;
-  let toggle = false;
+  const toggles = new Map();
+  /** When each task's last progress line went to the screen reader. */
+  const progressAt = new Map();
   let lastCue = {name: null, at: -Infinity};
   let lastAsked = {name: null, at: -Infinity};
 
   const isAi = (entry) => entry?.item.source === 'ai';
+  // On the Assistant replies route: AI turns and the panel's own lines.
+  const isAssistant = (entry) => isAi(entry) || entry?.item.source === 'assistant';
   const drop = (test) => {
     for (let i = queue.length - 1; i >= 0; i--) if (test(queue[i])) queue.splice(i, 1);
   };
@@ -73,14 +87,17 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
     listeners.forEach((fn) => fn(state));
   }
 
-  function writeLive(text) {
-    const el = typeof liveRegion === 'function' ? liveRegion() : liveRegion;
+  function writeLive(text, region = liveRegion) {
+    const el = typeof region === 'function' ? region() : region;
     if (!el) return;
     // A different invisible ending each time, so the same text is announced again.
+    const toggle = !!toggles.get(region);
     el.textContent = '';
     el.textContent = `${text}${toggle ? ' ' : '​'}`;
-    toggle = !toggle;
+    toggles.set(region, !toggle);
   }
+
+  const toScreenReader = () => config.aiOutput === 'screenReader';
 
   async function playCue(name, signal) {
     if (!config.cues || signal.aborted) return;
@@ -91,10 +108,32 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
     await cues.play(name, {signal});
   }
 
+  /** The screen reader route: the earcon, then the whole reply once, with the name; we can't know when it ends. */
+  async function writeAi(run) {
+    const {entry: {item, resumed}, abort: {signal}} = run;
+    const reply = item.source === 'ai';
+    const progress = item.kind === 'progress';
+    if (progress && now() - (progressAt.get(item.taskId) ?? -Infinity) < SR_PROGRESS_GAP_MS) return;
+    if (!resumed && reply) await playCue('aiTurn', signal);
+    if (signal.aborted) {
+      // Paused for a freeze cue before it was written: written afterwards.
+      if (run.pause) queue.push(run.entry);
+      return;
+    }
+    const text = reply ? `${name}: ${item.text}` : item.text;
+    speakListeners.forEach((fn) => fn(item.text));
+    // Reported like navigation, so the microphone ignores the screen reader reading it.
+    announceListeners.forEach((fn) => fn(text));
+    writeLive(text, aiLiveRegion || liveRegion);
+    if (progress) progressAt.set(item.taskId, now());
+  }
+
   async function playAi(run) {
+    if (toScreenReader()) return writeAi(run);
     const {entry, abort: {signal}} = run;
     setState('speaking');
-    let cued = !!entry.resumed;
+    // The earcon marks an AI turn; the panel's own lines have none.
+    let cued = !!entry.resumed || !isAi(entry);
     if (!cued) {
       await playCue('aiTurn', signal);
       cued = !signal.aborted;
@@ -138,10 +177,10 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
     while (queue.length && !disposed) {
       queue.sort((a, b) => a.priority - b.priority || a.seq - b.seq);
       const entry = queue.shift();
-      if (isAi(entry) && entry.epoch < epoch) continue;
+      if (isAssistant(entry) && entry.epoch < epoch) continue;
       current = {entry, abort: new AbortController(), pause: false};
       try {
-        await (isAi(entry) ? playAi(current) : playOther(current));
+        await (isAssistant(entry) ? playAi(current) : playOther(current));
       } finally {
         current = null;
       }
@@ -152,9 +191,9 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
 
   function interrupt() {
     epoch += 1;
-    drop(isAi);
-    if (isAi(current?.entry)) {
-      lastCut = {entry: current.entry, from: current.index ?? current.entry.from};
+    drop(isAssistant);
+    if (isAssistant(current?.entry)) {
+      if (isAi(current.entry)) lastCut = {entry: current.entry, from: current.index ?? current.entry.from};
       current.abort.abort();
     }
     return epoch;
@@ -169,8 +208,8 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
       if (item.kind !== 'progress') lastAi = item;
       lastCut = null;
     } else if (entry.priority === 1) {
-      drop((e) => !isAi(e) && e.priority === 1);
-      if (isAi(current?.entry)) {
+      drop((e) => !isAssistant(e) && e.priority === 1);
+      if (isAssistant(current?.entry)) {
         current.pause = true;
         current.abort.abort();
       } else if (current) {
@@ -185,10 +224,15 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
       const at = now();
       if (waiting?.item.cue === item.cue || (lastAsked.name === item.cue && at - lastAsked.at < CUE_REPEAT_MS)) return;
       lastAsked = {name: item.cue, at};
+    } else if (item.kind === 'echo') {
+      // Typing echo: the newest key wins, and it never plays over the AI voice or cuts it.
+      if (isAssistant(current?.entry) || queue.some(isAssistant)) return;
+      drop((e) => e.item.kind === 'echo');
+      if (current?.entry.item.kind === 'echo') current.abort.abort();
     } else if (item.kind === 'navigation') {
       drop((e) => e.item.kind === 'navigation');
       // Navigation cuts the AI voice (with the freeze on, the lock blocks navigation while it speaks).
-      if (isAi(current?.entry)) interrupt();
+      if (isAssistant(current?.entry)) interrupt();
       else if (current && current.entry.priority >= 4) current.abort.abort();
     }
     queue.push(entry);
@@ -199,7 +243,9 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
   function say(item) {
     if (disposed || !item || (!item.text && !item.cue)) return;
     const source = item.source || 'system';
-    const kind = item.kind || (source === 'ai' ? 'answer' : source);
+    const kind = item.kind || (source === 'ai' ? 'answer' : source === 'assistant' ? 'status' : source);
+    // The screen reader echoes typing itself.
+    if (kind === 'echo' && config.systemOutput !== 'systemVoice') return;
     add({item: {...item, source, kind}, priority: PRIORITY[kind] ?? 3, epoch, seq: ++seq, from: 0});
   }
 
@@ -214,6 +260,13 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
   return {
     say,
     cue: (name) => say({source: 'system', kind: 'cue', text: '', cue: name}),
+    /** A line of the assistant panel itself, heard where AI replies are. @param {'status'|'error'=} kind */
+    sayAssistant: (text, kind = 'status') => say({source: 'assistant', kind, text}),
+    /** Prepares assistant audio without speaking or changing focus. @param {string} text */
+    prepareAssistant(text) {
+      if (disposed || toScreenReader()) return;
+      for (const sentence of splitSentences(text)) aiVoice.prepare?.(sentence, {rate: config.aiRate});
+    },
     interrupt,
     stopAll,
     /** After a false interruption: the cut turn again, from the start of the cut sentence, without its earcon. */
@@ -246,6 +299,11 @@ export function createOutputManager({aiVoice, systemVoice, liveRegion, settings 
       return () => listeners.delete(fn);
     },
     settings: () => ({...config}),
+    aiName: () => name,
+    /** The assistant's name, said before each reply on the screen reader route. */
+    setAiName(next) {
+      if (next) name = next;
+    },
     setSettings(partial) {
       config = {...config, ...partial};
       cues.setVolume(config.cueVolume);

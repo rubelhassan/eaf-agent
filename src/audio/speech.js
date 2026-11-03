@@ -3,6 +3,7 @@ import {Constants} from "../index";
 import * as Util from "../util/util";
 import {blockTypes} from "../blocks/registry";
 import {getOutputManager} from "../output/active.js";
+import {madeByWords} from '../blocks/authorship_marks.js';
 
 
 /** The stack a cursor node is in (its top block id), or null on the workspace. */
@@ -624,7 +625,7 @@ export class Speech {
             stackIndex};
     }
 
-    announceCursorLoc(node) {
+    announceCursorLoc(node, {after} = {}) {
         if (!node) {
             this.update('Cursor is on workspace.'); return;
         }
@@ -674,7 +675,8 @@ export class Speech {
             phrase += `, under the ${this.ordinalWord(containerBlockInfo.stackIndex)}) stack`;
         }
 
-        this.update(phrase);
+        const ending = after ?? madeByWords(srcBlock);
+        this.update(ending ? `${phrase}, ${ending}` : phrase);
     }
 
     announceEditModeToggle(editMode, curNode) {
