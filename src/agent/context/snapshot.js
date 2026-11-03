@@ -1,9 +1,10 @@
 // @ts-check
-// Program view for the model: short ids (b1..), stack letters, block numbers. Question answers are never shown.
+// Program view for the model: short ids (b1..), stack letters, block numbers. Hidden references are never shown.
 
 import * as Blockly from 'blockly/core';
-import {QUESTION_TYPE} from '../../blocks/question/model.js';
+import {ANSWER_INPUT, QUESTION_TYPE} from '../../blocks/question/model.js';
 import {getBinding} from '../../blocks/question/binding.js';
+import {inQuestionSlot} from '../guardrails/learner_work.js';
 import {stackName} from '../../labels_and_comments/stack_name.js';
 
 const STATEMENT = () => Blockly.inputs.inputTypes.STATEMENT;
@@ -44,7 +45,8 @@ function procedure(block) {
 function inline(block, id) {
   if (block.type === QUESTION_TYPE) {
     const config = /** @type {*} */ (block).getQuestionConfig?.();
-    return `[${id(block)}] question (empty, for the learner to answer${config ? `: ${gap(config)}` : ''})`;
+    const empty = block.getInputTargetBlock(ANSWER_INPUT) ? '' : 'empty, ';
+    return `[${id(block)}] question (${empty}for the learner to answer${config ? `: ${gap(config)}` : ''})`;
   }
   const head = `[${id(block)}]`;
   const proc = procedure(block);
@@ -164,6 +166,7 @@ export function snapshot(ws, {cursor = null, field = null, onWorkspace = false, 
   };
   const lines = [];
   const statements = (block, depth) => {
+    if (block.type === QUESTION_TYPE) return;
     for (const input of block.inputList) {
       if (input.type !== STATEMENT() || !input.connection) continue;
       const first = input.connection.targetBlock();
@@ -185,9 +188,11 @@ export function snapshot(ws, {cursor = null, field = null, onWorkspace = false, 
   }
   if (!tops.length) lines.push('(the workspace is empty)');
 
-  const focused = cursor && ws.getBlockById(cursor);
-  const onField = field && focused?.getField(field) ? ` field ${field}` : '';
-  if (focused) lines.push('', `Cursor: [${toShort.get(cursor)}]${onField}, ${blockPositions(ws, shown).get(cursor)}`);
+  const cursorBlock = cursor && ws.getBlockById(cursor);
+  const question = inQuestionSlot(cursorBlock);
+  const focused = question || cursorBlock;
+  const onField = !question && field && focused?.getField(field) ? ` field ${field}` : '';
+  if (focused) lines.push('', `Cursor: [${toShort.get(focused.id)}]${onField}, ${blockPositions(ws, shown).get(focused.id)}`);
   else if (onWorkspace) lines.push('', 'Cursor: on empty workspace, not on a block');
   const variables = ws.getAllVariables().map((v) => v.name);
   if (variables.length) lines.push(`Variables: ${variables.join(', ')}`);
