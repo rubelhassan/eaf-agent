@@ -3,6 +3,7 @@
 
 import {snapshot} from '../context/snapshot.js';
 import {validatePlan} from '../editor/plan.js';
+import {splitSteps} from '../editor/split.js';
 import {newRequestId} from '../model/agent_client.js';
 import {workspaceVersion} from '../context/version.js';
 import {getPolicy} from '../../blocks/policy.js';
@@ -90,17 +91,34 @@ export function checkPlanReply(task, ws, output, options = {}) {
   return [...checkPlan(task, ws, output, options), ...spokenProblems(task, ws, output, options)];
 }
 
-/**
- * The speech checks on voiceLine, the only part of a reply the learner hears. An empty line is a shape problem.
- * @param {{placesOnly?: boolean}=} options  placesOnly: just the impossible places
- */
-function spokenProblems(task, ws, output, {stackLetters = null, placesOnly = false} = {}) {
+/** voiceLine and the steps needed to ground its future places. Empty speech is a shape problem. */
+function spokenLine(task, output) {
   const line = output?.voiceLine;
-  if (typeof line !== 'string' || !line.trim()) return [];
-  const ops = PLAN_ACTIONS[task].steps(output).flatMap((s) => (Array.isArray(s?.ops) ? s.ops : []));
-  const newStacks = ops.filter((op) => op?.stack === 'new').length;
-  return placesOnly ? placeProblems(line, ws, {stackLetters, newStacks}) :
-    speechProblems(line, ws, {limit: SPOKEN_WORD_LIMIT, stackLetters, newStacks});
+  if (typeof line !== 'string' || !line.trim()) return null;
+  const steps = PLAN_ACTIONS[task].steps(output);
+  return {line, steps};
+}
+
+/** New-stack places use the whole plan's result, including later operations. */
+function checkSpoken(ws, spoken, {check, stackLetters = null, allowedTypes = ws.allowedTypeCatalog || null}) {
+  if (!spoken) return [];
+  const makesStack = spoken.steps.some((s) => Array.isArray(s?.ops) && s.ops.some((op) => op?.stack === 'new'));
+  const plannedWorkspace = makesStack ? validatePlan(ws, spoken.steps, {allowedTypes}).result : null;
+  try {
+    return check(spoken.line, ws, {limit: SPOKEN_WORD_LIMIT, stackLetters, plannedWorkspace});
+  } finally {
+    plannedWorkspace?.dispose();
+  }
+}
+
+/** The speech checks on voiceLine. */
+function spokenProblems(task, ws, output, options = {}) {
+  return checkSpoken(ws, spokenLine(task, output), {...options, check: speechProblems});
+}
+
+/** Places in voiceLine that can't exist. */
+function spokenPlaceProblems(task, ws, output, options = {}) {
+  return checkSpoken(ws, spokenLine(task, output), {...options, check: placeProblems});
 }
 
 /** Problems with the reply's shape and steps, without the spoken text. */
@@ -170,8 +188,10 @@ export async function askWithRepair(ws, client, call, read, check, toShort, {sig
  * @param {{client: !import('../model/agent_client.js').AgentClient, cursor?: ?string, onWorkspace?: boolean,
  *     learnerSays?: string, allowedTypes?: ?Array<string>, version?: string, stackLetters?: ?Map<string, string>}} options
  * @returns {!Promise<{output: ?Object, valid: boolean, repaired: boolean, problems: !Array<string>,
- *     firstProblems: !Array<string>, adjusted: !Array<string>, error?: string}>}
+ *     firstProblems: !Array<string>, adjusted: !Array<string>, onlyPlaces: boolean, error?: string,
+ *     steps: !Array<!Object>, split: (!Array<!Object>|string)}>}
  *     adjusted: variants the harness normalized (e.g. 'place wrapper'), for the eval.
+ *     onlyPlaces: the one thing still wrong is an impossible place in voiceLine
  */
 export async function runPlanAction(task, ws, options) {
   const {call, toReal, toShort} = buildPlanRequest(task, ws, options);
@@ -187,10 +207,30 @@ export async function runPlanAction(task, ws, options) {
     error, workspaceVersion: version};
   // Never offer an unchecked change, or one introduced by a line that breaks the speech rules. A wrong place in the
   // speech alone keeps the plan.
-  const places = spokenProblems(task, ws, output, {...checks(meta), placesOnly: true});
+  const places = spokenPlaceProblems(task, ws, output, checks(meta));
   const spoken = spokenProblems(task, ws, output, checks(meta)).filter((p) => !places.includes(p));
   if (checkPlan(task, ws, output, checks(meta)).length || spoken.length) {
     result.output = output && typeof output === 'object' ? PLAN_ACTIONS[task].withoutSteps(output) : null;
+  }
+  // The line can't be spoken, but the rest of the reply holds.
+  result.onlyPlaces = !!problems.length && problems.every((p) => places.includes(p));
+  result.steps = result.output ? PLAN_ACTIONS[task].steps(result.output) : [];
+  result.split = [];
+  if (result.steps.length) {
+    try {
+      const steps = splitSteps(ws, result.steps);
+      const check = validatePlan(ws, steps, {allowedTypes: options.allowedTypes ?? ws.allowedTypeCatalog});
+      check.result?.dispose();
+      if (check.ok) {
+        result.steps = steps;
+        const counts = new Map();
+        for (const step of steps) counts.set(step.split.from, (counts.get(step.split.from) ?? 0) + 1);
+        result.split = [...counts].filter(([, into]) => into > 1).map(([from, into]) => ({from, into}));
+      } else result.split = 'failed';
+    } catch (error) {
+      // The whole plan was checked already; a failed split must never replace it.
+      result.split = 'failed';
+    }
   }
   return result;
 }

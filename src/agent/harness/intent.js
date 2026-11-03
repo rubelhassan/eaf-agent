@@ -4,8 +4,9 @@
 
 import {snapshot} from '../context/snapshot.js';
 import {speechProblems} from '../guardrails/speech.js';
-import {QUESTION_TYPE} from '../../blocks/question/model.js';
+import {ANSWER_INPUT, QUESTION_TYPE} from '../../blocks/question/model.js';
 import {getBinding} from '../../blocks/question/binding.js';
+import {inQuestionSlot} from '../guardrails/learner_work.js';
 import {askWithRepair, parseJsonReply} from './run.js';
 
 export const INTENTS = ['COMPREHEND', 'DEBUG', 'EDIT', 'SEARCH', 'HINT', 'OFF_TOPIC', 'CLARIFICATION', 'ANSWER'];
@@ -18,7 +19,8 @@ export const OFF_TOPIC_REPLY = 'I can only help with your program. Do you want m
 function atCursor(ws, cursor) {
   const block = cursor && ws.getBlockById(cursor);
   if (!block) return 'nothing';
-  if (block.type === QUESTION_TYPE) return 'an empty question block';
+  if (inQuestionSlot(block)) return 'a question block';
+  if (block.type === QUESTION_TYPE) return block.getInputTargetBlock(ANSWER_INPUT) ? 'a question block' : 'an empty question block';
   if (getBinding(block)) return `a ${block.type} block, the learner's answer to a question`;
   return `a ${block.type} block`;
 }

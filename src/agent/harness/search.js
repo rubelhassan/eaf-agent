@@ -7,6 +7,7 @@ import {speechProblems} from '../guardrails/speech.js';
 import {blockTypeName} from '../../blocks/block_names.js';
 import {askWithRepair, parseJsonReply} from './run.js';
 import {workspaceVersion} from '../context/version.js';
+import {inQuestionSlot} from '../guardrails/learner_work.js';
 
 
 // Words learners use for a kind, besides its toolbox name.
@@ -48,7 +49,7 @@ export function findExact(ws, learnerSays, {stackLetters = null} = {}) {
   const sentences = String(learnerSays).split(/(?<=[.?!])\s+/).filter((s) => s.trim());
   if (sentences.length !== 1) return null;
   const request = ` ${norm(learnerSays)} `;
-  const blocks = ws.getAllBlocks(false);
+  const blocks = ws.getAllBlocks(false).filter((block) => !inQuestionSlot(block));
   const hits = new Map();
 
   for (const block of blocks) {

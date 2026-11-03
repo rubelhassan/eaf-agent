@@ -5,6 +5,7 @@
 import {snapshot} from '../context/snapshot.js';
 import {SPOKEN_WORD_LIMIT, SPOKEN_WORD_LIMIT_MORE, speechProblems} from '../guardrails/speech.js';
 import {askWithRepair, parseJsonReply} from './run.js';
+import {inQuestionSlot} from '../guardrails/learner_work.js';
 
 export const SCOPES = ['field', 'block', 'statement', 'stack', 'program'];
 
@@ -16,6 +17,12 @@ export const SCOPES = ['field', 'block', 'statement', 'stack', 'program'];
  */
 export function buildComprehendRequest(ws, {cursor = null, field = null, scope, learnerSays = '', more = false, stackLetters = null,
   taskContext = ''}) {
+  const question = inQuestionSlot(cursor && ws.getBlockById(cursor));
+  if (question) {
+    cursor = question.id;
+    field = null;
+    if (!['proposal', 'stack', 'program'].includes(scope)) scope = 'block';
+  }
   const view = snapshot(ws, {cursor, field, stackLetters});
   const limit = more ? SPOKEN_WORD_LIMIT_MORE : SPOKEN_WORD_LIMIT;
   if (scope === 'proposal') {
