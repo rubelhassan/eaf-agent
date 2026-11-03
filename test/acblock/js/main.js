@@ -124,6 +124,7 @@ function setupTeacherMode(workspace, runOnRun) {
     const state = document.getElementById('teacherModeState');
     const activity = document.getElementById('activitySelect');
     const wholePlan = document.getElementById('wholePlanToggle');
+    const editMode = document.getElementById('editModeSelect');
     const voiceFallback = document.getElementById('voiceFallbackToggle');
     modeRow.hidden = false;
 
@@ -134,6 +135,9 @@ function setupTeacherMode(workspace, runOnRun) {
         toolsRow.hidden = !on;
         activity.value = getPolicy(workspace).activity;
         wholePlan.setAttribute('aria-checked', String(getPolicy(workspace).wholePlan));
+        editMode.value = getPolicy(workspace).editMode;
+        // Whole plan is for Step-confirm; in Guided the learner does every step.
+        wholePlan.setAttribute('aria-disabled', String(getPolicy(workspace).editMode === 'guided'));
         document.getElementById('wholePlanState').textContent = getPolicy(workspace).wholePlan ? 'On' : 'Off';
         voiceFallback.setAttribute('aria-checked', String(getPolicy(workspace).voiceFallback));
         document.getElementById('voiceFallbackState').textContent = getPolicy(workspace).voiceFallback ? 'On' : 'Off';
@@ -149,7 +153,11 @@ function setupTeacherMode(workspace, runOnRun) {
     };
     toggle.addEventListener('click', () => setPolicy(workspace, { teacherMode: !getPolicy(workspace).teacherMode }));
     activity.addEventListener('change', () => setPolicy(workspace, { activity: activity.value }));
-    wholePlan.addEventListener('click', () => setPolicy(workspace, { wholePlan: !getPolicy(workspace).wholePlan }));
+    editMode.addEventListener('change', () => setPolicy(workspace, { editMode: editMode.value }));
+    wholePlan.addEventListener('click', () => {
+        if (wholePlan.getAttribute('aria-disabled') === 'true') return;
+        setPolicy(workspace, { wholePlan: !getPolicy(workspace).wholePlan });
+    });
     voiceFallback.addEventListener('click', () => setPolicy(workspace, { voiceFallback: !getPolicy(workspace).voiceFallback }));
     onPolicyChange(workspace, (next, previous) => {
         if (next.teacherMode !== previous.teacherMode) workspace.updateToolbox(toolboxFor(next.teacherMode));
@@ -171,9 +179,31 @@ function setupTeacherMode(workspace, runOnRun) {
         file.value = '';
         if (!chosen || !confirm('Replace the current workspace with this task?')) return;
         loadXmlToWorkspace(workspace, await chosen.text());
+        workspace.workTask = chosen.name;
     });
     // Opening the teacher URL starts in teacher mode.
     setPolicy(workspace, { teacherMode: true });
+    render();
+}
+
+/**
+ * Edit mode for the learner (Settings): starts at the task's setting and may be changed in a practice; off in a quiz,
+ * where the assistant doesn't change programs.
+ */
+function setupLearnerEditMode(workspace) {
+    const select = document.getElementById('learnerEditModeSelect');
+    const hint = document.getElementById('learnerEditModeHint');
+    if (!select) return;
+    const practiceHint = hint.textContent;
+    const render = () => {
+        const { editMode, activity } = getPolicy(workspace);
+        const quiz = activity === 'quiz';
+        select.value = editMode;
+        select.disabled = quiz;
+        hint.textContent = quiz ? 'Off in a quiz: the assistant does not change programs there.' : practiceHint;
+    };
+    select.addEventListener('change', () => setPolicy(workspace, { editMode: select.value }));
+    onPolicyChange(workspace, render);
     render();
 }
 
@@ -305,6 +335,7 @@ async function loadSelectedProgramIntoWorkspace(workspace) {
     try {
         const xml = await fetchProgramXmlById(id);
         loadXmlToWorkspace(workspace, xml);
+        workspace.workTask = findProgramById(id)?.file || id;
     } catch (e) {
         console.error(e);
         alert('Could not load XML file.');
@@ -384,6 +415,7 @@ function initWorkspace() {
     // Keyboard navigation is on from the start: every key the walkthroughs teach needs it.
     nav.enable(workspace);
     setupNavToggle(workspace);
+    setupDisplaySettings(nav.focusMagnifier);
     // Blockly reads keys on its own svg. Tabbing into the app lands on its container
     // first, so hand focus to the svg when it arrives from outside the app.
     const app = document.getElementById('blocklyApp');
@@ -405,11 +437,20 @@ function initWorkspace() {
         },
     });
     setupLearnerLevel(workspace);
+    setupLearnerEditMode(workspace);
     const run = () => runProgram(workspace, nav.speech);
     setupTeacherMode(workspace, run);
     // Learners hand in their work as a file; a teacher imports it and Run assesses it.
     document.getElementById('saveWorkBtn').addEventListener('click', () => {
-        downloadXml(QuestionBlock.workXml(workspace), 'work');
+        const programXml = QuestionBlock.workXml(workspace);
+        downloadXml(programXml, 'work');
+        const save = workspace.workSave;
+        if (!save) { console.warn('[work] Server connection is not ready; the file was downloaded.'); return; }
+        const savedAt = new Date().toISOString();
+        const task = workspace.workTask || 'untitled';
+        const summary = authorshipSummary(workspace, {stackLetters: assistantView(workspace).stackLetters(),
+            session: {...save.session, task, pageStartedAt: save.pageStartedAt, savedAt}});
+        void save.server.work({programXml, task, savedAt, summary}).catch((error) => console.warn('[work]', error));
     });
 
     const keyOverlay = new KeyOverlay({ hideDelayMs: 5000 });
@@ -419,24 +460,51 @@ function initWorkspace() {
 
     document.getElementById("languageSelect").addEventListener("change", () => generateCode(workspace));
 
-    // Auto-load program when selection changes
-    document.getElementById("programSelect").addEventListener("change", async () => {
-        const select = document.getElementById("programSelect");
-        const selectedId = select.value;
-
+    // Loads the chosen program. A mouse pick, or a pick in the opened list, loads at once and puts focus on the
+    // editor's cursor (stack A, said by the navigation speech). Arrows, Home, End and letters on the closed list change
+    // it on every key in Chrome and Firefox on Windows, so those only browse: Enter loads, and leaving (Tab) loads
+    // without moving focus.
+    const programSelect = document.getElementById("programSelect");
+    let browsing = false;
+    // On a Mac an arrow opens the list instead (a pick there is a change like a click), so only letters browse.
+    const ARROWS_OPEN_LIST = /Mac/.test(navigator.platform);
+    const BROWSE_KEYS = ARROWS_OPEN_LIST ? [] : ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'];
+    async function loadChosen({ focus }) {
+        browsing = false;
+        const selectedId = programSelect.value;
         if (!selectedId || selectedId === "Default") {
             // Clear workspace if no program selected
-            workspace.clear();
-            return;
+            loadXmlToWorkspace(workspace, '<xml/>');
+            workspace.workTask = 'untitled';
+        } else {
+            try {
+                const xml = await fetchProgramXmlById(selectedId);
+                loadXmlToWorkspace(workspace, xml);
+                workspace.workTask = findProgramById(selectedId)?.file || selectedId;
+            } catch (e) {
+                console.error(e);
+                alert('Could not load the selected program.');
+                return;
+            }
         }
-
-        try {
-            const xml = await fetchProgramXmlById(selectedId);
-            loadXmlToWorkspace(workspace, xml);
-        } catch (e) {
-            console.error(e);
-            alert('Could not load the selected program.');
+        if (focus) workspace.getParentSvg()?.focus();
+    }
+    programSelect.addEventListener("keydown", (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // Enter without browsing first: the program shown is already loaded; just go to it.
+            if (browsing) loadChosen({ focus: true });
+            else workspace.getParentSvg()?.focus();
+        } else if (BROWSE_KEYS.includes(e.key) || (e.key.length === 1 && e.key !== ' ')) {
+            browsing = true;
         }
+    });
+    programSelect.addEventListener("change", () => {
+        if (!browsing) loadChosen({ focus: true });
+    });
+    programSelect.addEventListener("blur", () => {
+        if (browsing) loadChosen({ focus: false });
     });
 
     document.getElementById("showShortcuts")?.addEventListener("click", () => {
@@ -482,22 +550,41 @@ function generateCode(workspace = Blockly.getMainWorkspace()) {
     }
 }
 
+let learnerRun = null;
+// The open assistant panel hides Output and Code, so Run closes it first (index.html sets this).
+let closeAssistantForRun = () => {};
+
+/** index.html passes the assistant panel's close once the panel exists. */
+function setRunClosesAssistant(close) {
+    closeAssistantForRun = close;
+}
+
 /**
- * Run: learners get a compact warning about unanswered questions (tests never run
- * for them); teachers get an assessment of the program (questions, then task tests)
- * after the normal run. Spoken too while keyboard navigation is on.
+ * Run stops on empty questions; teachers still get their status report.
  */
-function runProgram(workspace, speech) {
-    window.eafActivity?.noteRun();
-    // Close Blockly Pilot panel if open
-    if (window.blocklyPilot && window.blocklyPilot.state.panelVisible) {
-        window.blocklyPilot.close();
-    }
-    clearOutput();
+async function runProgram(workspace, speech) {
     const say = (text) => {
         if (workspace.keyboardAccessibilityMode) speech.update(text);
     };
+    // Like closing the panel: the conversation ends, the AI voice stops, focus returns. An offered step stays waiting.
+    closeAssistantForRun();
+    learnerRun ||= createLearnerRun({ workspace, say, appendOutput,
+        escapeFirst: (e) => !!navController?.focusMagnifier?.takeEscape(e) });
+    if (learnerRun.isRunning()) {
+        await learnerRun.run();
+        return;
+    }
     const { teacherMode } = getPolicy(workspace);
+    const gate = QuestionBlock.runGate(workspace, { locate: describeBlockLocation });
+    if (gate.blocked) {
+        clearOutput();
+        appendOutput(gate.line);
+        speech.update(gate.line);
+        if (teacherMode) await showAssessment(workspace);
+        return;
+    }
+    window.eafActivity?.noteRun();
+    clearOutput();
     if (!teacherMode) {
         const warning = QuestionBlock.learnerRunWarning(workspace);
         if (warning) {
@@ -506,71 +593,26 @@ function runProgram(workspace, speech) {
         }
     }
 
-    // Setup output capture only when running code
-    const restoreConsole = setupOutputCapture();
     generateCode(workspace);
-    try {
-        eval(document.getElementById("codeOutput").textContent);
-    } catch (error) {
-        appendOutput("Error: " + error.message);
-    } finally {
-        // Restore original console.log after execution
-        restoreConsole();
-    }
+    // In a worker with limits, so a loop that never ends can't freeze the page.
+    await learnerRun.run();
 
     if (teacherMode) {
-        const report = QuestionBlock.assess(workspace, {
-            execute: (inputs) => runSilently(workspace, inputs),
-            locate: describeBlockLocation,
-        });
-        appendOutput('Assessment');
-        report.lines.forEach((line) => appendOutput(line));
-        say(report.summary || 'Assessment done.');
+        say(await showAssessment(workspace));
     }
 }
 
-const SILENT_RUN_MAX_LOOPS = 100000;
-const SILENT_RUN_MAX_MS = 1000;
-
-/**
- * Runs the program once without touching the page: prompt answers come from
- * `inputs` in order, printed lines are captured, and loops are capped.
- * @returns {{lines: string[], error?: string, outOfInputs?: boolean, timedOut?: boolean}}
- */
-function runSilently(workspace, inputs) {
-    const generator = javascript.javascriptGenerator;
-    const previousTrap = generator.INFINITE_LOOP_TRAP;
-    generator.INFINITE_LOOP_TRAP = 'if (--__eafRun.loops < 0 || Date.now() > __eafRun.deadline) throw __eafRun.stop;\n';
-    let code;
-    try {
-        code = generator.workspaceToCode(workspace);
-    } finally {
-        generator.INFINITE_LOOP_TRAP = previousTrap;
-    }
-
-    const lines = [];
-    const queue = [...inputs];
-    const stop = new Error('stopped');
-    const noInput = new Error('no input');
-    const state = { loops: SILENT_RUN_MAX_LOOPS, deadline: Date.now() + SILENT_RUN_MAX_MS, stop };
-    const previousPrompt = window.prompt;
-    const previousLog = console.log;
-    window.prompt = () => {
-        if (!queue.length) throw noInput;
-        return queue.shift();
-    };
-    console.log = (...args) => lines.push(args.map(String).join(' '));
-    try {
-        new Function('__eafRun', code)(state);
-        return { lines };
-    } catch (error) {
-        if (error === stop) return { lines, timedOut: true };
-        if (error === noInput) return { lines, outOfInputs: true };
-        return { lines, error: error?.message || String(error) };
-    } finally {
-        window.prompt = previousPrompt;
-        console.log = previousLog;
-    }
+/** Shows assessment lines; the caller chooses whether its summary should be spoken. */
+async function showAssessment(workspace) {
+    const report = await QuestionBlock.assess(workspace, {
+        execute: (inputs) => runHeadless(workspace, inputs),
+        locate: describeBlockLocation,
+    });
+    appendOutput('Assessment');
+    report.lines.forEach((line) => appendOutput(line));
+    appendOutput(authorshipLine(authorshipSummary(workspace, {stackLetters: assistantView(workspace).stackLetters()}),
+        window.eafOutput.aiName()));
+    return report.summary || 'Assessment done.';
 }
 
 // Output panel management
@@ -611,36 +653,6 @@ function appendOutput(text) {
 
     // Auto-scroll to bottom
     outputPanel.scrollTop = outputPanel.scrollHeight;
-}
-
-function setupOutputCapture() {
-    // Save original console.log
-    const originalLog = console.log;
-
-    // Override console.log
-    console.log = function(...args) {
-        // Call original console.log
-        originalLog.apply(console, args);
-
-        // Append to output panel
-        const output = args.map(arg => {
-            if (typeof arg === 'object') {
-                try {
-                    return JSON.stringify(arg, null, 2);
-                } catch (e) {
-                    return String(arg);
-                }
-            }
-            return String(arg);
-        }).join(' ');
-
-        appendOutput(output);
-    };
-
-    // Return a function to restore the original console.log
-    return function restoreConsole() {
-        console.log = originalLog;
-    };
 }
 
 // async function openRouterChat({
