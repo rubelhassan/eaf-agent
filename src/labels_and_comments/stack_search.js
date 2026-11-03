@@ -12,7 +12,8 @@
 
 import * as Blockly from 'blockly/core';
 import { getStackLabelManager } from './stack_labels.js';
-import { systemVoiceOn } from '../output/active.js';
+import {getOutputManager} from '../output/active.js';
+import {sayDialog, speakDialogFocus} from '../util/dialog_speech.js';
 import {stackName} from './stack_name.js';
 
 // Global registry to track all StackSearchManager instances by workspace ID
@@ -175,7 +176,7 @@ export class StackSearchManager {
     const availableStacks = this.getAvailableStacks_(stackLabelManager);
 
     if (availableStacks.length === 0) {
-      this.speech?.update('No labeled stacks available to search');
+      this.announceMessage_('No labeled stacks available to search');
       return false;
     }
 
@@ -243,7 +244,7 @@ export class StackSearchManager {
 
     // Announce to screen readers
     const stackList = availableStacks.map(s => s.label).join('.  ');
-    this.speech?.update(`Stack search active. ${availableStacks.length} stacks are available.  Press WASD to navigate, or Escape to close.`);
+    this.announceMessage_(`Stack search active. ${availableStacks.length} stacks are available.  Press WASD to navigate, or Escape to close.`);
   }
 
   /**
@@ -268,7 +269,8 @@ export class StackSearchManager {
     overlay.className = 'blockly-stack-search-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-label', 'Stack Search');
-    overlay.setAttribute('aria-live', 'polite');
+    // Results are announced explicitly; making the whole dialog live repeats every list update.
+    overlay.setAttribute('aria-live', 'off');
 
     // Create content
     const content = document.createElement('div');
@@ -292,6 +294,9 @@ export class StackSearchManager {
     searchInput.className = 'blockly-stack-search-input';
     searchInput.setAttribute('aria-label', 'Search stacks by name');
     searchInput.setAttribute('tabindex', '-1'); // Prevent default tab focus
+    searchInput.addEventListener('focus', () => {
+      speakDialogFocus(searchInput);
+    });
     searchInputContainer.appendChild(searchInput);
 
     // Create dual-panel container
@@ -332,22 +337,11 @@ export class StackSearchManager {
     cancelInstructions.className = 'blockly-stack-search-cancel';
     cancelInstructions.textContent = 'Press Escape to cancel';
 
-    // Add live region for screen reader announcements
-    const liveRegion = document.createElement('div');
-    liveRegion.setAttribute('aria-live', 'assertive');
-    liveRegion.setAttribute('aria-atomic', 'true');
-    liveRegion.style.position = 'absolute';
-    liveRegion.style.left = '-10000px';
-    liveRegion.style.width = '1px';
-    liveRegion.style.height = '1px';
-    liveRegion.style.overflow = 'hidden';
-
     content.appendChild(title);
     content.appendChild(instructions);
     content.appendChild(searchInputContainer);
     content.appendChild(panelContainer);
     content.appendChild(cancelInstructions);
-    content.appendChild(liveRegion);
     overlay.appendChild(content);
 
     // Set up search input event listener
@@ -386,8 +380,8 @@ export class StackSearchManager {
 
     // Don't auto-focus search input - let users choose navigation method
     // Focus the overlay for accessibility, but allow W/S navigation by default
-    overlay.focus();
     overlay.setAttribute('tabindex', '0');
+    overlay.focus();
   }
 
   /**
@@ -428,18 +422,11 @@ export class StackSearchManager {
           this.activePanel_ = 'stacks';
           this.updateSelectionHighlight_();
           this.announceMessage_('Focus moved to stacks panel. Use W/S to navigate.');
-          if (this.speech) {
-            this.speech.update('Focus moved to stacks panel. Use W/S to navigate.');
-          }
         } else {
           // Currently in stacks/blocks panel, move to search input
           console.log('Stack search: Moving focus from panel to search input');
           if (searchInput) {
             searchInput.focus();
-            this.announceMessage_('Search input focused. Type to search stacks, or press / to return to stacks.');
-            if (this.speech) {
-              this.speech.update('Search input focused. Type to search stacks, or press / to return to stacks.');
-            }
           }
         }
         return;
@@ -529,9 +516,6 @@ export class StackSearchManager {
       this.blockSelectionIndex_ = 0;
       const message = 'Stack panel selected. Use W/S to navigate stacks, D to view blocks.';
       this.announceMessage_(message);
-      if (this.speech) {
-        this.speech.update(message);
-      }
     } else {
       stackPanel?.classList.remove('active');
       blockPanel?.classList.add('active');
@@ -545,15 +529,9 @@ export class StackSearchManager {
       if (selectedBlock) {
         const message = `Block panel selected. Block ${selectedBlock.number}: ${selectedBlock.description}`;
         this.announceMessage_(message);
-        if (this.speech) {
-          this.speech.update(message);
-        }
       } else {
         const message = `Block panel selected. ${this.availableBlocks_.length} blocks available. Use W/S to navigate, A to go back to stacks.`;
         this.announceMessage_(message);
-        if (this.speech) {
-          this.speech.update(message);
-        }
       }
     }
 
@@ -583,9 +561,7 @@ export class StackSearchManager {
         // Announce selection
         const selectedStack = this.availableStacks_[newIndex];
         if (selectedStack) {
-          if (this.speech) {
-            this.speech.update(`Stack ${selectedStack.label}`);
-          }
+          this.announceMessage_(`Stack ${selectedStack.label}`);
         }
       }
     } else {
@@ -599,9 +575,7 @@ export class StackSearchManager {
         // Announce selection
         const selectedBlock = this.availableBlocks_[newIndex];
         if (selectedBlock) {
-          if (this.speech) {
-            this.speech.update(`Block ${selectedBlock.number}: ${selectedBlock.description}`);
-          }
+          this.announceMessage_(`Block ${selectedBlock.number}: ${selectedBlock.description}`);
         }
       }
     }
@@ -706,7 +680,7 @@ export class StackSearchManager {
   navigateToStack_(letter, speech) {
     const stackLabelManager = getStackLabelManager(this.workspace_);
     if (!stackLabelManager) {
-      this.speech?.update('Stack label manager not available');
+      this.announceMessage_('Stack label manager not available');
       return false;
     }
 
@@ -722,14 +696,14 @@ export class StackSearchManager {
     }
 
     if (!targetBlockId) {
-      this.speech?.update(`No stack found with letter ${letter}`);
+      this.announceMessage_(`No stack found with letter ${letter}`);
       return false;
     }
 
     // Get the target block
     let targetBlock = this.workspace_.getBlockById(targetBlockId);
     if (!targetBlock) {
-      this.speech?.update(`Stack ${letter} block not found`);
+      this.announceMessage_(`Stack ${letter} block not found`);
       return false;
     }
 
@@ -756,7 +730,7 @@ export class StackSearchManager {
       const fullLabel = customText ? `${letter} ${customText}` : letter;
 
       // Announce successful navigation
-      this.speech?.update(`Navigated to stack ${fullLabel}`);
+      this.announceMessage_(`Navigated to stack ${fullLabel}`);
       console.log('Stack search log: Successfully navigated to stack', letter, 'top block:', targetBlock.id);
       return true;
     } catch (e) {
@@ -1019,7 +993,7 @@ export class StackSearchManager {
     // Restore focus to workspace
     this.restoreWorkspaceFocus_();
 
-    this.speech?.update('Stack search closed. Focus is on workspace.');
+    this.announceMessage_('Stack search closed. Focus is on workspace.');
   }
 
   /**
@@ -1068,9 +1042,9 @@ export class StackSearchManager {
    * @private
    */
   announceMessage_(message) {
-    // The system voice speaks it; a screen reader reads the temporary live region below.
-    if (systemVoiceOn()) {
-      this.speech?.update(message);
+    const output = getOutputManager();
+    if (output) {
+      sayDialog(message);
       return;
     }
     try {
