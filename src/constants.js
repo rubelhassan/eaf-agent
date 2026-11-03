@@ -146,6 +146,21 @@ export const SHORTCUT_HELP_ROWS = [
     sr: 'Shortcut key Zero. Reset the workspace zoom to the default scale.'
   },
   {
+    keys: ['Ctrl', 'Shift', '+'],
+    title: 'Focus magnifier: one level bigger (level 1, then level 2), also in a text field',
+    sr: 'Shortcut keys Ctrl plus Shift plus Plus. Focus magnifier one level bigger: level 1, then level 2. Works while editing a text field.'
+  },
+  {
+    keys: ['Ctrl', 'Shift', '-'],
+    title: 'Focus magnifier: one level smaller; from level 1 it turns off',
+    sr: 'Shortcut keys Ctrl plus Shift plus Minus. Focus magnifier one level smaller. From level 1 it turns off.'
+  },
+  {
+    keys: ['Esc'],
+    title: 'Turn the focus magnifier off (while it shows)',
+    sr: 'Shortcut key Escape. Turns the focus magnifier off while it shows; press again for Escape\'s other jobs.'
+  },
+  {
     keys: ['Shift', 'X'],
     title: 'Disconnect block from current cursor location (Edit Mode Only)',
     sr: 'Shortcut keys Shift plus X. Disconnect the block from the current cursor location. Edit mode only.'
@@ -153,12 +168,12 @@ export const SHORTCUT_HELP_ROWS = [
   {
     keys: ['SHIFT', 'W'],
     title: 'Move the selected statement block upward (Navigation Mode Only)',
-    sr: 'Shortcut keys Ctrl plus W. Move the selected statement block upward. Navigation mode only.'
+    sr: 'Shortcut keys Shift plus W. Move the selected statement block upward. Navigation mode only.'
   },
   {
     keys: ['SHIFT', 'S'],
     title: 'Move the selected statement block downward (Navigation Mode Only)',
-    sr: 'Shortcut keys Ctrl plus S. Move the selected statement block downward. Navigation mode only.'
+    sr: 'Shortcut keys Shift plus S. Move the selected statement block downward. Navigation mode only.'
   },
   {
     keys: ['CTRL', 'X'],
@@ -252,8 +267,13 @@ export const SHORTCUT_HELP_ROWS = [
   },
   {
     keys: ['Alt', 'Shift', 'N'],
-    title: 'Assistant: stop (no)',
-    sr: 'Shortcut keys Alt plus Shift plus N. Assistant: stop. The assistant does not make the offered change.'
+    title: 'Assistant: no, keep the step waiting',
+    sr: 'Shortcut keys Alt plus Shift plus N. Assistant: no. Keep the step waiting; nothing changes.'
+  },
+  {
+    keys: ['Alt', 'Shift', 'C'],
+    title: 'Assistant: cancel the plan',
+    sr: 'Shortcut keys Alt plus Shift plus C. Assistant: cancel the plan. Applied steps stay.'
   },
   {
     keys: ['Alt', 'Shift', 'U'],

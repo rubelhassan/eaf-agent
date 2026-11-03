@@ -17,6 +17,7 @@ import {ShortcutAssistance} from "./util/shortcut_assistance";
 import {NavigationalHint} from "./util/navigational_hint";
 import {ZoomingControl} from './util/zooming_controls';
 import {ModeBadge} from './util/mode_badge';
+import {FocusMagnifier} from './util/focus_magnifier.js';
 import {observeProperty} from './util/observe';
 import {FlyoutCompatibilityManager} from "./util/flyout_compatibility_manager"
 import {WorkspaceContainerFilter} from "./util/workspace_flyout_manager";
@@ -59,6 +60,8 @@ export class NavigationController {
       this.navHint = new NavigationalHint({ speech: this.speech });
       /** Visible Navigation/Edit mode cue; hosts can call modeBadge.setEnabled(false). */
       this.modeBadge = new ModeBadge();
+      /** Enlarged copy of the focused part (M, Ctrl+Shift+Plus); hosts read and set its level. */
+      this.focusMagnifier = new FocusMagnifier({say: (line) => this.speech?.update(line)});
     }
     this.keyHintListener = null;
     this.zooming = new ZoomingControl(this.speech);
@@ -262,6 +265,7 @@ export class NavigationController {
       const markerManager = Blockly.getMainWorkspace().getMarkerManager();
       markerManager.setCursor(this.accessibleCursor);
       this.modeBadge.attach(workspace, this.accessibleCursor);
+      this.focusMagnifier.attach(workspace);
       blockTypes.setNavigationHost(this);
       const cursor = this.accessibleCursor;
       const syncEditTarget = () => blockTypes.editTargetChanged(workspace,
@@ -1422,8 +1426,8 @@ export class NavigationController {
       callback: (workspace) => {
         const runButton = document.querySelector('[data-run]');
         if (runButton && !runButton.disabled) {
+          // The run says its own messages ("Running program", still running, finished, stopped).
           runButton.click();
-          this.announceToScreenReader('Running program');
           return true;
         }
         return false;
@@ -2044,8 +2048,8 @@ export class NavigationController {
           requestAnimationFrame(() => {
             const ta = queryTextarea();
             if (ta) {
-              // make SR prefer your live region (#blockReader) after focus
-              ta.setAttribute('aria-describedby', 'blockReader');
+              // Keep navigation announcements out of the field's accessible description.
+              ta.setAttribute('aria-label', 'Comment');
               try {
                 ta.focus({preventScroll: true});
               } catch {
@@ -2554,7 +2558,6 @@ export class NavigationController {
     );
   }
 
-
   /**
    * Keyboard shortcut to open the first editable dropdown on the current block.
    * Shift + F
@@ -2755,7 +2758,10 @@ export class NavigationController {
       this.navigation.getMarker(workspace).setCurNode(Blockly.ASTNode.createConnectionNode(target));
       this.navigation.focusFlyout(workspace);
     }
-    if (message) this.speech?.update(message);
+    const first = flyout.getContents()[0];
+    const label = first?.block ? this.speech.blockToText(first.block) : first?.button?.getText();
+    const note = first?.block && blockTypes.flyoutNote(first.block);
+    if (message) this.speech?.update(`${message}${label ? ` First choice: ${label}${note ? `, ${note}` : ''}.` : ''}`);
     return true;
   }
 
@@ -2805,6 +2811,7 @@ export class NavigationController {
     this.navigation.dispose();
     this.shortcutAssistance?.dispose?.();
     this.modeBadge?.dispose();
+    this.focusMagnifier?.dispose();
   }
 
   applyToolboxFilter(workspace) {
