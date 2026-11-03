@@ -1,17 +1,20 @@
 /**
  * Task files: which blocks belong to the task (vs. the learner's own),
  * loading a task file, exporting a clean task, and saving a learner's work.
- * A task file carries the activity, whole-plan and voice-fallback settings (root attributes) and the task tests (<tests>).
+ * A task file carries the activity, whole-plan, edit-mode and voice-fallback settings (root attributes) and the task
+ * tests (<tests>).
  */
 
 import * as Blockly from 'blockly/core';
 import {withConnectionRulesSuspended} from '../connection_checker.js';
-import {Activity, getPolicy, setPolicy} from '../policy.js';
+import {Activity, EditMode, getPolicy, setPolicy} from '../policy.js';
 import {getBinding} from './binding.js';
 import {QUESTION_TYPE} from './model.js';
 import {isQuestion, membersOf, setTaskBlockCheck} from './rules.js';
 import {slotToReference} from './reference.js';
 import {getTaskTests, setTaskTests, takeTestsFromDom, testsToDom} from './task_tests.js';
+import {startTaskInstance} from './session.js';
+import {withoutAuthorship, deletedBlocks, setDeletedBlocks} from '../authorship.js';
 
 /** @type {!WeakMap<!Object, !Set<string>>} Ids of the blocks that belong to the task. */
 const taskBlocks = new WeakMap();
@@ -50,8 +53,15 @@ setTaskBlockCheck(isTaskBlock);
  */
 export function loadTaskXml(workspace, xmlText) {
   const dom = Blockly.utils.xml.textToDom(xmlText);
+  const deleted = Array.from(dom.children).filter((node) => node.nodeName.toLowerCase() === 'ai-deleted');
+  let entries = [];
+  try { entries = JSON.parse(deleted[0]?.textContent || '[]'); } catch (error) { /* Old or damaged work starts without deletion notes. */ }
+  setDeletedBlocks(workspace, Array.isArray(entries) ? entries : []);
+  deleted.forEach((node) => node.remove());
+  startTaskInstance(workspace);
   const activity = dom.getAttribute('activity') === Activity.QUIZ ? Activity.QUIZ : Activity.PRACTICE;
   const wholePlan = dom.getAttribute('whole-plan') === 'true';
+  const editMode = dom.getAttribute('edit-mode') === EditMode.GUIDED ? EditMode.GUIDED : EditMode.STEP_CONFIRM;
   const voiceFallback = dom.getAttribute('voice-fallback') === 'true';
   setTaskTests(workspace, takeTestsFromDom(dom));
   withConnectionRulesSuspended(() => {
@@ -62,7 +72,7 @@ export function loadTaskXml(workspace, xmlText) {
       Blockly.Xml.domToWorkspace(dom, workspace);
     }
   });
-  setPolicy(workspace, {activity, wholePlan, voiceFallback});
+  setPolicy(workspace, {activity, wholePlan, editMode, voiceFallback});
   markTaskBlocks(workspace);
 }
 
@@ -75,6 +85,7 @@ export function loadTaskXml(workspace, xmlText) {
  */
 export function cleanTaskXml(workspace) {
   const state = Blockly.serialization.workspaces.save(workspace);
+  if (state.blocks?.blocks) state.blocks.blocks = state.blocks.blocks.map(withoutAuthorship);
   const copy = new Blockly.Workspace(new Blockly.Options({}));
   Blockly.Events.disable();
   try {
@@ -82,7 +93,11 @@ export function cleanTaskXml(workspace) {
       Blockly.serialization.workspaces.load(state, copy, {recordUndo: false});
       const gaps = new Set(copy.getAllBlocks(false).map((b) => getBinding(b)?.gap).filter(Boolean));
       for (const gap of gaps) restoreQuestion(copy, gap);
-      for (const question of copy.getAllBlocks(false).filter(isQuestion)) slotToReference(question);
+      for (const question of copy.getAllBlocks(false).filter(isQuestion)) {
+        const config = question.getQuestionConfig();
+        if (config.reference) question.setQuestionConfig({...config, reference: withoutAuthorship(config.reference)});
+        slotToReference(question);
+      }
     });
     return Blockly.Xml.domToPrettyText(withTaskInfo(Blockly.Xml.workspaceToDom(copy), workspace));
   } finally {
@@ -98,13 +113,18 @@ export function cleanTaskXml(workspace) {
  * @returns {string} Pretty-printed XML.
  */
 export function workXml(workspace) {
-  return Blockly.Xml.domToPrettyText(withTaskInfo(Blockly.Xml.workspaceToDom(workspace), workspace));
+  const dom = withTaskInfo(Blockly.Xml.workspaceToDom(workspace), workspace);
+  const deleted = Blockly.utils.xml.createElement('ai-deleted');
+  deleted.textContent = JSON.stringify(deletedBlocks(workspace));
+  dom.appendChild(deleted);
+  return Blockly.Xml.domToPrettyText(dom);
 }
 
-/** Adds the activity, whole-plan and voice-fallback attributes and the <tests> element to an exported root. */
+/** Adds the activity, whole-plan, edit-mode and voice-fallback attributes and the <tests> element to an exported root. */
 function withTaskInfo(dom, workspace) {
   if (getPolicy(workspace).activity === Activity.QUIZ) dom.setAttribute('activity', Activity.QUIZ);
   if (getPolicy(workspace).wholePlan) dom.setAttribute('whole-plan', 'true');
+  if (getPolicy(workspace).editMode === EditMode.GUIDED) dom.setAttribute('edit-mode', EditMode.GUIDED);
   if (getPolicy(workspace).voiceFallback) dom.setAttribute('voice-fallback', 'true');
   const tests = testsToDom(getTaskTests(workspace));
   if (tests) dom.appendChild(tests);

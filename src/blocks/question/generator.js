@@ -32,7 +32,7 @@ export function generateQuestion(block, generator, language) {
   if (generator.eafMarkQuestion === block.id) {
     return block.outputConnection ? [QUESTION_MARKER, ORDER_ATOMIC] : `${QUESTION_MARKER}\n`;
   }
-  const answer = block.getInputTargetBlock(ANSWER_INPUT);
+  const answer = generator.eafHideSlots ? null : block.getInputTargetBlock(ANSWER_INPUT);
 
   if (block.outputConnection) {
     const code = answer ? generator.blockToCode(answer) : null;

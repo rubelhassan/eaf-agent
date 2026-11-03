@@ -73,7 +73,7 @@ const isBeginner = (workspace) => getPolicy(workspace).learnerLevel === LearnerL
  * @returns {string} Spoken when the learner's cursor lands on it.
  */
 export function placeholderFocusText(question) {
-  const line = `Question. Needs ${needPhrase(question.getQuestionConfig())}.`;
+  const line = `Question. Requires ${needPhrase(question.getQuestionConfig())}.`;
   return isBeginner(question.workspace) ? `${line} Press Enter to open the question.` : line;
 }
 

@@ -81,6 +81,15 @@ export function blockTypeName(type) {
   return NAMES[type] || type.replace(/_/g, ' ');
 }
 
+/** @param {!Blockly.Block} block @returns {string} The spoken name for the block's current shape. */
+export function blockName(block) {
+  if (block.type === 'controls_if') {
+    if (block.getInput('IF1')) return 'if-else if';
+    if (block.getInput('ELSE')) return 'if-else';
+  }
+  return blockTypeName(block.type);
+}
+
 /** "a compare", "an arithmetic": the indefinite article for a spoken name. */
 export function withArticle(name) {
   return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;

@@ -29,30 +29,37 @@ import {ANSWER_INPUT, Expects, QUESTION_TYPE, normalizeConfig} from './model.js'
 import {chainFrom, evaluateInsert, gapOf, isQuestion, membersOf} from './rules.js';
 import {markAttempted, takePendingChoice} from './session.js';
 import {placedText} from './speech.js';
+import {AGENT_GROUP} from '../authorship.js';
 
 /**
  * Where a gap sits: the connection its question or first answer block hangs from.
- * @typedef {{parentId: string, inputName: ?string}} GapLocation
+ * @typedef {({parentId: string, inputName: ?string}|{standalone: true, x: number, y: number})} GapLocation
  */
 
 /**
  * @param {!Blockly.Block} block
- * @returns {?GapLocation} Parent block and input name (null = the parent's next connection).
+ * @returns {!GapLocation} A parent connection, or the standalone position.
  */
 export function locationOf(block) {
   const parentConnection = (block.outputConnection || block.previousConnection)?.targetConnection;
-  if (!parentConnection) return null;
+  if (!parentConnection) {
+    const {x, y} = block.getRelativeToSurfaceXY();
+    return {standalone: true, x, y};
+  }
   const parent = parentConnection.getSourceBlock();
   const input = parent.inputList.find((i) => i.connection === parentConnection);
   return {parentId: parent.id, inputName: input ? input.name : null};
 }
 
 function sameLocation(a, b) {
-  return !!a && !!b && a.parentId === b.parentId && a.inputName === b.inputName;
+  if (!a || !b) return false;
+  if (a.standalone || b.standalone) return !!a.standalone && !!b.standalone;
+  return a.parentId === b.parentId && a.inputName === b.inputName;
 }
 
 /** @returns {?Blockly.Connection} The live connection at a location, if its parent still exists. */
 function connectionAt(workspace, location) {
+  if (location?.standalone) return null;
   const parent = location && workspace.getBlockById(location.parentId);
   if (!parent || parent.isDeadOrDying?.()) return null;
   return location.inputName ? parent.getInput(location.inputName)?.connection ?? null : parent.nextConnection;
@@ -81,7 +88,7 @@ export class GapTracker {
   constructor(workspace, options = {}) {
     this.workspace = workspace;
     this.announce_ = options.announce || (() => {});
-    /** @type {!Map<string, {config: !Object, location: ?GapLocation, answered: boolean}>} Gaps as of the last batch. */
+    /** @type {!Map<string, {config: !Object, location: ?GapLocation, answered: boolean, first?: string}>} */
     this.gaps = new Map();
     this.scheduled_ = false;
     /** True after the tracker changed the workspace: the next batch of events is its own. */
@@ -120,6 +127,13 @@ export class GapTracker {
   onEvent_(event) {
     if (event.workspaceId !== this.workspace.id || event.type === BINDING_EVENT) return;
     const E = Blockly.Events;
+    if (event.type === E.FINISHED_LOADING) {
+      // Loaded bindings rebuild the snapshot; they are not pasted answers.
+      this.gaps.clear();
+      this.replay_ = true;
+      this.schedule_();
+      return;
+    }
     if (![E.BLOCK_MOVE, E.BLOCK_CREATE, E.BLOCK_DRAG, E.BLOCK_DELETE, E.BLOCK_CHANGE].includes(event.type)) return;
     if (this.expectOwnBatch_) {
       this.ownBatch_ = true;
@@ -186,11 +200,12 @@ export class GapTracker {
   apply_() {
     this.learnFromEvents_();
     const runs = this.placedRuns_();
+    const answerRuns = this.group_?.startsWith(AGENT_GROUP) ? [] : runs;
     this.unbindDepartures_(new Set(runs.flat()));
-    this.dockSlotAnswers_(runs);
-    this.fillStatementQuestions_(runs);
-    this.bindAtKnownLocations_(runs);
-    this.joinStatementGaps_(runs);
+    this.dockSlotAnswers_(answerRuns);
+    this.fillStatementQuestions_(answerRuns);
+    this.bindAtKnownLocations_(answerRuns);
+    this.joinStatementGaps_(answerRuns);
     this.replaceWrongAnswers_(runs);
     this.restoreEmptiedGaps_();
   }
@@ -236,7 +251,9 @@ export class GapTracker {
       const binding = block ? getBinding(block) : getBinding({data: json?.data});
       if (!binding) continue;
       const parent = this.workspace.getBlockById(location.parentId);
-      if (parent && getBinding(parent)?.gap === binding.gap) continue; // not the first answer block
+      const parentBinding = parent ? getBinding(parent) : getBinding({data: this.deleted_.get(location.parentId)?.data});
+      // Healing after a member was deleted does not move the remaining answer out of its gap.
+      if (parentBinding?.gap === binding.gap) continue;
       this.gaps.set(binding.gap, {config: binding.config, location, answered: true});
     }
   }
@@ -288,8 +305,7 @@ export class GapTracker {
   }
 
   /**
-   * An answer block keeps its binding only while it stays put: attached, not placed
-   * or dragged this batch, and not hanging from a block of its gap that is leaving.
+   * A loose answer moves with its gap. Connected answers lose their binding when they leave it.
    */
   unbindDepartures_(placed) {
     const bound = this.workspace.getAllBlocks(false).filter((b) => !b.isInsertionMarker?.() && getBinding(b));
@@ -299,9 +315,14 @@ export class GapTracker {
       if (!byGap.has(gap)) byGap.set(gap, []);
       byGap.get(gap).push(block);
     }
-    for (const [, members] of byGap) {
+    for (const [gap, members] of byGap) {
+      const known = this.gaps.get(gap);
+      const root = this.workspace.getBlockById(known?.first) || members[0];
+      // Remember the original head so a detached follower or a copy cannot become the loose gap.
+      const loose = known?.location?.standalone && !root.getParent() &&
+        !placed.has(root) && !this.created_.has(root.id) ? new Set(chainFrom(root)) : new Set();
       const staying = new Set(members.filter((m) =>
-        m.getParent() && !placed.has(m) && !this.dragged_.has(m.id)));
+        loose.has(m) || m.getParent() && !placed.has(m) && !this.dragged_.has(m.id)));
       for (let changed = true; changed;) {
         changed = false;
         for (const m of staying) {
@@ -420,11 +441,12 @@ export class GapTracker {
     for (const [gap, known] of this.gaps) {
       if (!known.answered) continue;
       if (membersOf(this.workspace, gap).length || isQuestion(this.workspace.getBlockById(gap))) continue;
+      const standalone = known.location?.standalone;
       const connection = connectionAt(this.workspace, known.location);
-      if (!connection) continue;
+      if (!standalone && !connection) continue;
       // A drag preview may be sitting in the spot; try again after the drop.
-      if (connection.targetBlock()?.isInsertionMarker()) continue;
-      const value = connection.type === Blockly.ConnectionType.INPUT_VALUE;
+      if (connection?.targetBlock()?.isInsertionMarker()) continue;
+      const value = connection?.type === Blockly.ConnectionType.INPUT_VALUE;
       if (value && connection.isConnected()) continue;
 
       this.changed_();
@@ -434,7 +456,12 @@ export class GapTracker {
         question.initSvg();
         question.render();
       }
-      connection.connect(value ? question.outputConnection : question.previousConnection);
+      if (standalone) {
+        const at = question.getRelativeToSurfaceXY();
+        question.moveBy(known.location.x - at.x, known.location.y - at.y);
+      } else {
+        connection.connect(value ? question.outputConnection : question.previousConnection);
+      }
       this.announce_('The question is open again.');
     }
   }
@@ -462,13 +489,14 @@ export class GapTracker {
         const binding = getBinding(block);
         if (binding && membersOf(this.workspace, binding.gap)[0] === block) {
           markAttempted(this.workspace, binding.gap);
-          gaps.set(binding.gap, {config: binding.config, location: locationOf(block), answered: true});
+          gaps.set(binding.gap, {config: binding.config, location: locationOf(block), answered: true, first: block.id});
         }
       }
     }
     // Answered gaps that were emptied but not yet restored (e.g. mid-drag) are kept.
     for (const [gap, known] of this.gaps) {
-      if (!gaps.has(gap) && known.answered && connectionAt(this.workspace, known.location)) gaps.set(gap, known);
+      if (!gaps.has(gap) && known.answered &&
+          (known.location?.standalone || connectionAt(this.workspace, known.location))) gaps.set(gap, known);
     }
     this.gaps = gaps;
   }

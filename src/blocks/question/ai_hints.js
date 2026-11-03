@@ -50,6 +50,9 @@ function programContext(block, gap) {
   const generator = blockTypes.generator('javascript');
   if (!generator) return {program: '', answer: null};
   const workspace = block.workspace;
+  const previousHideSlots = generator.eafHideSlots;
+  const previousMarker = generator.eafMarkQuestion;
+  generator.eafHideSlots = true;
   generator.eafMarkQuestion = gap;
   try {
     generator.init(workspace);
@@ -65,7 +68,8 @@ function programContext(block, gap) {
   } catch (e) {
     return {program: '', answer: null};
   } finally {
-    generator.eafMarkQuestion = null;
+    generator.eafMarkQuestion = previousMarker;
+    generator.eafHideSlots = previousHideSlots;
   }
 }
 

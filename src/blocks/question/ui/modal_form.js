@@ -4,6 +4,8 @@
  * form never reach workspace or page shortcuts. Subclasses build the body.
  */
 
+import {speakDialogFocus} from '../../../util/dialog_speech.js';
+
 export const CLS = 'eaf-qd';
 
 export const MODAL_FORM_CSS = `
@@ -81,6 +83,12 @@ export class ModalForm {
     const titleId = uid('title');
     dialog.setAttribute('aria-labelledby', titleId);
     dialog.addEventListener('keydown', (e) => this.onKeyDown_(e));
+    dialog.addEventListener('focusin', (e) => {
+      if (e.target.matches('input, textarea, select, button')) speakDialogFocus(e.target);
+    });
+    dialog.addEventListener('change', (e) => {
+      if (e.target.matches('select, input[type="radio"], input[type="checkbox"]')) speakDialogFocus(e.target);
+    });
     this.backdrop_.appendChild(dialog);
     this.dialog_ = dialog;
 

@@ -65,18 +65,33 @@ export function questionStatuses(workspace) {
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
+const RUN_GATE_LINES = {
+  one: (place) => `Not run yet. 1 question is still empty${place ? `: ${place}` : ''}. Answer it, then run again.`,
+  many: ({empty, place}) => `Not run yet. ${empty} questions are still empty${place ? `; the first is ${place}` : ''}. Answer them, then run again.`,
+};
+
 /**
- * The learner's Run warning, kept compact: empty questions first; only when none
- * are empty, answers that don't fit (practice only; a quiz never reveals fit).
+ * @param {!Blockly.Workspace} workspace
+ * @param {{locate?: function(!Blockly.Block): string}=} options
+ * @returns {{blocked: boolean, empty: number, first: ?Blockly.Block, line: string}}
+ */
+export function runGate(workspace, {locate = () => ''} = {}) {
+  const unanswered = questionStatuses(workspace).filter((status) => status.state === AnswerState.EMPTY);
+  const empty = unanswered.length;
+  if (!empty) return {blocked: false, empty: 0, first: null, line: ''};
+  const first = unanswered[0].block;
+  const place = locate(first).replace(/^stack (\w+), block (\d+)$/, 'block $2 of stack $1');
+  const line = empty === 1 ? RUN_GATE_LINES.one(place) : RUN_GATE_LINES.many({empty, place});
+  return {blocked: true, empty, first, line};
+}
+
+/**
+ * The learner's misfit note in practice. Emptiness is handled by the Run gate.
  * @param {!Blockly.Workspace} workspace
  * @returns {?string} Null when there is nothing to warn about.
  */
 export function learnerRunWarning(workspace) {
   const statuses = questionStatuses(workspace);
-  const empty = statuses.filter((s) => s.state === AnswerState.EMPTY).length;
-  if (empty) {
-    return `${plural(empty, 'question block is', 'question blocks are')} not answered yet.`;
-  }
   if (getPolicy(workspace).activity === Activity.QUIZ) return null;
   const misfits = statuses.filter((s) => isMisfit(s.state)).length;
   if (misfits) {
@@ -103,11 +118,11 @@ function statusText(status) {
  * learner submission): every question's status, then the task tests. Tests are
  * skipped while any question is empty.
  * @param {!Blockly.Workspace} workspace
- * @param {{execute: function(!Array<string>): !import('./task_tests.js').Execution,
+ * @param {{execute: function(!Array<string>): (!import('./task_tests.js').Execution|!Promise<!import('./task_tests.js').Execution>),
  *          locate?: function(!Blockly.Block): string}} host
- * @returns {{lines: !Array<string>, summary: string}}  Lines for the output panel; a short spoken summary.
+ * @returns {!Promise<{lines: !Array<string>, summary: string}>}  Lines for the output panel; a short spoken summary.
  */
-export function assess(workspace, {execute, locate = () => ''}) {
+export async function assess(workspace, {execute, locate = () => ''}) {
   const lines = [];
   const summary = [];
   const statuses = questionStatuses(workspace);
@@ -132,7 +147,7 @@ export function assess(workspace, {execute, locate = () => ''}) {
     lines.push(text);
     summary.push(text);
   } else {
-    const results = runTests(tests, execute);
+    const results = await runTests(tests, execute);
     const passed = results.filter((r) => r.ok).length;
     lines.push(`Tests: ${passed} of ${results.length} pass.`);
     summary.push(`Tests: ${passed} of ${results.length} pass.`);

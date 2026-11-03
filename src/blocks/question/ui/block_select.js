@@ -7,6 +7,7 @@
  */
 
 import {blockTypeName} from '../../block_names.js';
+import {speakDialogFocus} from '../../../util/dialog_speech.js';
 
 const CLS = 'eaf-bs';
 
@@ -59,6 +60,7 @@ export class BlockSelect {
     this.button_.addEventListener('click', () => (this.isOpen() ? this.close_() : this.open_()));
     this.button_.addEventListener('keydown', (e) => this.onButtonKey_(e));
     this.list_.addEventListener('keydown', (e) => this.onListKey_(e));
+    this.list_.addEventListener('focus', () => speakDialogFocus(this.list_));
     this.list_.addEventListener('focusout', (e) => {
       if (!this.element.contains(e.relatedTarget)) this.close_(false);
     });
@@ -151,6 +153,7 @@ export class BlockSelect {
     const active = options[this.active_];
     this.list_.setAttribute('aria-activedescendant', active.id);
     active.scrollIntoView({block: 'nearest'});
+    if (document.activeElement === this.list_) speakDialogFocus(this.list_);
   }
 
   // ---- Keys ------------------------------------------------------------------

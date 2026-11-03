@@ -14,11 +14,12 @@ import {choicesFor, offersChoices} from '../choices.js';
 import {ANSWER_INPUT, Expects, QUESTION_TYPE} from '../model.js';
 import {blockTypeName} from '../../block_names.js';
 import {gapOf, isMisfit, isQuestion} from '../rules.js';
-import {addAiHint, aiHintsGiven, isAttempted, revealNextHint, revealedHints, setPendingChoice} from '../session.js';
+import {addAiHint, aiHintsGiven, currentTaskInstance, isAttempted, revealNextHint, revealedHints, setPendingChoice} from '../session.js';
 import {chipImage} from '../shapes.js';
 import {detailsText, misfitReason, needPhrase, revealsFit} from '../speech.js';
 import {toolboxCatalog} from './snapshots.js';
 import {systemVoiceOn} from '../../../output/active.js';
+import {sayDialog, speakDialogFocus} from '../../../util/dialog_speech.js';
 import {PopoverAction, PopoverModel} from './popover_model.js';
 
 const CLS = 'eaf-qp';
@@ -161,6 +162,7 @@ export class QuestionPopover {
     this.element_.setAttribute('role', 'dialog');
     this.element_.setAttribute('aria-label', 'Question');
     this.element_.addEventListener('keydown', (e) => this.onKeyDown_(e));
+    this.element_.addEventListener('focusin', (e) => this.onFocus_(e));
     this.workspace.getInjectionDiv().appendChild(this.element_);
     document.addEventListener('pointerdown', this.outsidePointer_, true);
 
@@ -188,14 +190,15 @@ export class QuestionPopover {
   /** Builds the rows from the question and its session state. */
   rows_() {
     const {config, gap} = this.question_;
-    const rows = [{id: 'need', controls: 0, label: 'Needs', text: `${capitalize(needPhrase(config))}.`}];
+    const rows = [];
+    if (config.prompt) rows.push({id: 'prompt', controls: 0, label: 'Question', text: config.prompt});
+    if (config.instruction) rows.push({id: 'instruction', controls: 0, label: 'Instruction', text: config.instruction});
+    rows.push({id: 'need', controls: 0, label: 'Requires', text: `${capitalize(needPhrase(config))}.`});
     // Practice: say plainly when the current answer doesn't fit yet.
     const answer = isQuestion(this.block_) ? null : gapOf(this.block_);
     if (answer && revealsFit(this.workspace) && isMisfit(answer.state)) {
       rows.push({id: 'fit', controls: 0, label: 'Your answer', text: `Doesn't fit yet. ${misfitReason(answer)}`});
     }
-    if (config.prompt) rows.push({id: 'prompt', controls: 0, label: 'Prompt', text: config.prompt});
-    if (config.instruction) rows.push({id: 'instruction', controls: 0, label: 'Instruction', text: config.instruction});
 
     const total = this.totalHints_();
     const given = this.givenHints_();
@@ -233,7 +236,7 @@ export class QuestionPopover {
 
     const live = document.createElement('div');
     live.className = `${CLS}-live`;
-    live.setAttribute('aria-live', 'polite');
+    live.setAttribute('aria-live', systemVoiceOn() ? 'off' : 'polite');
     el.appendChild(live);
     this.live_ = live;
   }
@@ -285,7 +288,7 @@ export class QuestionPopover {
         div.appendChild(list);
       }
     } else if (row.id === 'actions') {
-      const buttons = [this.button_('Hear all', true, () => this.announce_(this.fullText_()))];
+      const buttons = [this.button_('Hear all', true, () => this.say_(this.fullText_()))];
       if (this.canEdit_(this.block_)) {
         buttons.push(this.button_('Edit question', true, () => {
           const block = this.block_;
@@ -367,7 +370,7 @@ export class QuestionPopover {
     const variables = this.workspace.getAllVariables().map((v) => ({id: v.getId(), name: v.name, type: v.type}));
     const items = choicesFor({...this.question_, members}, {catalog: toolboxCatalog(this.workspace), variables});
     if (!items.length || !target) {
-      this.announce_('There are no choices for this question right now.');
+      this.say_('There are no choices for this question right now.');
       return;
     }
     const wrong = this.wrongAnswerBlocks_(members);
@@ -402,7 +405,7 @@ export class QuestionPopover {
   givenHints_() {
     const {config, gap} = this.question_;
     const written = config.hints.slice(0, revealedHints(this.workspace, gap)).map((text) => ({text, ai: false}));
-    const ai = aiHintsGiven(this.workspace, gap).map((text) => ({text, ai: true}));
+    const ai = aiHintsGiven(this.workspace, gap, this.aiLevels_()).map((text) => ({text, ai: true}));
     return [...written, ...ai];
   }
 
@@ -422,7 +425,7 @@ export class QuestionPopover {
       return;
     }
     const levels = this.aiLevels_();
-    const aiGiven = aiHintsGiven(this.workspace, gap);
+    const aiGiven = aiHintsGiven(this.workspace, gap, levels);
     if (aiGiven.length >= levels.length) return;
 
     const block = this.block_;
@@ -432,8 +435,10 @@ export class QuestionPopover {
     this.say_('Thinking of a hint…');
     const previous = this.givenHints_().map((h) => h.text);
     const level = levels[aiGiven.length];
+    const instance = currentTaskInstance(this.workspace);
     const text = await this.aiHints_.generate(block, this.question_, level, previous);
-    addAiHint(this.workspace, gap, text);
+    if (currentTaskInstance(this.workspace) !== instance) return;
+    addAiHint(this.workspace, gap, {text, level});
     this.onEvent_('hint.shown', {questionId: gap, level, ai: true});
     // The popover may have closed or moved to another question meanwhile.
     if (!this.element_ || this.question_?.gap !== gap) return;
@@ -451,11 +456,21 @@ export class QuestionPopover {
 
   /** The popover's live region for a screen reader; the system voice speaks it instead. */
   say_(text) {
-    if (systemVoiceOn()) this.announce_(text);
-    else this.live_.textContent = text;
+    sayDialog(text, {liveRegion: this.live_, fallback: this.announce_});
   }
 
   // ---- Keyboard and focus -----------------------------------------------
+
+  /** Native focus speaks for screen readers; only the built-in mode needs a second route. */
+  onFocus_(event) {
+    const target = event.target;
+    const row = target.closest('[data-row]');
+    if (!row) return;
+    const control = [...row.querySelectorAll(`.${CLS}-btn`)].indexOf(target);
+    const detail = [...row.querySelectorAll(`.${CLS}-hints li`)].indexOf(target);
+    this.model_.moveTo({row: Number(row.dataset.row), control, detail});
+    speakDialogFocus(target);
+  }
 
   onKeyDown_(event) {
     // Popover keys never reach the workspace shortcuts (Blockly listens on document).

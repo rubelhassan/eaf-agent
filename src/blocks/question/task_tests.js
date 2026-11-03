@@ -133,17 +133,18 @@ export function matchInOrder(expected, printed) {
 }
 
 /**
- * Runs every test through the host's executor.
+ * Runs every test through the host's executor, one at a time.
  * @param {!Array<!TaskTest>} tests
- * @param {function(!Array<string>): !Execution} execute
- * @returns {!Array<!TestResult>}
+ * @param {function(!Array<string>): (!Execution|!Promise<!Execution>)} execute
+ * @returns {!Promise<!Array<!TestResult>>}
  */
-export function runTests(tests, execute) {
-  return tests.map((test, i) => {
+export async function runTests(tests, execute) {
+  const results = [];
+  for (const [i, test] of tests.entries()) {
     /** @type {!Execution} */
     let run;
     try {
-      run = execute([...test.inputs]);
+      run = await execute([...test.inputs]);
     } catch (e) {
       run = {lines: [], error: e instanceof Error ? e.message : String(e)};
     }
@@ -156,6 +157,7 @@ export function runTests(tests, execute) {
       const match = matchInOrder(test.expectedOutput, lines);
       if (!match.ok) reason = `Expected "${match.missing}", but it was not printed.`;
     }
-    return {index: i + 1, test, ok: !reason, reason, lines};
-  });
+    results.push({index: i + 1, test, ok: !reason, reason, lines});
+  }
+  return results;
 }

@@ -5,11 +5,14 @@
  * - teacherMode: boolean            Teachers may edit and move custom blocks; learners may not.
  * - learnerLevel: 'beginner' | 'intermediate' | 'advanced'  Controls feedback detail.
  * - wholePlan: boolean              The assistant may apply a whole edit plan after one yes. Set by the teacher.
+ * - editMode: 'stepConfirm' | 'guided'  Guided: the learner does each step of a plan while the assistant guides.
+ *                                   Set by the teacher.
  * - voiceFallback: boolean          The browser's speech recognition may stand in when the voice engine can't load
  *                                   (it may send audio to the browser's company). Set by the teacher.
  */
 
 export const Activity = Object.freeze({PRACTICE: 'practice', QUIZ: 'quiz'});
+export const EditMode = Object.freeze({STEP_CONFIRM: 'stepConfirm', GUIDED: 'guided'});
 export const LearnerLevel = Object.freeze({
   BEGINNER: 'beginner',
   INTERMEDIATE: 'intermediate',
@@ -21,6 +24,7 @@ const DEFAULT_POLICY = Object.freeze({
   teacherMode: false,
   learnerLevel: LearnerLevel.BEGINNER,
   wholePlan: false,
+  editMode: EditMode.STEP_CONFIRM,
   voiceFallback: false,
 });
 
@@ -52,7 +56,8 @@ function rootWorkspace(workspace) {
 
 /**
  * @param {?Object} workspace  A Blockly workspace (headless or rendered).
- * @returns {{activity: string, teacherMode: boolean, learnerLevel: string, wholePlan: boolean, voiceFallback: boolean}}
+ * @returns {{activity: string, teacherMode: boolean, learnerLevel: string, wholePlan: boolean, editMode: string,
+ *     voiceFallback: boolean}}
  */
 export function getPolicy(workspace) {
   const ws = rootWorkspace(workspace);
@@ -62,7 +67,8 @@ export function getPolicy(workspace) {
 /**
  * Merges the given fields into the workspace's policy. Unknown values are ignored.
  * @param {!Object} workspace
- * @param {{activity?: string, teacherMode?: boolean, learnerLevel?: string, wholePlan?: boolean, voiceFallback?: boolean}} changes
+ * @param {{activity?: string, teacherMode?: boolean, learnerLevel?: string, wholePlan?: boolean, editMode?: string,
+ *     voiceFallback?: boolean}} changes
  */
 export function setPolicy(workspace, changes) {
   const ws = rootWorkspace(workspace);
@@ -71,6 +77,7 @@ export function setPolicy(workspace, changes) {
   if (Object.values(Activity).includes(changes?.activity)) next.activity = changes.activity;
   if (typeof changes?.teacherMode === 'boolean') next.teacherMode = changes.teacherMode;
   if (typeof changes?.wholePlan === 'boolean') next.wholePlan = changes.wholePlan;
+  if (Object.values(EditMode).includes(changes?.editMode)) next.editMode = changes.editMode;
   if (typeof changes?.voiceFallback === 'boolean') next.voiceFallback = changes.voiceFallback;
   if (Object.values(LearnerLevel).includes(changes?.learnerLevel)) next.learnerLevel = changes.learnerLevel;
   const previous = getPolicy(ws);

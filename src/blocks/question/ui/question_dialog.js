@@ -91,9 +91,9 @@ export class QuestionDialog extends ModalForm {
     this.instruction_ = this.textarea_(config.instruction);
     this.needLabel_ = this.input_('text', config.needLabel || '');
     set.append(
-        this.labelled_('Prompt (short)', this.prompt_),
+        this.labelled_('Question (short)', this.prompt_),
         this.labelled_('Instruction', this.instruction_),
-        this.labelled_('What it needs (optional override)', this.needLabel_,
+        this.labelled_('What it requires (optional override)', this.needLabel_,
             'Leave empty to say it from the intended blocks, e.g. "a true or false value".'),
     );
     return set;

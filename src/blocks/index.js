@@ -13,6 +13,8 @@ import {blockTypes} from './registry.js';
 import {CONNECTION_CHECKER_NAME, registerConnectionChecker} from './connection_checker.js';
 import {questionBlockType} from './question/index.js';
 import {attachDragGroupFix} from './drag_group_fix.js';
+import {trackLearnerEdits} from './authorship.js';
+import {AuthorshipMarks} from './authorship_marks.js';
 
 /** Built-in custom types, in registration order. */
 const BUILT_IN_TYPES = [questionBlockType];
@@ -44,12 +46,13 @@ export function registerCustomBlocks(options = {}) {
  * @returns {{dispose: function()}}
  */
 export function attachCustomBlocks(workspace, options = {}) {
-  const parts = [attachDragGroupFix(workspace), blockTypes.attachAll(workspace, options)];
+  const parts = [attachDragGroupFix(workspace), blockTypes.attachAll(workspace, options), trackLearnerEdits(workspace)];
+  if (workspace.rendered) parts.push(new AuthorshipMarks(workspace).attach());
   return {dispose: () => parts.forEach((p) => p.dispose())};
 }
 
 export {blockTypes, BlockTypeRegistry, GENERATOR_LANGUAGES} from './registry.js';
 export {CONNECTION_CHECKER_NAME, withConnectionRulesSuspended} from './connection_checker.js';
-export {Activity, LearnerLevel, getPolicy, setPolicy, onPolicyChange} from './policy.js';
+export {Activity, EditMode, LearnerLevel, getPolicy, setPolicy, onPolicyChange} from './policy.js';
 export {blockTypeName} from './block_names.js';
 export * as QuestionBlock from './question/index.js';

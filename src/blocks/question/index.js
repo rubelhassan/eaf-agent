@@ -132,5 +132,5 @@ export {getBinding} from './binding.js';
 export {AnswerState, gapOf} from './rules.js';
 export {cleanTaskXml, loadTaskXml, markTaskBlocks, isTaskBlock, workXml} from './task.js';
 export {getTaskTests, setTaskTests} from './task_tests.js';
-export {assess, learnerRunWarning, questionStatuses} from './check.js';
+export {assess, learnerRunWarning, questionStatuses, runGate} from './check.js';
 export {TaskTestsDialog} from './ui/task_tests_dialog.js';
