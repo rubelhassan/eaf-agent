@@ -42,7 +42,7 @@
 </figure>
 <ol class="guide-legend">
     <li data-n="1"><strong>What goes in the question block</strong>: a value, one statement, or a sequence (with a minimum number of blocks).</li>
-    <li data-n="2"><strong>What the learner hears</strong>: an optional <q>needs</q> phrase, the short prompt, and a longer instruction.</li>
+    <li data-n="2"><strong>What the learner hears</strong>: an optional <q>requires</q> phrase, the short question, and a longer instruction.</li>
     <li data-n="3"><strong>Category</strong> of the intended block.</li>
     <li data-n="4"><strong>Block</strong>: pick it by its picture; screen readers hear its name.</li>
     <li data-n="5"><strong>Add</strong> it to the intended blocks.</li>
@@ -91,7 +91,7 @@
     <img src="docs/img/scaffold-result.png" alt="The program after the scaffold: number plus 4 is now inside a question.">
 </figure>
 <ol class="guide-legend">
-    <li data-n="1">The new question, holding the removed part as its reference answer. Each question comes with a prompt, an instruction, two written hints, AI hints and choices. Review it with <strong>Edit question</strong>, or undo the whole scaffold with one <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+    <li data-n="1">The new question, holding the removed part as its reference answer. Each question comes with a question, an instruction, two written hints, AI hints and choices. Review it with <strong>Edit question</strong>, or undo the whole scaffold with one <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
 </ol>
 <p>Without the AI, the rules still choose the places and the questions get simple text you can edit.</p>
 
@@ -101,11 +101,12 @@
 </figure>
 <ol class="guide-legend">
     <li data-n="1"><strong>Activity</strong>: Practice, or Quiz. In a quiz only the questions can be changed, learners are not told whether an answer fits, and choices and AI hints are off. The assistant only explains one block at a time, finds blocks, and opens a question's help.</li>
-    <li data-n="2"><strong>Whole plan</strong>: when on, learners may let the assistant do all steps of a change at once. Off by default, so each step needs its own yes. Saved with the task. Learners answer by voice, by typing, with the chat buttons, or with Alt+Shift+Y (yes), A (all), N (stop) and U (undo); Escape stops the assistant while it works. While it works or waits for an answer, the learner's editing pauses (a learner setting, on by default).</li>
-    <li data-n="3"><strong>Export task XML</strong>: the task as learners first see it, with reference answers hidden.</li>
-    <li data-n="4"><strong>Import task XML</strong>: opens a task, or a learner's saved work.</li>
-    <li data-n="5"><strong>Make scaffold…</strong> (section 5).</li>
-    <li data-n="6"><strong>Task tests…</strong>: checks of the whole program that only teachers see.</li>
+    <li data-n="2"><strong>Edit mode</strong>: Step-confirm (the assistant makes each change after the learner's yes) or Guided (the learner makes each change; the assistant guides and checks). Saved with the task as the starting value; learners may change it in a practice. Off in a quiz.</li>
+    <li data-n="3"><strong>Whole plan</strong>: when on, learners may let the assistant do all steps of a change at once. Off by default, so each step needs its own yes. Saved with the task. Learners answer by voice, by typing, with the chat buttons, or with Alt+Shift+Y (yes), A (all), N (stop) and U (undo); Escape stops the assistant while it works. While it works or waits for an answer, the learner's editing pauses (a learner setting, on by default).</li>
+    <li data-n="4"><strong>Export task XML</strong>: the task as learners first see it, with reference answers hidden.</li>
+    <li data-n="5"><strong>Import task XML</strong>: opens a task, or a learner's saved work.</li>
+    <li data-n="6"><strong>Make scaffold…</strong> (section 5).</li>
+    <li data-n="7"><strong>Task tests…</strong>: checks of the whole program that only teachers see.</li>
 </ol>
 <figure class="guide-shot" data-shot="task-tests">
     <img src="docs/img/task-tests.png" alt="The Task tests form with one test.">
@@ -123,7 +124,7 @@
 </figure>
 <ol class="guide-legend">
     <li data-n="1">After the program's own output, the <strong>Assessment</strong> starts.</li>
-    <li data-n="2">Every question in program order: where it is, its prompt, and whether it is empty, fits, or doesn't fit (with what the learner used).</li>
+    <li data-n="2">Every question in program order: where it is, its question, and whether it is empty, fits, or doesn't fit (with what the learner used).</li>
     <li data-n="3">Every task test: pass, or fail with the reason. Tests are skipped while a question is empty.</li>
 </ol>
 <p>Learners never see tests or assessments: their Run only notes how many questions are still unanswered.</p>

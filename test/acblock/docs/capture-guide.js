@@ -1,13 +1,15 @@
 /**
- * Regenerates the teacher guide's screenshots (docs/img/*.png) and the numbered
- * marker positions (docs/guide-markers.json) from the running test app.
+ * Regenerates the guides' screenshots (docs/img/*.png) and the numbered marker
+ * positions (docs/guide-markers.json) from the running test app.
  *
  *   python3 -m http.server 8765 -d test/acblock      # in another terminal
  *   npm i --no-save playwright-core
- *   CHROME_PATH=/path/to/chrome node test/acblock/docs/capture-guide.js
+ *   CHROME_PATH=/path/to/chrome node test/acblock/docs/capture-guide.js [student|teacher]
  *
- * The agent is stubbed (testing config), so no model is called. Marker numbers
- * must match the numbered lists in docs/teacher-guide.html.
+ * With no argument both guides are captured; with one, only that guide's pictures
+ * and markers change. The agent is stubbed (testing config), so no model is called.
+ * Marker numbers must match the numbered lists in docs/student-guide.html and
+ * docs/teacher-guide.html.
  */
 
 const fs = require('fs');
@@ -16,7 +18,9 @@ const {chromium} = require('playwright-core');
 
 const BASE = process.env.GUIDE_BASE_URL || 'http://localhost:8765/';
 const OUT = __dirname;
-const markers = {};
+const MARKERS = path.join(OUT, 'guide-markers.json');
+const ONLY = process.argv[2];
+const markers = fs.existsSync(MARKERS) ? JSON.parse(fs.readFileSync(MARKERS, 'utf8')) : {};
 
 async function main() {
   const browser = await chromium.launch({executablePath: process.env.CHROME_PATH});
@@ -66,6 +70,9 @@ async function main() {
   };
   const toolboxItem = (name) => `js:workspace.getToolbox().getToolboxItems().find((i) => i.getName?.() === ${JSON.stringify(name)}).getDiv()`;
   const whole = {x: 0, y: 0, w: 1400, h: 900};
+
+  if (ONLY !== 'teacher') await student({page, open, settings, shot});
+  if (ONLY === 'student') return finish(browser);
 
   // 1. Teacher mode basics.
   await open('index.html?teacher=1', 'DemoSkipCountPractice');
@@ -137,7 +144,7 @@ async function main() {
   // 6. Task tools in Settings.
   await settings(true);
   await page.evaluate(() => document.getElementById('teacherToolsRow').scrollIntoView({block: 'end'}));
-  await shot('task-tools', '#settingsPanel', ['#activitySelect', '#wholePlanToggle', '#exportTaskBtn', '#importTaskBtn', '#makeScaffoldBtn', '#taskTestsBtn'], 4);
+  await shot('task-tools', '#settingsPanel', ['#activitySelect', '#editModeSelect', '#wholePlanToggle', '#exportTaskBtn', '#importTaskBtn', '#makeScaffoldBtn', '#taskTestsBtn'], 4);
 
   // 7. Task tests dialog.
   await page.click('#taskTestsBtn');
@@ -172,9 +179,95 @@ async function main() {
   await page.waitForTimeout(1200);
   await shot('scaffold-result', blockSvg('print_1'), [`js:workspace.getBlocksByType('question')[0].getSvgRoot()`], 40);
 
-  fs.writeFileSync(path.join(OUT, 'guide-markers.json'), JSON.stringify(markers, null, 2) + '\n');
+  await finish(browser);
+}
+
+async function finish(browser) {
+  fs.writeFileSync(MARKERS, JSON.stringify(markers, null, 2) + '\n');
   await browser.close();
-  console.log(`Captured ${Object.keys(markers).length} screenshots.`);
+  console.log(`Markers for ${Object.keys(markers).length} screenshots.`);
+}
+
+/** The student guide's pictures, in learner mode. */
+async function student({page, open, settings, shot}) {
+  const whole = {x: 0, y: 0, w: 1400, h: 900};
+
+  // The panel picture shows text mode (the text box); the voice section has its own picture.
+  await page.addInitScript(() => localStorage.setItem('eaf.assistantMode', 'text'));
+  // 1. The editor.
+  await open('index.html', 'Program18');
+  await shot('student-editor', whole, ['#navToggle', '.eaf-mode-badge', '#runButton', '#settingsButton', '.assistant-open'], 0);
+
+  // 5. The assistant panel with a plan (a stubbed plan view; nothing is applied).
+  await page.evaluate(() => {
+    const ui = window.eafAssistant;
+    ui.open();
+    ui.showPlan({proposalId: 'guide', kind: 'edit', ended: false, canAll: false, steps: [
+      {words: 'Add a repeat block to stack A.', status: 'applied'},
+      {words: 'Set the number in the repeat block to 5.', status: 'next'},
+      {words: 'Move the print block into the repeat.', status: 'waiting'},
+    ]});
+    ui.displayReply({say: 'Step 2 of 3. Set the number in the repeat block to 5. Should I do it? Say yes or no.', expectsAnswer: true,
+      actions: [{name: 'yes', label: 'Yes'}, {name: 'no', label: 'No'}, {name: 'cancel', label: 'Cancel'}, {name: 'repeat', label: 'Hear again'}]});
+  });
+  await page.waitForTimeout(500);
+  await shot('student-panel', '.assistant-panel', ['.assistant-transcript', '.assistant-plan', '.assistant-answers', '.assistant-voice', '.assistant-input', '.assistant-send'], 0);
+  // 7. Voice mode: the toggle, the voice area with two dictated pieces and one being heard, Send.
+  await page.click('.assistant-voice');
+  await page.evaluate(() => {
+    const panel = window.eafAssistant.panel;
+    panel.setMicrophoneState('listening');
+    panel.draft.setSpoken('make it say hello', '');
+    panel.draft.setSpoken('make it say hello five times', 'make it say hello');
+    panel.draft.setPartial('and then');
+  });
+  await page.waitForTimeout(300);
+  await shot('student-voice', '.assistant-draft', ['.assistant-voice', '.assistant-voice-area', '.assistant-send'], 4);
+  // Listening paused: the resume button above the mode button.
+  await page.evaluate(() => window.eafAssistant.panel.setMicrophoneState('paused'));
+  await page.waitForTimeout(300);
+  await shot('student-voice-paused', '.assistant-draft', ['.assistant-resume', '.assistant-mic-state'], 4);
+  await page.evaluate(() => window.eafAssistant.panel.setMicrophoneState('listening'));
+  await page.evaluate(() => {
+    window.eafAssistant.panel.draft.setPartial('');
+    window.eafAssistant.panel.draft.set('');
+  });
+  await page.click('.assistant-voice');
+  await page.evaluate(() => window.eafAssistant.showPlan(null));
+  await page.keyboard.press('Escape');
+
+  // 9. A question's help (Demo 1, learner mode).
+  await open('index.html', 'DemoQuestions');
+  await page.evaluate(() => blockTypes.activate(workspace.getBlockById('q_heavy'), {workspace, speech: {update() {}}}));
+  await page.waitForTimeout(400);
+  const buttonRow = (name) => `js:[...document.querySelectorAll('.eaf-qp button')].find((b) => b.textContent === ${JSON.stringify(name)}).closest('[data-row]')`;
+  const qp = await page.evaluate(() => { const p = document.querySelector('.eaf-qp').getBoundingClientRect(); const b = workspace.getBlockById('q_heavy').getSvgRoot().getBoundingClientRect();
+    const x = Math.min(p.x, b.x), y = Math.min(p.y, b.y); return {x, y, w: Math.max(p.right, b.right) - x, h: Math.max(p.bottom, b.bottom) - y}; });
+  await shot('student-question', qp, ['.eaf-qp [data-row="0"]', buttonRow('Next hint'), buttonRow('Hear all')], 12);
+  await page.keyboard.press('Escape');
+
+  // 10. Settings.
+  await settings(true);
+  await shot('student-settings', '#settingsPanel', ['#learnerLevelSelect', '#magnifierSelect', '#pauseEditingToggle', '#learnerEditModeSelect', '#soundSettingsBtn', '#saveWorkBtn', '#studentGuideBtn'], 4);
+  await settings(false);
+
+  // 11. The magnifier on the cursor's block.
+  await open('index.html', 'Program18');
+  await page.evaluate(() => {
+    const block = workspace.getTopBlocks(true)[0];
+    workspace.getCursor().setCurNode(Blockly.ASTNode.createBlockNode(block));
+  });
+  await page.focus('.blocklySvg').catch(() => {});
+  await page.keyboard.press('Control+Shift+Equal');
+  await page.waitForTimeout(500);
+  const lensBox = await page.evaluate(() => {
+    const l = document.querySelector('.eaf-magnifier').getBoundingClientRect();
+    const b = workspace.getTopBlocks(true)[0].getSvgRoot().getBoundingClientRect();
+    const x = Math.min(l.x, b.x), y = Math.min(l.y, b.y);
+    return {x, y, w: Math.max(l.right, b.right) - x, h: Math.max(l.bottom, b.bottom) - y};
+  });
+  await shot('student-magnifier', lensBox, ['js:workspace.getTopBlocks(true)[0].getSvgRoot()', '.eaf-magnifier'], 16);
+  await page.keyboard.press('Escape');
 }
 
 main().catch((e) => {
