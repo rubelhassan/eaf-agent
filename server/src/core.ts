@@ -3,6 +3,7 @@
 
 import {renderRepair, renderRequest} from './prompts/render.js';
 import {envelopeProblems, type AgentCall, type Task} from './envelope.js';
+import {inferenceFor} from './models/settings.js';
 import type {Guard} from './guard/index.js';
 import type {MaskMap} from './guard/mask.js';
 
@@ -31,7 +32,18 @@ export interface Routing {
   promptVersion(task: Task): string | undefined;
   inference(task: Task): Record<string, unknown> | null;
   timeoutMs(task: Task): number;
+  fallback?(task: Task): ModelRoute | null;
 }
+
+/** A resolved model and its provider settings. */
+export interface ModelRoute {
+  model: string;
+  provider: Provider;
+  inference: Record<string, unknown> | null;
+  timeoutMs: number;
+}
+
+type AttemptRoute = ModelRoute & {fallback: boolean};
 
 export interface CallRecord {
   call: AgentCall;
@@ -48,11 +60,13 @@ export interface CallLog {
   result(record: {requestId: string; valid: boolean; problems: string[]; at: string}): void;
 }
 
+export type AgentErrorCode = 'TIMEOUT' | 'ABORTED' | 'MODEL' | 'RATE_LIMIT' | 'INVALID_ENVELOPE' | 'LIMIT';
+
 export type AgentReply =
   | {requestId: string; status: 'ok'; reply: string; meta: Record<string, unknown>}
-  | {requestId: string; status: 'error'; code: string; message: string; meta?: Record<string, unknown>};
+  | {requestId: string; status: 'error'; code: AgentErrorCode; message: string; meta?: Record<string, unknown>};
 
-const ERROR_CODES: Record<string, string> = {timeout: 'TIMEOUT', aborted: 'ABORTED'};
+const ERROR_CODES: Record<string, AgentErrorCode> = {timeout: 'TIMEOUT', aborted: 'ABORTED', 'HTTP 429': 'RATE_LIMIT'};
 // A request's first exchange waits this long for its repair round.
 const OPEN_MS = 10 * 60 * 1000;
 
@@ -61,12 +75,35 @@ export function createAgentCore({routing, log = null, guard = null, now = () => 
   {routing: Routing; log?: CallLog | null; guard?: Guard | null; now?: () => number}) {
   // A request's first exchange, kept for its one repair round and the browser's verdict.
   const open = new Map<string, {payload: Record<string, unknown>; version: string; text: string; map: MaskMap | null; at: number;
-    repaired: boolean}>();
+    repaired: boolean; target: AttemptRoute}>();
   const stamp = () => new Date(now()).toISOString();
 
   const forget = () => {
     for (const [id, first] of open) if (now() - first.at > OPEN_MS) open.delete(id);
   };
+
+  /** Log each provider attempt, including the rate limit that caused a fallback. */
+  async function completeAndLog({call, payload, target, version, map, signal}: {
+    call: AgentCall; payload: Record<string, unknown>; target: AttemptRoute; version: string;
+    map: MaskMap | null; signal?: AbortSignal;
+  }) {
+    const reply = await target.provider.complete(payload, {signal, timeoutMs: target.timeoutMs});
+    const restored = map && !reply.error ? guard!.restore(reply.text, map) : {text: reply.text, unknown: []};
+    const model = reply.model || target.model;
+    const meta = {
+      model, fallback: target.fallback, promptVersion: version, cached: !!reply.cached,
+      latencyMs: reply.latencyMs, finishReason: reply.finishReason ?? null,
+      tokens: {input: reply.usage?.prompt_tokens, output: reply.usage?.completion_tokens, reasoning: reply.reasoningTokens},
+      costUsd: reply.usage?.cost,
+      ...(restored.unknown.length ? {problems: restored.unknown.map((id) =>
+        `the reply has ${id}, which is not in the request; keep only the ids the request has, as written`)} : {}),
+    };
+    const result: AgentReply = reply.error ?
+      {requestId: call.requestId, status: 'error', code: ERROR_CODES[reply.error.split(':', 1)[0]] || 'MODEL', message: reply.error, meta} :
+      {requestId: call.requestId, status: 'ok', reply: restored.text, meta};
+    log?.call({call, model, promptVersion: version, payload, reply: result, replyText: reply.text, at: stamp()});
+    return {result, text: reply.text};
+  }
 
   return {
     async call(body: unknown, {signal}: {signal?: AbortSignal} = {}): Promise<AgentReply> {
@@ -75,7 +112,7 @@ export function createAgentCore({routing, log = null, guard = null, now = () => 
       const problems = envelopeProblems(body);
       if (problems.length) return {requestId, status: 'error', code: 'INVALID_ENVELOPE', message: problems.join('; ')};
       let call = body as AgentCall;
-      const model = routing.model(call.task);
+      let target: AttemptRoute;
       let payload: Record<string, unknown>;
       let version: string;
       let map: MaskMap | null = null;
@@ -84,37 +121,33 @@ export function createAgentCore({routing, log = null, guard = null, now = () => 
         if (!first || first.repaired) return {requestId, status: 'error', code: 'INVALID_ENVELOPE', message: 'repair without a first call'};
         first.repaired = true;
         ({version, map} = first);
+        target = first.target;
         // The browser's problems quote the restored reply, so they are masked again.
         const problems = map ? call.repair.problems.map((p) => guard!.maskKnown(p, map!)) : call.repair.problems;
         call = {...call, repair: {problems}};
         payload = renderRepair(first.payload, first.text, problems);
       } else {
+        target = {model: routing.model(call.task), provider: routing.provider(call.task),
+          inference: routing.inference(call.task), timeoutMs: routing.timeoutMs(call.task), fallback: false};
         if (guard) ({call, map} = await guard.mask(call));
-        const rendered = renderRequest(call, {model, version: routing.promptVersion(call.task),
-          overrides: routing.inference(call.task)});
+        const rendered = renderRequest(call, {model: target.model, version: routing.promptVersion(call.task),
+          overrides: target.inference});
         payload = rendered.payload as Record<string, unknown>;
         version = rendered.version;
       }
-      const reply = await routing.provider(call.task).complete(payload, {signal, timeoutMs: routing.timeoutMs(call.task)});
-      if (!call.repair) open.set(requestId, {payload, version, text: reply.text, map, at: now(), repaired: false});
-      const restored = map && !reply.error ? guard!.restore(reply.text, map) : {text: reply.text, unknown: []};
-      const meta = {
-        model: reply.model || model,
-        promptVersion: version,
-        cached: !!reply.cached,
-        latencyMs: reply.latencyMs,
-        tokens: {input: reply.usage?.prompt_tokens, output: reply.usage?.completion_tokens, reasoning: reply.reasoningTokens},
-        costUsd: reply.usage?.cost,
-        // A mask id the request never had: the browser's check sends it to repair.
-        ...(restored.unknown.length ? {problems: restored.unknown.map((id) =>
-          `the reply has ${id}, which is not in the request; keep only the ids the request has, as written`)} : {}),
-      };
-      const result: AgentReply = reply.error ?
-        {requestId, status: 'error', code: ERROR_CODES[reply.error] || 'MODEL', message: reply.error, meta} :
-        {requestId, status: 'ok', reply: restored.text, meta};
-      // Logged masked: the call as sent and the model's own text.
-      log?.call({call, model, promptVersion: version, payload, reply: result, replyText: reply.text, at: stamp()});
-      return result;
+      let attempt = await completeAndLog({call, payload, target, version, map, signal});
+      if (attempt.result.status === 'error' && attempt.result.code === 'RATE_LIMIT' && !target.fallback && !signal?.aborted) {
+        const fallback = routing.fallback?.(call.task);
+        if (fallback) {
+          target = {...fallback, fallback: true};
+          // Keep the already-masked messages, including repair feedback, byte for byte.
+          payload = {model: target.model, ...inferenceFor(call.task, {model: target.model, ...target.inference}),
+            messages: payload.messages};
+          attempt = await completeAndLog({call, payload, target, version, map, signal});
+        }
+      }
+      if (!call.repair) open.set(requestId, {payload, version, text: attempt.text, map, at: now(), repaired: false, target});
+      return attempt.result;
     },
 
     /** The browser's verdict on a reply it checked; the repair round is over either way. */

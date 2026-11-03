@@ -11,7 +11,13 @@ import {createGuard} from '../src/guard/index.js';
 import {createAgentCore, type ModelReply, type Provider} from '../src/core.js';
 import {createRouting} from '../src/models/router.js';
 import {openLogs} from '../src/store/logs.js';
-import type {AgentCall} from '../src/envelope.js';
+import {envelopeProblems, type AgentCall} from '../src/envelope.js';
+import {buildApp} from '../src/app.js';
+import {createRequire} from 'node:module';
+import type {Entity} from '../src/guard/ner.js';
+
+// The client the browser uses (loaded through require, as in app.test.ts).
+const {createAgentServerClient} = createRequire(import.meta.url)('../../src/agent/model/server_client.js');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const NER_NAME = JSON.parse(fs.readFileSync(path.join(root, 'ner_models.json'), 'utf8')).use;
@@ -101,4 +107,68 @@ test('core: an id the request never had comes back as a problem', async () => {
   const r = await core.call(call('my name is ava'));
   assert.equal(r.status, 'ok');
   assert.deepEqual(r.meta?.problems, ['the reply has NAME_2, which is not in the request; keep only the ids the request has, as written']);
+});
+
+/** A name finder that tags the given phrases as people, as the model tags "Neon" today. */
+const namesFinder = (...names: string[]) => async (text: string): Promise<Entity[]> =>
+  names.flatMap((n) => [...text.matchAll(new RegExp(`\\b${n}\\b`, 'g'))].map((m) => ({type: 'PER' as const, start: m.index,
+    end: m.index + n.length, score: 1})));
+const named = (learnerText: string, assistantName?: string | null) =>
+  ({...call(learnerText), session: {id: 's_1', learnerCode: null, ...(assistantName === undefined ? {} : {assistantName})}});
+
+test('envelope: the assistant name is one word of letters, 1 to 32 long', () => {
+  for (const ok of ['Neon', 'nova', 'A', 'x'.repeat(32), null]) assert.deepEqual(envelopeProblems(named('hi', ok)), [], String(ok));
+  for (const bad of ['', 'Ms Bot', 'Neon2', 'Zoë', 'x'.repeat(33), 'Ne-on']) {
+    assert.deepEqual(envelopeProblems(named('hi', bad)),
+      ['call.session.assistantName must be one word of letters (A to Z), 1 to 32 long'], bad);
+  }
+  assert.deepEqual(envelopeProblems({...named('hi'), session: {id: 's_1', assistantName: 7}}), ['call.session.assistantName must be string']);
+});
+
+test('mask: the assistant name is kept, whole words only; names next to it, emails and handles are still masked', async () => {
+  const ner = namesFinder('Neon Zoe', 'Neon', 'Zoe', 'Neona', 'neon', 'Nova');
+  const masked = async (text: string, name?: string | null) => (await maskCall(named(text, name), ner)).call.learnerText;
+  assert.equal(await masked('Neon, what does this do?'), 'Neon, what does this do?', 'Neon by default');
+  assert.equal(await masked('hey neon, ask my friend Zoe'), 'hey neon, ask my friend NAME_1', 'any case');
+  assert.equal(await masked('tell Neon Zoe hi'), 'tell Neon NAME_1 hi', 'the name next to it');
+  assert.equal(await masked('Neona says hi'), 'NAME_1 says hi', 'a longer word is not the name');
+  assert.equal(await masked('mail neon@example.com or @neon_fan'), 'mail EMAIL_1 or HANDLE_1');
+  assert.equal(await masked('call me Neon'), 'call me Neon', 'a cue phrase too');
+  assert.equal(await masked('Nova, what about Neon?', 'Nova'), 'Nova, what about NAME_1?', 'only the configured name');
+  const context = {program: 'Stack A', taskContext: 'Task: edit\nLearner asked: "Neon, add Zoe"'};
+  const {call: inContext} = await maskCall({...named('again'), task: 'EDIT_GUIDE', input: context}, ner);
+  assert.equal(inContext.input.taskContext, 'Task: edit\nLearner asked: "Neon, add NAME_1"', 'the task so far');
+});
+
+test('the name finder keeps the assistant name and masks a friend', {skip: !hasModel && 'run npm run models'}, async () => {
+  const ner = await loadNer(NER_NAME, path.join(root, 'models'));
+  // Without the rule the model tags this Neon as a person.
+  const {call: masked} = await maskCall(named('Neon, help me and my friend Zoe'), ner);
+  assert.equal(masked.learnerText, 'Neon, help me and my friend NAME_1');
+});
+
+test('over HTTP: the browser client sends the name; the model gets Neon and not Zoe; a bad name is refused', async () => {
+  const sent: Array<Record<string, any>> = [];
+  const provider: Provider = {async complete(payload) {
+    sent.push(payload);
+    return {text: '{"voiceLine":"NAME_1 made a loop."}', usage: {}, latencyMs: 1};
+  }};
+  const core = createAgentCore({routing: createRouting({tasks: {'*': {model: 'm'}}, providers: {}}, {openrouter: provider}),
+    guard: createGuard({ner: namesFinder('Neon', 'Zoe')})});
+  const app = await buildApp({core, health: () => ({keySet: true})});
+  const url = await app.listen({host: '127.0.0.1', port: 0});
+  try {
+    const client = createAgentServerClient({url, session: {id: 's_1', learnerCode: null, assistantName: 'Neon'}});
+    const reply = await client.call({...call('Neon, what does this do? my friend Zoe made it'), session: undefined});
+    const asked = JSON.stringify(sent[0].messages);
+    assert.match(asked, /Neon, what does this do\? my friend NAME_1 made it/);
+    assert.ok(!/Zoe/.test(asked), asked);
+    assert.equal(reply.reply, '{"voiceLine":"Zoe made a loop."}');
+    const bad = createAgentServerClient({url, session: {id: 's_1', assistantName: 'Neon Bot'}});
+    const refused = await bad.call({...call('hi'), requestId: 'r_2', session: undefined});
+    assert.equal(refused.code, 'INVALID_ENVELOPE');
+    assert.equal(sent.length, 1, 'a refused call never reaches the model');
+  } finally {
+    await app.close();
+  }
 });

@@ -6,8 +6,8 @@ import type {FindEntities} from './ner.js';
 
 export interface Guard {
   mask(call: AgentCall): Promise<{call: AgentCall; map: MaskMap}>;
-  /** Free text on its own (an event's words), with every finder. */
-  maskText(text: string): Promise<string>;
+  /** Free text on its own (an event's words), with every finder; `keep` is the assistant's name. */
+  maskText(text: string, keep?: string | null): Promise<string>;
   maskKnown(text: string, map: MaskMap): string;
   restore(text: string, map: MaskMap): {text: string; unknown: string[]};
 }
@@ -16,7 +16,7 @@ export interface Guard {
 export function createGuard({ner}: {ner: FindEntities | null}): Guard {
   return {
     mask: (call) => maskCall(call, ner),
-    maskText: (text) => maskWords(text, newMaskMap(), ner),
+    maskText: (text, keep = null) => maskWords(text, newMaskMap(), ner, keep),
     maskKnown,
     restore,
   };

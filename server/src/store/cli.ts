@@ -14,6 +14,18 @@ const file = process.env.AGENT_DB || path.join(root, 'data', 'agent.db');
 const [command, ...flags] = process.argv.slice(2);
 const logs = openLogs(file);
 
+function workLine(row: {saved_at: string; task: string; summary_json: string}) {
+  const {counts} = JSON.parse(row.summary_json);
+  const actions = Object.entries(counts.aiActions as Record<string, Record<string, number>>);
+  const fields = actions.reduce((total, [, typed]) => total + (typed.field || 0), 0);
+  const guidance = Object.values(counts.aiActions.guidance || {}).reduce<number>((total, count) => total + Number(count), 0);
+  const detail = [fields ? `${fields} field` : '', guidance ? `${guidance} guidance` : ''].filter(Boolean).join(', ');
+  return `Work saved ${row.saved_at}, task ${row.task}: ${counts.blocks.learner} learner, ` +
+    `${counts.blocks.created} created, ${counts.blocks.assisted} assisted${detail ? ` (${detail})` : ''}, ` +
+    `${counts.learnerDeleted} learner block${counts.learnerDeleted === 1 ? '' : 's'} deleted by Neon; ` +
+    `learner changed ${counts.learnerChangedAiBlocks} AI blocks.`;
+}
+
 if (command === 'export') {
   const dir = path.join(path.dirname(file), `export-${new Date().toISOString().replace(/[:.]/g, '-')}`);
   fs.mkdirSync(dir, {recursive: true});
@@ -46,6 +58,9 @@ if (command === 'export') {
       for (const h of s.hints) console.log(`  question ${h.questionId}: opened ${h.opened}, ${h.shown} hint(s), highest level ${h.highestLevel ?? 'none'}`);
     }
     if (!signals.length) console.log('No events yet.');
+    const saved = logs.db.prepare('SELECT saved_at, task, summary_json FROM work ORDER BY saved_at, work_id').all() as
+      Array<{saved_at: string; task: string; summary_json: string}>;
+    for (const work of saved) console.log(workLine(work));
   }
 } else {
   console.error('Use: export | wipe --yes | report [--json]');

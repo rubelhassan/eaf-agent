@@ -2,7 +2,7 @@
 // back in the reply. The learner's words get every finder; program text only emails, phones and addresses, since
 // names in a program are its content. The map lives only for a request and its repair round.
 
-import type {AgentCall} from '../envelope.js';
+import {assistantNameOf, type AgentCall} from '../envelope.js';
 import type {FindEntities} from './ner.js';
 
 export const MASK_TYPES = ['NAME', 'SCHOOL', 'AGE', 'LOCATION', 'EMAIL', 'PHONE', 'ADDRESS', 'HANDLE'] as const;
@@ -131,10 +131,34 @@ function idFor(value: string, type: MaskType, map: MaskMap): string {
   return id;
 }
 
-/** Masks the learner's own words with every finder. */
-export async function maskWords(text: string, map: MaskMap, ner: FindEntities | null): Promise<string> {
-  const spans = [...patternSpans(text), ...cueSpans(text), ...(await entitySpans(text, ner))];
-  return replaceSpans(text, spans, map);
+/**
+ * Cue and name finder spans without the assistant's name: a span that is the name goes, one that starts or ends with it
+ * ("Neon Zoe") keeps only the rest. Patterns aren't cut, so an email or handle with the name in it stays masked.
+ */
+function withoutName(text: string, spans: Span[], name: string | null): Span[] {
+  // The envelope allows letters only, so the name is safe in a pattern.
+  if (!name || !/^[a-z]+$/i.test(name)) return spans;
+  const word = name.toLowerCase();
+  // A whole word, or its possessive ("Neon's"); not the start of a longer word ("Neona").
+  const first = new RegExp(`^${word}(?:['’]s)?(?![\\w'’])[\\s,-]*`, 'i');
+  const last = new RegExp(`[\\s,-]*(?<![\\w'’])${word}(?:['’]s)?$`, 'i');
+  return spans.map((s) => {
+    let {start, end} = s;
+    const head = first.exec(text.slice(start, end));
+    if (head) start += head[0].length;
+    const tail = last.exec(text.slice(start, end));
+    if (tail) end -= tail[0].length;
+    return {...s, start, end};
+  }).filter((s) => s.end > s.start);
+}
+
+/**
+ * Masks the learner's own words with every finder.
+ * @param keep the assistant's name (one word of letters), never masked as a name or place
+ */
+export async function maskWords(text: string, map: MaskMap, ner: FindEntities | null, keep: string | null = null): Promise<string> {
+  const found = withoutName(text, [...cueSpans(text), ...(await entitySpans(text, ner))], keep);
+  return replaceSpans(text, [...patternSpans(text), ...found], map);
 }
 
 /** Masks program or other text: emails, phones and addresses, plus values already masked in this request. */
@@ -160,11 +184,11 @@ function knownSpans(text: string, map: MaskMap, types: readonly MaskType[] = MAS
 }
 
 /** Learner words quoted in the task so far ("Learner asked: "..."") get every finder; the rest is program text. */
-async function maskTaskContext(text: string, map: MaskMap, ner: FindEntities | null): Promise<string> {
+async function maskTaskContext(text: string, map: MaskMap, ner: FindEntities | null, keep: string): Promise<string> {
   let out = '';
   let last = 0;
   for (const m of text.matchAll(/"((?:[^"\\]|\\.)*)"/g)) {
-    out += maskProgram(text.slice(last, m.index), map) + `"${await maskWords(m[1], map, ner)}"`;
+    out += maskProgram(text.slice(last, m.index), map) + `"${await maskWords(m[1], map, ner, keep)}"`;
     last = m.index + m[0].length;
   }
   return out + maskProgram(text.slice(last), map);
@@ -173,10 +197,11 @@ async function maskTaskContext(text: string, map: MaskMap, ner: FindEntities | n
 /** A copy of the call with personal information masked, and the map to restore it. */
 export async function maskCall(call: AgentCall, ner: FindEntities | null): Promise<{call: AgentCall; map: MaskMap}> {
   const map = newMaskMap();
-  const learnerText = await maskWords(call.learnerText, map, ner);
+  const keep = assistantNameOf(call);
+  const learnerText = await maskWords(call.learnerText, map, ner, keep);
   const input: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(call.input)) {
-    if (key === 'taskContext' && typeof value === 'string') input[key] = await maskTaskContext(value, map, ner);
+    if (key === 'taskContext' && typeof value === 'string') input[key] = await maskTaskContext(value, map, ner, keep);
     else if (typeof value === 'string') input[key] = maskProgram(value, map);
     else if (Array.isArray(value)) input[key] = value.map((v) => (typeof v === 'string' ? maskProgram(v, map) : v));
     else input[key] = value;

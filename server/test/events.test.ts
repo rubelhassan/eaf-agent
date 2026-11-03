@@ -17,6 +17,22 @@ const at = (n: number) => new Date(Date.UTC(2026, 9, 29, 10, 0, n)).toISOString(
 const event = (seq: number, kind: string, data: Record<string, unknown> = {}) =>
   ({taskId: null, revision: 1, ...data, id: `e_s1_${seq}`, seq, time: at(seq), kind});
 
+test('re-transcribed event before and after text is masked at every depth', async () => {
+  const {app, logs} = await start();
+  try {
+    const result = await app.inject({method: 'POST', url: '/v1/agent/events', payload: {session: {id: 's1'}, events: [
+      event(1, 'voice.retranscribed', {messageId: 'm1', before: 'my name is Ava', after: 'my name is Zoe', used: 'transcript',
+        details: {before: 'ava@example.com', after: 'zoe@example.com'}}),
+    ]}});
+    assert.equal(result.statusCode, 200);
+    const stored = logs.db.prepare('SELECT data FROM events').get() as {data: string};
+    const data = JSON.parse(stored.data);
+    assert.equal(data.before, 'my name is NAME_1'); assert.equal(data.after, 'my name is NAME_1');
+    assert.equal(data.details.before, 'EMAIL_1'); assert.equal(data.details.after, 'EMAIL_1');
+    assert.equal(data.messageId, 'm1'); assert.equal(data.used, 'transcript');
+  } finally { await app.close(); logs.close(); }
+});
+
 async function start() {
   const logs = openLogs(':memory:');
   const routing = createRouting({tasks: {'*': {model: 'm'}}, providers: {}}, {openrouter: {complete: async () => ({text: '{}', usage: {}, latencyMs: 1})}});
@@ -95,4 +111,20 @@ test('the report: tasks by action, steps against own edits, hints per question',
   assert.deepEqual(s.ownWork, {edits: 4, runs: 3});
   assert.equal(s.agentStepsPerOwnEdit, 0.25);
   assert.deepEqual(s.hints, [{questionId: 'q1', opened: 1, shown: 2, highestLevel: 'concept'}]);
+});
+
+test('event text keeps the session\'s assistant name (default Neon) and masks the friend; a bad name is refused', async () => {
+  const logs = openLogs(':memory:');
+  // A name finder that tags these as people, as the real one can tag "Neon".
+  const ner = async (text: string) => ['Neon', 'Zoe'].flatMap((n) => [...text.matchAll(new RegExp(`\\b${n}\\b`, 'g'))]
+    .map((m) => ({type: 'PER' as const, start: m.index, end: m.index + n.length, score: 1})));
+  const intake = createEventIntake({store: logs, guard: createGuard({ner})});
+  const said = {text: 'Neon, help me and my friend Zoe'};
+  await intake.take({session: {id: 's3', assistantName: 'Neon'}, events: [event(1, 'message.submitted', said)]});
+  await intake.take({session: {id: 's3'}, events: [event(2, 'message.submitted', said)]});
+  await intake.take({session: {id: 's3', assistantName: 'Nova'}, events: [event(3, 'message.submitted', said)]});
+  const texts = (logs.db.prepare('SELECT data FROM events ORDER BY seq').all() as Array<{data: string}>).map((r) => JSON.parse(r.data).text);
+  assert.deepEqual(texts, ['Neon, help me and my friend NAME_1', 'Neon, help me and my friend NAME_1', 'NAME_2, help me and my friend NAME_1']);
+  const bad = await intake.take({session: {id: 's3', assistantName: 'Neon Bot'}, events: [event(4, 'message.submitted', said)]});
+  assert.deepEqual(bad, {ok: false, problems: ['session.assistantName must be one word of letters (A to Z), 1 to 32 long']});
 });

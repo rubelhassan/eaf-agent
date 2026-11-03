@@ -5,7 +5,7 @@ export type Task = (typeof TASKS)[number];
 
 export interface AgentCall {
   requestId: string;
-  session?: {id: string; learnerCode?: string | null};
+  session?: {id: string; learnerCode?: string | null; assistantName?: string | null};
   taskId?: string | null;
   revision?: number | null;
   task: Task;
@@ -33,7 +33,7 @@ const ENVELOPE: Record<string, Field> = {
   repair: opt('object'),
 };
 
-const SESSION: Record<string, Field> = {id: req('string'), learnerCode: opt('string')};
+const SESSION: Record<string, Field> = {id: req('string'), learnerCode: opt('string'), assistantName: opt('string')};
 const POLICY: Record<string, Field> = {activity: opt('string'), wholePlan: opt('boolean')};
 const REPAIR: Record<string, Field> = {problems: req('strings')};
 
@@ -51,6 +51,19 @@ const INPUTS: Record<Task, Record<string, Field>> = {
     teacherNote: opt('string'), program: req('string'),
   },
 };
+
+export const DEFAULT_ASSISTANT_NAME = 'Neon';
+// One word, so it can't hide a learner's name next to it ("Neon Zoe") from masking.
+const ASSISTANT_NAME = /^[A-Za-z]{1,32}$/;
+
+/** The assistant's name the learner may say; masking leaves it alone. */
+export const assistantNameOf = (call: AgentCall): string => call.session?.assistantName || DEFAULT_ASSISTANT_NAME;
+
+/** The problem with a session's assistant name, or null (missing and null mean Neon). */
+export function assistantNameProblem(where: string, name: unknown): string | null {
+  if (name == null || (typeof name === 'string' && ASSISTANT_NAME.test(name))) return null;
+  return `${where}.assistantName must be one word of letters (A to Z), 1 to 32 long`;
+}
 
 function kindOf(value: unknown): Kind | 'array' | 'null' | 'other' {
   if (value === null) return 'null';
@@ -82,7 +95,11 @@ export function envelopeProblems(body: unknown): string[] {
   if (problems.length) return problems;
   const call = body as AgentCall;
   if (!(TASKS as readonly string[]).includes(call.task)) return [`call.task must be one of ${TASKS.join(', ')}`];
-  if (call.session) problems.push(...fieldProblems('call.session', call.session, SESSION));
+  if (call.session) {
+    const fields = fieldProblems('call.session', call.session, SESSION);
+    const name = fields.length ? null : assistantNameProblem('call.session', call.session.assistantName);
+    problems.push(...fields, ...(name ? [name] : []));
+  }
   if (call.policy) problems.push(...fieldProblems('call.policy', call.policy, POLICY));
   if (call.repair) problems.push(...fieldProblems('call.repair', call.repair, REPAIR));
   problems.push(...fieldProblems('call.input', call.input, INPUTS[call.task]));

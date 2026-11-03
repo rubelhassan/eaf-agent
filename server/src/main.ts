@@ -13,6 +13,8 @@ import {createOpenRouterProvider} from './models/openrouter.js';
 import {createRouting, type RoutingConfig} from './models/router.js';
 import {DEFAULT_PROMPT_VERSIONS} from './prompts/index.js';
 import {openLogs} from './store/logs.js';
+import {createVoiceEngine} from './voice/sidecar.js';
+import type {VoiceConfig} from './voice/protocol.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config: RoutingConfig = JSON.parse(fs.readFileSync(path.join(root, 'routing.json'), 'utf8'));
@@ -35,8 +37,18 @@ const routing = createRouting(config, {openrouter: createOpenRouterProvider({bas
 const logs = openLogs(path.join(root, 'data', 'agent.db'));
 const guard = createGuard({ner});
 const core = createAgentCore({routing, log: logs, guard});
+const voiceConfig: VoiceConfig = JSON.parse(fs.readFileSync(path.join(root, 'voice.json'), 'utf8'));
+if (typeof voiceConfig.enabled !== 'boolean' || voiceConfig.engine !== 'whisper.cpp' || voiceConfig.model !== 'small.en' ||
+    !Number.isInteger(voiceConfig.threads) || voiceConfig.threads < 1 || voiceConfig.threads > 16 ||
+    !Number.isInteger(voiceConfig.port) || voiceConfig.port < 0 || voiceConfig.port > 65535 ||
+    voiceConfig.utteranceMaxMs !== 60000 || typeof voiceConfig.logTranscripts !== 'boolean') throw new Error('Invalid voice.json');
+const voiceEngine = createVoiceEngine({root: path.resolve(root, '..'), config: voiceConfig,
+  log: (code) => console.warn('Voice engine:', code)});
 const app = await buildApp({
   core,
+  work: logs,
+  voice: {engine: voiceEngine, utteranceMaxMs: voiceConfig.utteranceMaxMs,
+    logTranscripts: voiceConfig.logTranscripts, ner, log: (record) => logs.recordVoice(record)},
   events: createEventIntake({store: logs, guard}),
   logger: true,
   health: () => ({

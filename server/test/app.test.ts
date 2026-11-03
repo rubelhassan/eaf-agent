@@ -7,6 +7,10 @@ import {createAgentCore, type ModelReply, type Provider} from '../src/core.js';
 import {createRouting} from '../src/models/router.js';
 import {openLogs} from '../src/store/logs.js';
 import {createRequire} from 'node:module';
+import Database from 'better-sqlite3';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 // The client the browser uses. The plugin's package isn't marked as ES modules, so Node loads it through require.
 const {createAgentServerClient} = createRequire(import.meta.url)('../../src/agent/model/server_client.js');
@@ -57,9 +61,77 @@ test('a call through the browser client: rendered on the server, logged, with th
     assert.equal(row.task_id, 't_1');
     assert.equal(row.status, 'ok');
     assert.equal(row.tokens_in, 10);
+    assert.equal(row.error_message, null);
     assert.deepEqual(logs.db.prepare('SELECT request_id, valid FROM results').all(), [{request_id: 'r_1', valid: 1}]);
   } finally {
     await app.close();
+  }
+});
+
+test('provider rate limits and other errors cross the browser client and keep their provider messages in the log', async () => {
+  for (const [message, code] of [['HTTP 429: provider requests exceeded; retry shortly', 'RATE_LIMIT'],
+    ['HTTP 503: provider unavailable', 'MODEL'], ['fetch failed', 'MODEL']]) {
+    const provider = fakeProvider([async () => ({text: '', usage: {}, latencyMs: 1, error: message})]);
+    const {app, logs, client} = await start(provider);
+    try {
+      const reply = await client.call(CALL);
+      assert.equal(reply.status, 'error');
+      assert.equal(reply.code, code);
+      assert.equal(reply.message, message);
+      assert.equal(reply.requestId, CALL.requestId);
+      assert.equal(provider.sent.length, 1);
+      const row = logs.db.prepare('SELECT code,error_message,reply FROM calls').get();
+      assert.deepEqual(row, {code, error_message: message, reply: ''});
+    } finally {
+      await app.close();
+      logs.close();
+    }
+  }
+});
+
+test('a rate limit on the repair round is logged against that round', async () => {
+  const message = 'HTTP 429: repair was rate limited';
+  const provider = fakeProvider(['not json', async () => ({text: '', usage: {}, latencyMs: 1, error: message})]);
+  const {app, logs, client} = await start(provider);
+  try {
+    await client.call(CALL);
+    const reply = await client.call({...CALL, repair: {problems: ['the reply must be one JSON object']}});
+    assert.equal(reply.code, 'RATE_LIMIT');
+    assert.deepEqual(logs.db.prepare('SELECT repair,code,error_message FROM calls ORDER BY repair').all(),
+      [{repair: 0, code: null, error_message: null}, {repair: 1, code: 'RATE_LIMIT', error_message: message}]);
+  } finally {
+    await app.close();
+    logs.close();
+  }
+});
+
+test('existing calls gain error messages without losing history, and the migration can be reopened', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'eaf-error-message-'));
+  const file = path.join(directory, 'calls.db');
+  const old = new Database(file);
+  old.exec(`CREATE TABLE calls (
+    request_id TEXT NOT NULL, repair INTEGER NOT NULL, session_id TEXT, learner_code TEXT, task_id TEXT, revision INTEGER,
+    at TEXT NOT NULL, task TEXT NOT NULL, prompt_version TEXT, model TEXT, settings TEXT, request TEXT, reply TEXT,
+    status TEXT NOT NULL, code TEXT, finish_reason TEXT, latency_ms INTEGER, tokens_in INTEGER, tokens_out INTEGER, tokens_reasoning INTEGER,
+    cost_usd REAL, cached INTEGER NOT NULL DEFAULT 0);
+    INSERT INTO calls (request_id,repair,at,task,status,finish_reason) VALUES ('old',0,'before','COMPREHEND','ok','stop');`);
+  old.close();
+  let logs: ReturnType<typeof openLogs> | null = null;
+  try {
+    logs = openLogs(file);
+    assert.deepEqual(logs.db.prepare('SELECT request_id,error_message,finish_reason FROM calls').all(),
+      [{request_id: 'old', error_message: null, finish_reason: 'stop'}]);
+    assert.deepEqual(logs.db.prepare('SELECT fallback FROM calls').all(), [{fallback: 0}]);
+    logs.call({call: {...CALL, task: 'COMPREHEND'}, model: 'fake', promptVersion: 'v2', payload: null, replyText: '', at: 'after',
+      reply: {requestId: CALL.requestId, status: 'error', code: 'RATE_LIMIT', message: 'HTTP 429: quota exceeded'}});
+    logs.close();
+    logs = null;
+    logs = openLogs(file);
+    assert.deepEqual(logs.db.prepare('SELECT request_id,error_message FROM calls ORDER BY rowid').all(),
+      [{request_id: 'old', error_message: null}, {request_id: CALL.requestId, error_message: 'HTTP 429: quota exceeded'}]);
+  } finally {
+    logs?.close();
+    fs.rmSync(directory, {recursive: true, force: true});
   }
 });
 
