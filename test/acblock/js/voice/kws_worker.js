@@ -1,4 +1,5 @@
 // Wake phrase in a worker: sherpa-onnx keyword spotting (models/kws) with the phrases in models/kws/keywords.txt.
+// Only the assistant name's lines are used (?name=Neon: "@hey_neon", "@hi_neon"); another name needs its phrases added.
 // Messages in: start {sampleRate, port}, stop. Out: ready, error, wake {phrase}.
 const MODELS = new URL('../../models/kws/', self.location.href).href;
 
@@ -13,12 +14,20 @@ let streams = [];
 let ages = [];
 let sampleRate = 16000;
 let keywords = '';
+const NAME = new URL(self.location.href).searchParams.get('name') || 'Neon';
+
+/** The lines whose tag is this name's phrase ("▁HE Y ▁NO VA @hey_nova"). */
+function forName(text, name) {
+    const tags = new Set(['hey', 'hi'].map((word) => `@${word}_${name.toLowerCase()}`));
+    return text.split('\n').filter((line) => tags.has(line.trim().split(' ').pop())).join('\n');
+}
 
 self.Module = {
     locateFile: (path) => MODELS + path,
     onRuntimeInitialized: async () => {
         try {
-            keywords = (await (await fetch(MODELS + 'keywords.txt')).text()).trim();
+            keywords = forName((await (await fetch(MODELS + 'keywords.txt')).text()), NAME);
+            if (!keywords) throw new Error(`No wake phrase for ${NAME} in keywords.txt.`);
             kws = createKws(Module, {
                 featConfig: { samplingRate: 16000, featureDim: 80 },
                 modelConfig: {

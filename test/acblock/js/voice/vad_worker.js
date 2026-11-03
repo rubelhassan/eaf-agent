@@ -15,8 +15,8 @@ self.Module = {
         try {
             vad = createVad(Module, {
                 sileroVad: { model: './silero_vad.onnx', threshold: 0.5, minSilenceDuration: 0.5, minSpeechDuration: 0.25,
-                    maxSpeechDuration: 20, windowSize: WINDOW },
-                tenVad: { model: '', threshold: 0.5, minSilenceDuration: 0.5, minSpeechDuration: 0.25, maxSpeechDuration: 20, windowSize: 256 },
+                    maxSpeechDuration: 60, windowSize: WINDOW },
+                tenVad: { model: '', threshold: 0.5, minSilenceDuration: 0.5, minSpeechDuration: 0.25, maxSpeechDuration: 60, windowSize: 256 },
                 sampleRate: RATE, numThreads: 1, provider: 'cpu', debug: 0, bufferSizeInSeconds: 30,
             });
             postMessage({ type: 'ready' });

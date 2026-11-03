@@ -1,5 +1,14 @@
 // Speech recognition in a worker: the sherpa-onnx browser build in models/asr (streaming English Zipformer).
 // Messages in: start {sampleRate, port}, pause, resume, stop, hotwords {words}. Out: ready, error, partial, final.
+const settings = new URL(self.location.href).searchParams;
+const listenerConfig = settings.get('listener');
+const greedy = listenerConfig === 'L1';
+const measure = settings.get('stats') === '1';
+let audioMs = 0;
+let workMs = 0;
+let frames = 0;
+let maxFrameSamples = 0;
+let reportedMs = 0;
 const MODELS = new URL('../../models/asr/', self.location.href).href;
 
 let recognizer = null;
@@ -31,7 +40,7 @@ function create() {
     if (stream) stream.free();
     if (recognizer) recognizer.free();
     // The model's vocabulary is upper case; hotwords favour these words in modified beam search.
-    const text = hotwords.map((w) => w.toUpperCase()).join('\n');
+    const text = greedy ? '' : hotwords.map((w) => w.toUpperCase()).join('\n');
     recognizer = createOnlineRecognizer(Module, {
         featConfig: { sampleRate: 16000, featureDim: 80 },
         modelConfig: {
@@ -72,6 +81,7 @@ function drop() {
 
 function accept(samples) {
     if (!listening || !recognizer) return;
+    const began = measure ? performance.now() : 0;
     stream.acceptWaveform(sampleRate, samples);
     while (recognizer.isReady(stream)) recognizer.decode(stream);
     const text = recognizer.getResult(stream).text.trim();
@@ -83,6 +93,19 @@ function accept(samples) {
         last = text;
         postMessage({ type: 'partial', text });
     }
+    if (measure) {
+        workMs += performance.now() - began;
+        audioMs += samples.length * 1000 / sampleRate;
+        frames++;
+        maxFrameSamples = Math.max(maxFrameSamples, samples.length);
+        if (audioMs - reportedMs >= 1000) reportStats();
+    }
+}
+
+function reportStats() {
+    if (!measure || audioMs === reportedMs) return;
+    postMessage({type: 'stats', audioMs, workMs, frames, maxFrameSamples});
+    reportedMs = audioMs;
 }
 
 self.onmessage = ({ data }) => {
@@ -101,10 +124,12 @@ self.onmessage = ({ data }) => {
             listening = true;
             break;
         case 'stop':
+            reportStats();
             listening = false;
             drop();
             break;
         case 'hotwords':
+            if (greedy) break;
             if (data.words.join('\n') !== hotwords.join('\n')) {
                 hotwords = data.words;
                 if (recognizer) create();
