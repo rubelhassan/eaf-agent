@@ -1,61 +1,60 @@
-# ac-blockly-plugin
+# Blockly AI Tutor
 
-The `ac-blockly-plugin` is an accessible Blockly plugin designed to enhance block-based programming environments with
-inclusive features like keyboard navigation and screen reader support.
+An accessible Blockly plugin with an AI tutor.
 
-## Installation
+> **Disclaimer:** Parts of the code and data are redacted from this repository due to ongoing research and data privacy.
 
-To install the dependencies for this project, run the following command:
+| Part | Where | What it is |
+|---|---|---|
+| The plugin | `src/` | Keyboard navigation, speech, question blocks, output manager, voice. |
+| The app | `test/acblock/` | The web page: Blockly, the plugin, the assistant panel, settings. |
+| The agent server | `server/` | A local Node server on `localhost:8787` that model calls go through. |
 
-```bash
+## Requirements
+
+- Node.js 22.9 or newer, npm, Git.
+- Chrome (recommended).
+
+## App setup
+
+From the repository root:
+
+```sh
 npm install
+./build.sh                                              # builds the plugin into the app
+cp test/acblock/config.example.js test/acblock/config.local.js
+npx http-server test/acblock -p 8080 -c-1
 ```
 
-This will install all the required dependencies listed in the `package.json` file.
+Open http://localhost:8080 to explore.
 
-## Usage
+## Server setup
 
-Once the dependencies are installed, you can build the project using the following command:
-
-```bash
-npm run build
+```sh
+cd server
+npm install
+cp .env.example .env                                    # models and configurations
+npm run dev                                             # http://localhost:8787
 ```
 
-This will create the production build of the project using the `blockly-scripts build` command.
+Check it at http://localhost:8787/v1/health. 
 
-### Integration to Blockly project
+## Plugin integration
 
-Copy the build files from `dist` path to your project directory. Then initiate a `NavigationController` to activate
-the plugin like below.
+Build the plugin (`npm run build`), take the files from `dist/`, and start a `NavigationController` on your workspace:
 
 ```js
-let nav = new NavigationController();
+const nav = new NavigationController();
 nav.init();
 nav.addWorkspace(workspace);
 ```
 
-## Project Structure
+The plugin needs Blockly 11.2.2. `test/acblock/index.html` and `test/acblock/js/main.js` show the full integration.
 
-Here is a brief overview of the project structure:
+In the app, Shift+K lists every shortcut and Shift+P opens the assistant panel.
 
-```
-ac-blockly-plugin/
-├── dist/                 # build files
-├── src/                  # source code directory
-│   ├── cursors/          # cursors related files
-│   ├── audio/            # screen readers and audio cues related files
-│   ├── index.js          # entry file for the plugin
-├── package.json          # project configuration and dependencies
-├── README.md             
-└── LICENSE              
-```
+## Copyright and license
 
-## Author
+Copyright (c) 2026 Rubel Hassan Mollik and the DiscoverABILITY Lab, University of North Texas. All rights reserved.
 
-Blockly Team (UNT)
-
-## Description
-
-This project is a plugin designed to make block-based programming environments like Google Blockly more accessible to
-users with disabilities. It includes features such as keyboard navigation and screen reader support to improve the
-usability and accessibility of these environments.
+This repository is shared for viewing only. 
