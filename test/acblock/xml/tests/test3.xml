@@ -1,0 +1,46 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="counterVar">count</variable>
+    </variables>
+    <block type="variables_set" id="set1" x="130" y="50">
+        <field name="VAR" id="counterVar">count</field>
+        <next>
+            <block type="controls_repeat_ext" id="rep1">
+                <value name="TIMES">
+                    <block type="math_number" id="n13">
+                        <field name="NUM">3</field>
+                    </block>
+                </value>
+                <statement name="DO">
+                    <block type="text_print" id="p1">
+                        <value name="TEXT">
+                            <block type="text" id="t1">
+                                <field name="TEXT">Jack plants a magic bean.</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="inc1">
+                                <field name="VAR" id="counterVar">count</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="add1">
+                                        <field name="OP">ADD</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="g10">
+                                                <field name="VAR" id="counterVar">count</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="one1">
+                                                <field name="NUM">1</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </statement>
+            </block>
+        </next>
+    </block>
+</xml>

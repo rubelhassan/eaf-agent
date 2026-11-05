@@ -1,0 +1,147 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_temp">temp</variable>
+        <variable id="var_day">day</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="10" y="-50">
+        <field name="VAR" id="var_temp">temp</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_1">
+                        <field name="TEXT">Start temp:</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_1">
+                <value name="TEXT">
+                    <block type="text" id="text_2">
+                        <field name="TEXT">Weather Tracker</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_for" id="for_1">
+                        <field name="VAR" id="var_day">day</field>
+                        <value name="FROM">
+                            <block type="math_number" id="num_1">
+                                <field name="NUM">1</field>
+                            </block>
+                        </value>
+                        <value name="TO">
+                            <block type="math_number" id="num_2">
+                                <field name="NUM">3</field>
+                            </block>
+                        </value>
+                        <value name="BY">
+                            <block type="math_number" id="num_3">
+                                <field name="NUM">1</field>
+                            </block>
+                        </value>
+                        <statement name="DO">
+                            <block type="variables_set" id="set_2">
+                                <field name="VAR" id="var_temp">temp</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="arith_1">
+                                        <field name="OP">ADD</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_1">
+                                                <field name="VAR" id="var_temp">temp</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_4">
+                                                <field name="NUM">5</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="text_print" id="print_2">
+                                        <value name="TEXT">
+                                            <block type="variables_get" id="get_2">
+                                                <field name="VAR" id="var_temp">temp</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </statement>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="controls_if" id="if_1" x="10" y="170">
+        <mutation elseif="1" else="1"></mutation>
+        <value name="IF0">
+            <block type="logic_compare" id="compare_1">
+                <field name="OP">GT</field>
+                <value name="A">
+                    <block type="variables_get" id="get_3">
+                        <field name="VAR" id="var_temp">temp</field>
+                    </block>
+                </value>
+                <value name="B">
+                    <block type="math_number" id="num_5">
+                        <field name="NUM">85</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <statement name="DO0">
+            <block type="text_print" id="print_3">
+                <value name="TEXT">
+                    <block type="text" id="text_3">
+                        <field name="TEXT">HOT!</field>
+                    </block>
+                </value>
+            </block>
+        </statement>
+        <value name="IF1">
+            <block type="logic_compare" id="compare_2">
+                <field name="OP">GT</field>
+                <value name="A">
+                    <block type="variables_get" id="get_4">
+                        <field name="VAR" id="var_temp">temp</field>
+                    </block>
+                </value>
+                <value name="B">
+                    <block type="math_number" id="num_6">
+                        <field name="NUM">65</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <statement name="DO1">
+            <block type="text_print" id="print_4">
+                <value name="TEXT">
+                    <block type="text" id="text_4">
+                        <field name="TEXT">WARM</field>
+                    </block>
+                </value>
+            </block>
+        </statement>
+        <statement name="ELSE">
+            <block type="text_print" id="print_5">
+                <value name="TEXT">
+                    <block type="text" id="text_5">
+                        <field name="TEXT">COLD</field>
+                    </block>
+                </value>
+            </block>
+        </statement>
+        <next>
+            <block type="text_print" id="print_6">
+                <value name="TEXT">
+                    <block type="text" id="text_6">
+                        <field name="TEXT">Report done!</field>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+</xml>

@@ -1,0 +1,273 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="u!I0Ct`TF~t}pLoeK1YP">temp</variable>
+        <variable id=":ZF*H:EBa!92A6FY5`.`">scale</variable>
+        <variable id="T?0dwWQnYttj?OSij#4V">input_temp</variable>
+        <variable id="u4ZjQ~V(yAQoW#z%0O[H">newTemp</variable>
+        <variable id="f6`Qyd0DEg,^I3ad13sB">input_scale</variable>
+        <variable id="z:G^lf;-J$/i!tfT,},x">result</variable>
+        <variable id=":VWD3rp:$H3H)FNY48Zv">output_scale</variable>
+    </variables>
+    <block type="procedures_defreturn" id="def_convert_temp" x="46" y="37">
+        <mutation>
+            <arg name="temp" varid="u!I0Ct`TF~t}pLoeK1YP"></arg>
+            <arg name="scale" varid=":ZF*H:EBa!92A6FY5`.`"></arg>
+        </mutation>
+        <field name="NAME">convertTemp</field>
+        <comment pinned="false" h="80" w="160">Describe this function...</comment>
+        <statement name="STACK">
+            <block type="controls_if" id="4-kwzxrw,f=Y*(|@kOf6">
+                <value name="IF0">
+                    <block type="logic_compare" id="cmp_scale_c">
+                        <field name="OP">EQ</field>
+                        <value name="A">
+                            <block type="variables_get" id="get_scale_1">
+                                <field name="VAR" id=":ZF*H:EBa!92A6FY5`.`">scale</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="text" id="text_c_1">
+                                <field name="TEXT">C</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <statement name="DO0">
+                    <block type="variables_set" id="?4x`:q}G6_6QWC!@xsq[">
+                        <field name="VAR" id="u4ZjQ~V(yAQoW#z%0O[H">newTemp</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="math_add_32">
+                                <field name="OP">ADD</field>
+                                <value name="A">
+                                    <block type="math_arithmetic" id="math_div_5">
+                                        <field name="OP">DIVIDE</field>
+                                        <value name="A">
+                                            <block type="math_arithmetic" id="math_mult_9">
+                                                <field name="OP">MULTIPLY</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_temp_1">
+                                                        <field name="VAR" id="u!I0Ct`TF~t}pLoeK1YP">temp</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="math_number" id="num_9">
+                                                        <field name="NUM">9</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_5a">
+                                                <field name="NUM">5</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_32a">
+                                        <field name="NUM">32</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+                <next>
+                    <block type="controls_if" id="#+_~~/J%Eicz[~MhC*g.">
+                        <value name="IF0">
+                            <block type="logic_compare" id="cmp_scale_f">
+                                <field name="OP">EQ</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_scale_2">
+                                        <field name="VAR" id=":ZF*H:EBa!92A6FY5`.`">scale</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="text" id="text_f_1">
+                                        <field name="TEXT">F</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO0">
+                            <block type="variables_set" id="h/w}H[Xnjhfu?.}G^Bw#">
+                                <field name="VAR" id="u4ZjQ~V(yAQoW#z%0O[H">newTemp</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="math_div_9">
+                                        <field name="OP">DIVIDE</field>
+                                        <value name="A">
+                                            <block type="math_arithmetic" id="math_mult_5">
+                                                <field name="OP">MULTIPLY</field>
+                                                <value name="A">
+                                                    <block type="math_arithmetic" id="math_sub_32">
+                                                        <field name="OP">MINUS</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="get_temp_2">
+                                                                <field name="VAR" id="u!I0Ct`TF~t}pLoeK1YP">temp</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <block type="math_number" id="num_32b">
+                                                                <field name="NUM">32</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="math_number" id="num_5b">
+                                                        <field name="NUM">5</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_9b">
+                                                <field name="NUM">9</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                    </block>
+                </next>
+            </block>
+        </statement>
+        <value name="RETURN">
+            <block type="variables_get" id="Z[fZKCOh+vt16kjb](oj">
+                <field name="VAR" id="u4ZjQ~V(yAQoW#z%0O[H">newTemp</field>
+            </block>
+        </value>
+    </block>
+    <block type="variables_set" id="set_input_temp" x="50" y="350">
+        <field name="VAR" id="T?0dwWQnYttj?OSij#4V">input_temp</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_temp">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_temp">
+                        <field name="TEXT">Enter temperature</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_input_scale">
+                <field name="VAR" id="f6`Qyd0DEg,^I3ad13sB">input_scale</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_scale">
+                        <mutation type="TEXT"></mutation>
+                        <field name="TYPE">TEXT</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_prompt_scale">
+                                <field name="TEXT">Enter scale (C or F)</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_result">
+                        <field name="VAR" id="z:G^lf;-J$/i!tfT,},x">result</field>
+                        <value name="VALUE">
+                            <block type="procedures_callreturn" id="call_convert_temp">
+                                <mutation name="convertTemp">
+                                    <arg name="temp"></arg>
+                                    <arg name="scale"></arg>
+                                </mutation>
+                                <value name="ARG0">
+                                    <block type="variables_get" id="get_input_temp_1">
+                                        <field name="VAR" id="T?0dwWQnYttj?OSij#4V">input_temp</field>
+                                    </block>
+                                </value>
+                                <value name="ARG1">
+                                    <block type="variables_get" id="get_input_scale_1">
+                                        <field name="VAR" id="f6`Qyd0DEg,^I3ad13sB">input_scale</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_output_scale">
+                                <field name="VAR" id=":VWD3rp:$H3H)FNY48Zv">output_scale</field>
+                                <value name="VALUE">
+                                    <block type="logic_ternary" id="ternary_scale">
+                                        <value name="IF">
+                                            <block type="logic_compare" id="cmp_input_scale">
+                                                <field name="OP">EQ</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_input_scale_2">
+                                                        <field name="VAR" id="f6`Qyd0DEg,^I3ad13sB">input_scale</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="text" id="text_c_2">
+                                                        <field name="TEXT">C</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <value name="THEN">
+                                            <block type="text" id="text_f_2">
+                                                <field name="TEXT">F</field>
+                                            </block>
+                                        </value>
+                                        <value name="ELSE">
+                                            <block type="text" id="text_c_3">
+                                                <field name="TEXT">C</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="text_print" id="print_output">
+                                        <value name="TEXT">
+                                            <block type="text_join" id="join_output">
+                                                <mutation items="7"></mutation>
+                                                <value name="ADD0">
+                                                    <block type="variables_get" id="get_input_temp_2">
+                                                        <field name="VAR" id="T?0dwWQnYttj?OSij#4V">input_temp</field>
+                                                    </block>
+                                                </value>
+                                                <value name="ADD1">
+                                                    <block type="text" id="text_deg_1">
+                                                        <field name="TEXT">°</field>
+                                                    </block>
+                                                </value>
+                                                <value name="ADD2">
+                                                    <block type="variables_get" id="get_input_scale_3">
+                                                        <field name="VAR" id="f6`Qyd0DEg,^I3ad13sB">input_scale</field>
+                                                    </block>
+                                                </value>
+                                                <value name="ADD3">
+                                                    <block type="text" id="text_equals">
+                                                        <field name="TEXT"> = </field>
+                                                    </block>
+                                                </value>
+                                                <value name="ADD4">
+                                                    <block type="variables_get" id="get_result_1">
+                                                        <field name="VAR" id="z:G^lf;-J$/i!tfT,},x">result</field>
+                                                    </block>
+                                                </value>
+                                                <value name="ADD5">
+                                                    <block type="text" id="text_deg_2">
+                                                        <field name="TEXT">°</field>
+                                                    </block>
+                                                </value>
+                                                <value name="ADD6">
+                                                    <block type="variables_get" id="get_output_scale_1">
+                                                        <field name="VAR" id=":VWD3rp:$H3H)FNY48Zv">output_scale</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

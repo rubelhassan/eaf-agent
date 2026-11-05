@@ -1,0 +1,69 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_number">number</variable>
+    </variables>
+    <block type="text_print" id="print_1" x="20" y="20">
+        <value name="TEXT">
+            <block type="text" id="text_1">
+                <field name="TEXT">Let's skip count by 4!</field>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_1">
+                <field name="VAR" id="var_number">number</field>
+                <value name="VALUE">
+                    <block type="math_number" id="num_0">
+                        <field name="NUM">0</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_repeat_ext" id="repeat_1">
+                        <value name="TIMES">
+                            <block type="math_number" id="num_5">
+                                <field name="NUM">5</field>
+                            </block>
+                        </value>
+                        <statement name="DO">
+                            <block type="variables_set" id="set_2">
+                                <field name="VAR" id="var_number">number</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="arith_1">
+                                        <field name="OP">ADD</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_1">
+                                                <field name="VAR" id="var_number">number</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_4">
+                                                <field name="NUM">4</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="text_print" id="print_2">
+                                        <value name="TEXT">
+                                            <block type="variables_get" id="get_2">
+                                                <field name="VAR" id="var_number">number</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </statement>
+                        <next>
+                            <block type="text_print" id="print_3">
+                                <value name="TEXT">
+                                    <block type="text" id="text_2">
+                                        <field name="TEXT">Done!</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

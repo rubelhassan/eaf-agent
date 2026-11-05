@@ -654,6 +654,27 @@ const toolboxConfig =
             },
 
             {
+                // Hint category: question blocks (teachers only; hidden in learner mode).
+                kind: 'CATEGORY',
+                name: 'Hint',
+                colour: '#EAC452',
+                contents: [
+                    {
+                        // Value question: a gap for a value or condition.
+                        kind: 'BLOCK',
+                        type: 'question',
+                        extraState: {expects: 'value'},
+                    },
+                    {
+                        // Statement question: a gap for one or more statements.
+                        kind: 'BLOCK',
+                        type: 'question',
+                        extraState: {expects: 'statement'},
+                    },
+                ],
+            },
+
+            {
                 kind: 'SEP',
             },
 

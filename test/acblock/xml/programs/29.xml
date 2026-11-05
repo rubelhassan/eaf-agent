@@ -1,0 +1,150 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_prizes">prizes</variable>
+        <variable id="var_pick">pick</variable>
+        <variable id="var_prize">prize</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_prizes">prizes</field>
+        <value name="VALUE">
+            <block type="lists_create_with" id="list_1">
+                <mutation items="3"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_1">
+                        <field name="TEXT">toy</field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="text" id="text_2">
+                        <field name="TEXT">candy</field>
+                    </block>
+                </value>
+                <value name="ADD2">
+                    <block type="text" id="text_3">
+                        <field name="TEXT">jackpot</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_2">
+                <field name="VAR" id="var_pick">pick</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_1">
+                        <mutation type="NUMBER"></mutation>
+                        <field name="TYPE">NUMBER</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_4">
+                                <field name="TEXT">Pick chest 1, 2, or 3:</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+    <block type="text_print" id="print_1" x="20" y="200">
+        <value name="TEXT">
+            <block type="text" id="text_5">
+                <field name="TEXT">Opening the chest...</field>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_3">
+                <field name="VAR" id="var_prize">prize</field>
+                <value name="VALUE">
+                    <block type="lists_getIndex" id="list_get_1">
+                        <mutation statement="false" at="true"></mutation>
+                        <field name="MODE">GET</field>
+                        <field name="WHERE">FROM_START</field>
+                        <value name="VALUE">
+                            <block type="variables_get" id="get_1">
+                                <field name="VAR" id="var_prizes">prizes</field>
+                            </block>
+                        </value>
+                        <value name="AT">
+                            <block type="variables_get" id="get_2">
+                                <field name="VAR" id="var_pick">pick</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_2">
+                        <value name="TEXT">
+                            <block type="text_join" id="join_1">
+                                <mutation items="2"></mutation>
+                                <value name="ADD0">
+                                    <block type="text" id="text_6">
+                                        <field name="TEXT">You found: </field>
+                                    </block>
+                                </value>
+                                <value name="ADD1">
+                                    <block type="variables_get" id="get_3">
+                                        <field name="VAR" id="var_prize">prize</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="controls_if" id="if_1">
+                                <mutation else="1"></mutation>
+                                <value name="IF0">
+                                    <block type="logic_compare" id="cmp_1">
+                                        <field name="OP">EQ</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_4">
+                                                <field name="VAR" id="var_prize">prize</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="text" id="text_7">
+                                                <field name="TEXT">jackpot</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <statement name="DO0">
+                                    <block type="text_print" id="print_3">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_8">
+                                                <field name="TEXT">JACKPOT! You win!</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                                <statement name="ELSE">
+                                    <block type="text_print" id="print_4">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_9">
+                                                <field name="TEXT">Nice find!</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                                <next>
+                                    <block type="text_print" id="print_5">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_10">
+                                                <field name="TEXT">Game over!</field>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="text_print" id="print_6">
+                                                <value name="TEXT">
+                                                    <block type="text" id="text_11">
+                                                        <field name="TEXT">Play again soon!</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

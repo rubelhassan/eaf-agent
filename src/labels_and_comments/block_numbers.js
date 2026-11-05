@@ -377,6 +377,13 @@ export function initBlockNumbers(workspace) {
 }
 
 /**
+ * @return {?BlockNumberManager} The block number manager, or null before init.
+ */
+export function getBlockNumberManager() {
+  return blockNumberManagerInstance;
+}
+
+/**
  * Dispose of the block number manager.
  */
 export function disposeBlockNumbers() {

@@ -1,0 +1,70 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_secretWord">secretWord</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_secretWord">secretWord</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="TEXT"></mutation>
+                <field name="TYPE">TEXT</field>
+                <value name="TEXT">
+                    <block type="text" id="n5zMwLp45vdgL^Bk+SLx">
+                        <field name="TEXT">Enter your secret word</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_1">
+                <value name="TEXT">
+                    <block type="text" id="text_1">
+                        <field name="TEXT">Checking word...</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_if" id="if_1">
+                        <mutation else="1"></mutation>
+                        <value name="IF0">
+                            <block type="logic_compare" id="cmp_1">
+                                <field name="OP">EQ</field>
+                                <value name="A">
+                                    <block type="text_length" id="len_1">
+                                        <value name="VALUE">
+                                            <block type="variables_get" id="get_1">
+                                                <field name="VAR" id="var_secretWord">secretWord</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_5">
+                                        <field name="NUM">5</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO0">
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <block type="text" id="text_2">
+                                        <field name="TEXT">Correct! 5 letters.</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                        <statement name="ELSE">
+                            <block type="text_print" id="print_3">
+                                <value name="TEXT">
+                                    <block type="text" id="text_3">
+                                        <field name="TEXT">Wrong size!</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

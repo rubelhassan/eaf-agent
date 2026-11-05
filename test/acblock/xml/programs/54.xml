@@ -1,0 +1,139 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_score">score</variable>
+    </variables>
+    <block type="variables_set" id="set_score_0" x="60" y="40">
+        <field name="VAR" id="var_score">score</field>
+        <value name="VALUE">
+            <block type="math_number" id="num_0">
+                <field name="NUM">0</field>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_start">
+                <value name="TEXT">
+                    <block type="text" id="text_start">
+                        <field name="TEXT">Game start! Score: 0</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_score_add_50_1">
+                        <field name="VAR" id="var_score">score</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="math_add_50_1">
+                                <field name="OP">ADD</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_score_for_add1">
+                                        <field name="VAR" id="var_score">score</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_50_1">
+                                        <field name="NUM">50</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_treasure">
+                                <value name="TEXT">
+                                    <block type="text_join" id="join_treasure">
+                                        <mutation items="2"></mutation>
+                                        <value name="ADD0">
+                                            <block type="text" id="text_treasure_prefix">
+                                                <field name="TEXT">You found a treasure chest! Score: </field>
+                                            </block>
+                                        </value>
+                                        <value name="ADD1">
+                                            <block type="variables_get" id="get_score_for_print1">
+                                                <field name="VAR" id="var_score">score</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_score_sub_20">
+                                        <field name="VAR" id="var_score">score</field>
+                                        <value name="VALUE">
+                                            <block type="math_arithmetic" id="math_sub_20">
+                                                <field name="OP">MINUS</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_score_for_sub">
+                                                        <field name="VAR" id="var_score">score</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="math_number" id="num_20">
+                                                        <field name="NUM">20</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="text_print" id="print_enemy">
+                                                <value name="TEXT">
+                                                    <block type="text_join" id="join_enemy">
+                                                        <mutation items="2"></mutation>
+                                                        <value name="ADD0">
+                                                            <block type="text" id="text_enemy_prefix">
+                                                                <field name="TEXT">Ouch! Enemy hit. Score: </field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="ADD1">
+                                                            <block type="variables_get" id="get_score_for_print2">
+                                                                <field name="VAR" id="var_score">score</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                                <next>
+                                                    <block type="variables_set" id="set_score_add_50_2">
+                                                        <field name="VAR" id="var_score">score</field>
+                                                        <value name="VALUE">
+                                                            <block type="math_arithmetic" id="math_add_50_2">
+                                                                <field name="OP">ADD</field>
+                                                                <value name="A">
+                                                                    <block type="variables_get" id="get_score_for_add2">
+                                                                        <field name="VAR" id="var_score">score</field>
+                                                                    </block>
+                                                                </value>
+                                                                <value name="B">
+                                                                    <block type="math_number" id="num_50_2">
+                                                                        <field name="NUM">50</field>
+                                                                    </block>
+                                                                </value>
+                                                            </block>
+                                                        </value>
+                                                        <next>
+                                                            <block type="text_print" id="print_final">
+                                                                <value name="TEXT">
+                                                                    <block type="text_join" id="join_final">
+                                                                        <mutation items="2"></mutation>
+                                                                        <value name="ADD0">
+                                                                            <block type="text" id="text_final_prefix">
+                                                                                <field name="TEXT">Level complete! Bonus points! Score: </field>
+                                                                            </block>
+                                                                        </value>
+                                                                        <value name="ADD1">
+                                                                            <block type="variables_get" id="get_score_for_print3">
+                                                                                <field name="VAR" id="var_score">score</field>
+                                                                            </block>
+                                                                        </value>
+                                                                    </block>
+                                                                </value>
+                                                            </block>
+                                                        </next>
+                                                    </block>
+                                                </next>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

@@ -1,0 +1,118 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_score">score</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="30" y="90">
+        <field name="VAR" id="var_score">score</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_2">
+                        <field name="TEXT">Enter your score:</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_1">
+                <value name="TEXT">
+                    <block type="text" id="text_1">
+                        <field name="TEXT">Grade Report</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_2">
+                        <value name="TEXT">
+                            <block type="text_join" id="join_1">
+                                <mutation items="2"></mutation>
+                                <value name="ADD0">
+                                    <block type="text" id="text_3">
+                                        <field name="TEXT">Score: </field>
+                                    </block>
+                                </value>
+                                <value name="ADD1">
+                                    <block type="variables_get" id="get_1">
+                                        <field name="VAR" id="var_score">score</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="controls_if" id="if_1">
+                                <mutation elseif="1" else="1"></mutation>
+                                <value name="IF0">
+                                    <block type="logic_compare" id="cmp_1">
+                                        <field name="OP">GTE</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_2">
+                                                <field name="VAR" id="var_score">score</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_89">
+                                                <field name="NUM">90</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <statement name="DO0">
+                                    <block type="text_print" id="print_4">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_4">
+                                                <field name="TEXT">A - Excellent!</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                                <value name="IF1">
+                                    <block type="logic_compare" id="cmp_2">
+                                        <field name="OP">GTE</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_3">
+                                                <field name="VAR" id="var_score">score</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_69">
+                                                <field name="NUM">70</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <statement name="DO1">
+                                    <block type="text_print" id="print_5">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_5">
+                                                <field name="TEXT">Passing!</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                                <statement name="ELSE">
+                                    <block type="text_print" id="print_6">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_6">
+                                                <field name="TEXT">Keep trying!</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                                <next>
+                                    <block type="text_print" id="print_3">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_7">
+                                                <field name="TEXT">Report done!</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

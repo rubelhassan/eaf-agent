@@ -1,0 +1,75 @@
+<xml xmlns="https://developers.google.com/blockly/xml" activity="quiz">
+  <!-- Quiz: the same two questions; only the questions can be changed (from Program 18). -->
+  <variables>
+    <variable id="var_number">number</variable>
+  </variables>
+  <block type="text_print" id="print_1" x="20" y="20">
+    <value name="TEXT">
+      <block type="text" id="text_1"><field name="TEXT">Let's skip count by 4!</field></block>
+    </value>
+    <next>
+      <block type="variables_set" id="set_1">
+        <field name="VAR" id="var_number">number</field>
+        <value name="VALUE">
+          <block type="math_number" id="num_0"><field name="NUM">0</field></block>
+        </value>
+        <next>
+          <block type="controls_repeat_ext" id="repeat_1">
+            <value name="TIMES">
+              <block type="math_number" id="num_5"><field name="NUM">5</field></block>
+            </value>
+            <statement name="DO">
+              <block type="variables_set" id="set_2">
+                <field name="VAR" id="var_number">number</field>
+                <value name="VALUE">
+                  <block type="question" id="q_grow">
+                    <mutation expects="value" min_blocks="1">
+                      <intended type="math_arithmetic"/>
+                      <prompt>How much does number grow each time?</prompt>
+                      <instruction>Each time the loop runs, number should go up by 4. Build number plus 4.</instruction>
+                      <hint>Which Math block adds two numbers?</hint>
+                      <reference>
+                      <block type="math_arithmetic">
+                        <field name="OP">ADD</field>
+                        <value name="A"><block type="variables_get"><field name="VAR" id="var_number">number</field></block></value>
+                        <value name="B"><block type="math_number"><field name="NUM">4</field></block></value>
+                      </block>
+                    </reference>
+                    </mutation>
+                  </block>
+                </value>
+                <next>
+                  <block type="question" id="q_show">
+                    <mutation expects="statement" min_blocks="1">
+                      <intended type="text_print"/>
+                      <prompt>Say the new number.</prompt>
+                      <instruction>After adding 4, print the value of number so we can hear the count.</instruction>
+                      <hint>Which Text block shows something in the output?</hint>
+                      <reference>
+                      <block type="text_print">
+                        <value name="TEXT"><block type="variables_get"><field name="VAR" id="var_number">number</field></block></value>
+                      </block>
+                    </reference>
+                    </mutation>
+                  </block>
+                </next>
+              </block>
+            </statement>
+            <next>
+              <block type="text_print" id="print_3">
+                <value name="TEXT">
+                  <block type="text" id="text_2"><field name="TEXT">Done!</field></block>
+                </value>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+  <tests>
+    <test>
+      <output>4</output><output>8</output><output>12</output><output>16</output><output>20</output><output>Done!</output>
+    </test>
+  </tests>
+</xml>

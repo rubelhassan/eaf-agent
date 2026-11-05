@@ -14,46 +14,47 @@
 
 import * as Blockly from 'blockly/core';
 
-const oldDoWorkspaceClick = Blockly.Gesture.prototype.doWorkspaceClick_;
+const oldDoWorkspaceClick = Blockly.Gesture.prototype.doWorkspaceClick;
 
 /**
- * Execute a workspace click. When in accessibility mode shift clicking will
- * move the cursor.
+ * Execute a workspace click: move the cursor to the clicked workspace coordinate.
  * @param {!Event} e A mouse up or touch end event.
  * @this {Blockly.Gesture}
  * @override
  */
-Blockly.Gesture.prototype.doWorkspaceClick_ = function (e) {
+Blockly.Gesture.prototype.doWorkspaceClick = function(e) {
   oldDoWorkspaceClick.call(this, e);
-  const ws = this.creatorWorkspace_;
-  if (e.shiftKey && ws.keyboardAccessibilityMode) {
-    const screenCoord = new Blockly.utils.Coordinate(e.clientX, e.clientY);
-    const wsCoord = Blockly.utils.svgMath.screenToWsCoordinates(
-      ws,
-      screenCoord,
-    );
-    const wsNode = Blockly.ASTNode.createWorkspaceNode(ws, wsCoord);
-    ws.getCursor().setCurNode(wsNode);
-  }
+
+  const ws = this.creatorWorkspace;
+  const cursor = ws?.getCursor?.();
+  if (!ws || !cursor) return;
+
+  e = e || this.mostRecentEvent;
+  const screenCoord = new Blockly.utils.Coordinate(e.clientX, e.clientY);
+  ws.updateScreenCalculationsIfScrolled?.();
+  const wsCoord = Blockly.utils.svgMath.screenToWsCoordinates(ws, screenCoord);
+  cursor.suppressNextScroll?.();
+  const wsNode = Blockly.ASTNode.createWorkspaceNode(ws, wsCoord);
+  cursor.setCurNode(wsNode);
 };
 
-const oldDoBlockClick = Blockly.Gesture.prototype.doBlockClick_;
+const oldDoBlockClick = Blockly.Gesture.prototype.doBlockClick;
 
 /**
- * Execute a block click. When in accessibility mode shift clicking will move
- * the cursor to the block.
+ * Execute a block click: move the cursor to the clicked block.
  * @this {Blockly.Gesture}
  * @override
  */
-Blockly.Gesture.prototype.doBlockClick_ = function (e) {
-  oldDoBlockClick.call(this, e);
-  if (
-    !this.targetBlock_.isInFlyout &&
-    this.mostRecentEvent_.shiftKey &&
-    this.targetBlock_.workspace.keyboardAccessibilityMode
-  ) {
-    this.creatorWorkspace_
-      .getCursor()
-      .setCurNode(Blockly.ASTNode.createTopNode(this.targetBlock_));
-  }
+Blockly.Gesture.prototype.doBlockClick = function() {
+  oldDoBlockClick.call(this);
+
+  const ws = this.creatorWorkspace;
+  const block = this.targetBlock;
+  const cursor = ws?.getCursor?.();
+  if (!ws || !cursor || !block) return;
+
+  if (this.flyout) return;
+
+  cursor.suppressNextScroll?.();
+  cursor.setCurNode(Blockly.ASTNode.createBlockNode(block));
 };

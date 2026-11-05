@@ -8,7 +8,18 @@
     "lint": "eslint .",
     "predeploy": "blockly-scripts predeploy",
     "start": "blockly-scripts start",
-    "test": "blockly-scripts test"
+    "test": "node scripts/test-groups.cjs all",
+    "test:nav": "node scripts/test-groups.cjs nav",
+    "test:blocks": "node scripts/test-groups.cjs blocks",
+    "test:agent": "node scripts/test-groups.cjs agent",
+    "test:interaction": "node scripts/test-groups.cjs interaction",
+    "test:voice": "node scripts/test-groups.cjs voice",
+    "test:output": "node scripts/test-groups.cjs output",
+    "test:panel": "node scripts/test-groups.cjs panel",
+    "test:runner": "node scripts/test-groups.cjs runner",
+    "test:eval": "node scripts/test-groups.cjs eval",
+    "test:server": "node scripts/test-groups.cjs server",
+    "test:changed": "node scripts/test-groups.cjs changed"
   },
   "keywords": [
     "blockly",

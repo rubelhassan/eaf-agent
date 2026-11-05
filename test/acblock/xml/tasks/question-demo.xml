@@ -1,0 +1,107 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <!-- Demo task: question blocks with prompts, instructions, hints, and intended blocks.
+       Question config format: documentation/specs/question-block.md §10. -->
+  <variables>
+    <variable id="v_weight">weight</variable>
+  </variables>
+  <block type="variables_set" id="set_weight" x="40" y="40">
+    <field name="VAR" id="v_weight">weight</field>
+    <value name="VALUE">
+      <block type="text_prompt_ext" id="ask_weight">
+        <mutation type="NUMBER"></mutation>
+        <field name="TYPE">NUMBER</field>
+        <value name="TEXT">
+          <shadow type="text" id="ask_text">
+            <field name="TEXT">How heavy is the car, in kilograms?</field>
+          </shadow>
+        </value>
+      </block>
+    </value>
+    <next>
+      <block type="controls_if" id="check_weight">
+        <mutation else="1"></mutation>
+        <value name="IF0">
+          <block type="question" id="q_heavy">
+            <mutation expects="value" min_blocks="1">
+              <intended type="logic_compare"/>
+              <prompt>Is the car's weight under the bridge limit?</prompt>
+              <instruction>The bridge holds up to 3000 kilograms. Compare the car's weight with 3000.</instruction>
+              <hint>Which Logic block compares two numbers?</hint>
+              <hint>Put the weight variable on one side and the number 3000 on the other.</hint>
+              <hint>Choose less than or equal to, so the test reads: weight is at most 3000.</hint>
+              <ai level="point" count="2" quiz="false">The car can cross when its weight is 3000 or less.</ai>
+              <reference>
+                <block type="logic_compare">
+                  <field name="OP">LTE</field>
+                  <value name="A"><block type="variables_get"><field name="VAR" id="v_weight">weight</field></block></value>
+                  <value name="B"><block type="math_number"><field name="NUM">3000</field></block></value>
+                </block>
+              </reference>
+            </mutation>
+          </block>
+        </value>
+        <statement name="DO0">
+          <block type="question" id="q_safe">
+            <mutation expects="statement" min_blocks="1">
+              <intended type="text_print"/>
+              <prompt>Tell the driver it is safe to cross.</prompt>
+              <instruction>Show a message when the car is light enough.</instruction>
+              <hint>Which Text block shows a message?</hint>
+              <hint>Use a print block and type a friendly message.</hint>
+              <reference>
+                <block type="text_print">
+                  <value name="TEXT"><shadow type="text"><field name="TEXT">Safe to cross!</field></shadow></value>
+                </block>
+              </reference>
+            </mutation>
+          </block>
+        </statement>
+        <statement name="ELSE">
+          <block type="text_print" id="too_heavy">
+            <value name="TEXT">
+              <shadow type="text" id="too_heavy_text">
+                <field name="TEXT">Too heavy! Take the next bridge.</field>
+              </shadow>
+            </value>
+          </block>
+        </statement>
+        <next>
+          <block type="controls_repeat_ext" id="cheer">
+            <value name="TIMES">
+              <shadow type="math_number" id="cheer_times">
+                <field name="NUM">3</field>
+              </shadow>
+            </value>
+            <statement name="DO">
+              <block type="question" id="q_cheer">
+                <mutation expects="sequence" min_blocks="2">
+                  <intended type="text_print"/>
+                  <prompt>Cheer for the driver with two messages.</prompt>
+                  <instruction>Each time the loop runs, show two different cheers.</instruction>
+                  <hint>You need two print blocks, one under the other.</hint>
+                  <reference>
+                    <block type="text_print">
+                      <value name="TEXT"><shadow type="text"><field name="TEXT">Drive on!</field></shadow></value>
+                      <next>
+                        <block type="text_print">
+                          <value name="TEXT"><shadow type="text"><field name="TEXT">You did it!</field></shadow></value>
+                        </block>
+                      </next>
+                    </block>
+                  </reference>
+                </mutation>
+              </block>
+            </statement>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+  <!-- Task tests (author only, spec §7): inputs for the prompt blocks, and lines that must be printed in order. -->
+  <tests>
+    <test>
+      <input>3500</input>
+      <output>Too heavy! Take the next bridge.</output>
+    </test>
+  </tests>
+</xml>

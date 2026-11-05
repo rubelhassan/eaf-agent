@@ -23,3 +23,42 @@ temp/
 
 *.iml
 .idea/
+secret/
+test/acblock/config.local.js
+
+# Eval runner build and raw results (summaries are kept)
+eval/.build/
+eval/results/*
+!eval/results/*.summary.md
+
+.env
+
+# Voice engine build tools and outputs (test/acblock/models/build_engines.sh)
+/tools/
+test/acblock/models/*
+!test/acblock/models/build_engines.sh
+!test/acblock/models/engines.json
+
+server/node_modules/
+
+node_modules/
+
+server/.env
+
+# [Research In-progress] Data and code redacted
+eval/
+documentation/
+server/src/prompts/
+server/src/models/
+server/src/guard/
+server/test/
+server/.env
+server/.env.example
+
+/test/acblock/design
+/test/acblock/docs
+/test/acblock/models
+/test/acblock/xml/
+
+src/agent/
+src/interaction/

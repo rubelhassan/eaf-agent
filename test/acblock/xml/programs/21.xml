@@ -1,0 +1,81 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_total">total</variable>
+        <variable id="var_i">i</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_total">total</field>
+        <value name="VALUE">
+            <shadow type="math_number" id="shadow_num_0">
+                <field name="NUM">0</field>
+            </shadow>
+        </value>
+        <next>
+            <block type="controls_for" id="for_1">
+                <field name="VAR" id="var_i">i</field>
+                <value name="FROM">
+                    <shadow type="math_number" id="shadow_num_from_1">
+                        <field name="NUM">1</field>
+                    </shadow>
+                </value>
+                <value name="TO">
+                    <shadow type="math_number" id="shadow_num_to_5">
+                        <field name="NUM">5</field>
+                    </shadow>
+                </value>
+                <value name="BY">
+                    <shadow type="math_number" id="shadow_num_by_1">
+                        <field name="NUM">1</field>
+                    </shadow>
+                </value>
+                <statement name="DO">
+                    <block type="variables_set" id="set_2">
+                        <field name="VAR" id="var_total">total</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="arith_1">
+                                <field name="OP">ADD</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_total_1">
+                                        <field name="VAR" id="var_total">total</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="variables_get" id="get_i_1">
+                                        <field name="VAR" id="var_i">i</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_1">
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_i_2">
+                                        <field name="VAR" id="var_i">i</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </statement>
+                <next>
+                    <block type="text_print" id="print_2">
+                        <value name="TEXT">
+                            <block type="variables_get" id="get_total_2">
+                                <field name="VAR" id="var_total">total</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_3">
+                                <value name="TEXT">
+                                    <shadow type="text" id="shadow_text_done">
+                                        <field name="TEXT">Done</field>
+                                    </shadow>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

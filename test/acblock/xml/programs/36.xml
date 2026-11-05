@@ -1,0 +1,189 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="t%Zv@-pc61oNeCANc^P#">a</variable>
+        <variable id="#%Nr^-`DSY]/,IrIw3sE">b</variable>
+        <variable id="rF]xU,`MP^%XX:B5|xCL">r</variable>
+    </variables>
+    <block type="variables_set" id="set_a_1" x="20" y="20">
+        <field name="VAR" id="t%Zv@-pc61oNeCANc^P#">a</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_a">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_a">
+                        <field name="TEXT">Enter first number (≥ 1)</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_b_1">
+                <field name="VAR" id="#%Nr^-`DSY]/,IrIw3sE">b</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_b">
+                        <mutation type="NUMBER"></mutation>
+                        <field name="TYPE">NUMBER</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_prompt_b">
+                                <field name="TEXT">Enter second number (≥ 1)</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_if" id="if_a">
+                        <value name="IF0">
+                            <block type="logic_compare" id="cmp_a">
+                                <field name="OP">LT</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_a_1">
+                                        <field name="VAR" id="t%Zv@-pc61oNeCANc^P#">a</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_1">
+                                        <field name="NUM">1</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO0">
+                            <block type="variables_set" id="set_a_2">
+                                <field name="VAR" id="t%Zv@-pc61oNeCANc^P#">a</field>
+                                <value name="VALUE">
+                                    <block type="math_number" id="num_2">
+                                        <field name="NUM">1</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                        <next>
+                            <block type="controls_if" id="if_b">
+                                <value name="IF0">
+                                    <block type="logic_compare" id="cmp_b">
+                                        <field name="OP">LT</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_b_1">
+                                                <field name="VAR" id="#%Nr^-`DSY]/,IrIw3sE">b</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_3">
+                                                <field name="NUM">1</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <statement name="DO0">
+                                    <block type="variables_set" id="set_b_2">
+                                        <field name="VAR" id="#%Nr^-`DSY]/,IrIw3sE">b</field>
+                                        <value name="VALUE">
+                                            <block type="math_number" id="num_4">
+                                                <field name="NUM">1</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                                <next>
+                                    <block type="text_print" id="print_intro">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_intro">
+                                                <field name="TEXT">Finding GCD…</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="controls_whileUntil" id="while_loop" x="20" y="300">
+        <field name="MODE">WHILE</field>
+        <value name="BOOL">
+            <block type="logic_compare" id="cmp_b_neq">
+                <field name="OP">NEQ</field>
+                <value name="A">
+                    <block type="variables_get" id="get_b_2">
+                        <field name="VAR" id="#%Nr^-`DSY]/,IrIw3sE">b</field>
+                    </block>
+                </value>
+                <value name="B">
+                    <block type="math_number" id="num_5">
+                        <field name="NUM">0</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <statement name="DO">
+            <block type="variables_set" id="set_r">
+                <field name="VAR" id="rF]xU,`MP^%XX:B5|xCL">r</field>
+                <value name="VALUE">
+                    <block type="math_modulo" id="mod_1">
+                        <value name="DIVIDEND">
+                            <block type="variables_get" id="get_a_2">
+                                <field name="VAR" id="t%Zv@-pc61oNeCANc^P#">a</field>
+                            </block>
+                        </value>
+                        <value name="DIVISOR">
+                            <block type="variables_get" id="get_b_3">
+                                <field name="VAR" id="#%Nr^-`DSY]/,IrIw3sE">b</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_a_3">
+                        <field name="VAR" id="t%Zv@-pc61oNeCANc^P#">a</field>
+                        <value name="VALUE">
+                            <block type="variables_get" id="get_b_4">
+                                <field name="VAR" id="#%Nr^-`DSY]/,IrIw3sE">b</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_b_3">
+                                <field name="VAR" id="#%Nr^-`DSY]/,IrIw3sE">b</field>
+                                <value name="VALUE">
+                                    <block type="variables_get" id="get_r_1">
+                                        <field name="VAR" id="rF]xU,`MP^%XX:B5|xCL">r</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </statement>
+        <next>
+            <block type="text_print" id="print_gcd">
+                <value name="TEXT">
+                    <block type="text_join" id="join_gcd">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_gcd_label">
+                                <field name="TEXT">GCD: </field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="variables_get" id="get_a_3">
+                                <field name="VAR" id="t%Zv@-pc61oNeCANc^P#">a</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_done">
+                        <value name="TEXT">
+                            <block type="text" id="text_done">
+                                <field name="TEXT">Done.</field>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

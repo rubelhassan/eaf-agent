@@ -1,0 +1,143 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id=":Z+wTJN$pdgST/ut|^r9">names</variable>
+        <variable id="I3J}@82/;#MCKN!bB)[*">query</variable>
+        <variable id="e}@2^uH;qc4]Rud70=A.">item</variable>
+        <variable id="sk]iqUYDgT;Ci^Up$N~N">found</variable>
+    </variables>
+    <block type="variables_set" id="set_names" x="10" y="10">
+        <field name="VAR" id=":Z+wTJN$pdgST/ut|^r9">names</field>
+        <value name="VALUE">
+            <block type="lists_create_with" id="list_names">
+                <mutation items="3"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_ali">
+                        <field name="TEXT">Ali</field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="text" id="text_bo">
+                        <field name="TEXT">Bo</field>
+                    </block>
+                </value>
+                <value name="ADD2">
+                    <block type="text" id="text_cat">
+                        <field name="TEXT">Cat</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_found">
+                <field name="VAR" id="sk]iqUYDgT;Ci^Up$N~N">found</field>
+                <value name="VALUE">
+                    <block type="logic_boolean" id="bool_false">
+                        <field name="BOOL">FALSE</field>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+    <block type="variables_set" id="set_q" x="10" y="170">
+        <field name="VAR" id="I3J}@82/;#MCKN!bB)[*">query</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_q">
+                <mutation type="TEXT"></mutation>
+                <field name="TYPE">TEXT</field>
+                <value name="TEXT">
+                    <block type="text" id="text_who">
+                        <field name="TEXT">Who?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_q">
+                <value name="TEXT">
+                    <block type="variables_get" id="get_q_1">
+                        <field name="VAR" id="I3J}@82/;#MCKN!bB)[*">query</field>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+    <block type="controls_forEach" id="foreach_names" x="10" y="270">
+        <field name="VAR" id="e}@2^uH;qc4]Rud70=A.">item</field>
+        <value name="LIST">
+            <block type="variables_get" id="get_names_1">
+                <field name="VAR" id=":Z+wTJN$pdgST/ut|^r9">names</field>
+            </block>
+        </value>
+        <statement name="DO">
+            <block type="text_print" id="print_searching">
+                <value name="TEXT">
+                    <block type="text" id="text_searching">
+                        <field name="TEXT">Searching...</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_if" id="if_match">
+                        <value name="IF0">
+                            <block type="logic_compare" id="cmp_match">
+                                <field name="OP">EQ</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_item_1">
+                                        <field name="VAR" id="e}@2^uH;qc4]Rud70=A.">item</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="variables_get" id="get_q_2">
+                                        <field name="VAR" id="I3J}@82/;#MCKN!bB)[*">query</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO0">
+                            <block type="variables_set" id="set_found_true">
+                                <field name="VAR" id="sk]iqUYDgT;Ci^Up$N~N">found</field>
+                                <value name="VALUE">
+                                    <block type="logic_boolean" id="bool_true">
+                                        <field name="BOOL">TRUE</field>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="controls_flow_statements" id="break_1">
+                                        <field name="FLOW">BREAK</field>
+                                    </block>
+                                </next>
+                            </block>
+                        </statement>
+                    </block>
+                </next>
+            </block>
+        </statement>
+        <next>
+            <block type="controls_if" id="if_found">
+                <mutation else="1"></mutation>
+                <value name="IF0">
+                    <block type="variables_get" id="get_found_1">
+                        <field name="VAR" id="sk]iqUYDgT;Ci^Up$N~N">found</field>
+                    </block>
+                </value>
+                <statement name="DO0">
+                    <block type="text_print" id="print_yes">
+                        <value name="TEXT">
+                            <block type="text" id="text_yes">
+                                <field name="TEXT">Yes</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+                <statement name="ELSE">
+                    <block type="text_print" id="print_no">
+                        <value name="TEXT">
+                            <block type="text" id="text_no">
+                                <field name="TEXT">No</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+            </block>
+        </next>
+    </block>
+</xml>

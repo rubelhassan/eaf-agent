@@ -1,0 +1,233 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="CI,ibuFi[B54A]5c49JD">password</variable>
+        <variable id="|._!l!f|P[J(bgers]0n">len_ok</variable>
+        <variable id="g,SG1M[.U@k+;6,@G+p(">has_upper</variable>
+        <variable id="deZFihhH;XBfD~ff3mP4">has_lower</variable>
+        <variable id="sj9m5Ka}Yg,A%#Th(RP.">has_mixed</variable>
+        <variable id="hVd)QuT|f.Y50.Xv,sBt">all_ok</variable>
+    </variables>
+    <block type="variables_set" id="set_password" x="30" y="10">
+        <field name="VAR" id="CI,ibuFi[B54A]5c49JD">password</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="TEXT"></mutation>
+                <field name="TYPE">TEXT</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_msg">
+                        <field name="TEXT">Enter a password to check</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_len_ok">
+                <field name="VAR" id="|._!l!f|P[J(bgers]0n">len_ok</field>
+                <value name="VALUE">
+                    <block type="logic_compare" id="cmp_len">
+                        <field name="OP">GTE</field>
+                        <value name="A">
+                            <block type="text_length" id="text_len_1">
+                                <value name="VALUE">
+                                    <block type="variables_get" id="get_pw_1">
+                                        <field name="VAR" id="CI,ibuFi[B54A]5c49JD">password</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="math_number" id="num_8">
+                                <field name="NUM">8</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_has_upper">
+                        <field name="VAR" id="g,SG1M[.U@k+;6,@G+p(">has_upper</field>
+                        <value name="VALUE">
+                            <block type="logic_negate" id="negate_upper">
+                                <value name="BOOL">
+                                    <block type="logic_compare" id="cmp_upper">
+                                        <field name="OP">EQ</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_pw_2">
+                                                <field name="VAR" id="CI,ibuFi[B54A]5c49JD">password</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="text_changeCase" id="case_upper">
+                                                <field name="CASE">UPPERCASE</field>
+                                                <value name="TEXT">
+                                                    <block type="variables_get" id="get_pw_3">
+                                                        <field name="VAR" id="CI,ibuFi[B54A]5c49JD">password</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_has_lower">
+                                <field name="VAR" id="deZFihhH;XBfD~ff3mP4">has_lower</field>
+                                <value name="VALUE">
+                                    <block type="logic_negate" id="negate_lower">
+                                        <value name="BOOL">
+                                            <block type="logic_compare" id="cmp_lower">
+                                                <field name="OP">EQ</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_pw_4">
+                                                        <field name="VAR" id="CI,ibuFi[B54A]5c49JD">password</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="text_changeCase" id="case_lower">
+                                                        <field name="CASE">LOWERCASE</field>
+                                                        <value name="TEXT">
+                                                            <block type="variables_get" id="get_pw_5">
+                                                                <field name="VAR" id="CI,ibuFi[B54A]5c49JD">password</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_has_mixed">
+                                        <field name="VAR" id="sj9m5Ka}Yg,A%#Th(RP.">has_mixed</field>
+                                        <value name="VALUE">
+                                            <block type="logic_operation" id="and_mixed">
+                                                <field name="OP">AND</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_upper_1">
+                                                        <field name="VAR" id="g,SG1M[.U@k+;6,@G+p(">has_upper</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="variables_get" id="get_lower_1">
+                                                        <field name="VAR" id="deZFihhH;XBfD~ff3mP4">has_lower</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="variables_set" id="set_all_ok">
+                                                <field name="VAR" id="hVd)QuT|f.Y50.Xv,sBt">all_ok</field>
+                                                <value name="VALUE">
+                                                    <block type="logic_operation" id="and_all">
+                                                        <field name="OP">AND</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="get_len_ok_1">
+                                                                <field name="VAR" id="|._!l!f|P[J(bgers]0n">len_ok</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <block type="variables_get" id="get_mixed_1">
+                                                                <field name="VAR" id="sj9m5Ka}Yg,A%#Th(RP.">has_mixed</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="text_print" id="print_len" x="30" y="270">
+        <value name="TEXT">
+            <block type="text_join" id="join_len">
+                <mutation items="2"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_len_label">
+                        <field name="TEXT">Length: </field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="logic_ternary" id="tern_len">
+                        <value name="IF">
+                            <block type="variables_get" id="get_len_ok_2">
+                                <field name="VAR" id="|._!l!f|P[J(bgers]0n">len_ok</field>
+                            </block>
+                        </value>
+                        <value name="THEN">
+                            <block type="text" id="text_ok_1">
+                                <field name="TEXT">OK</field>
+                            </block>
+                        </value>
+                        <value name="ELSE">
+                            <block type="text" id="text_weak_1">
+                                <field name="TEXT">WEAK</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_mixed">
+                <value name="TEXT">
+                    <block type="text_join" id="join_mixed">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_mixed_label">
+                                <field name="TEXT">Has mixed case: </field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="logic_ternary" id="tern_mixed">
+                                <value name="IF">
+                                    <block type="variables_get" id="get_mixed_2">
+                                        <field name="VAR" id="sj9m5Ka}Yg,A%#Th(RP.">has_mixed</field>
+                                    </block>
+                                </value>
+                                <value name="THEN">
+                                    <block type="text" id="text_ok_2">
+                                        <field name="TEXT">OK</field>
+                                    </block>
+                                </value>
+                                <value name="ELSE">
+                                    <block type="text" id="text_weak_2">
+                                        <field name="TEXT">WEAK</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_result">
+                        <value name="TEXT">
+                            <block type="logic_ternary" id="tern_result">
+                                <value name="IF">
+                                    <block type="variables_get" id="get_all_ok_1">
+                                        <field name="VAR" id="hVd)QuT|f.Y50.Xv,sBt">all_ok</field>
+                                    </block>
+                                </value>
+                                <value name="THEN">
+                                    <block type="text" id="text_strong">
+                                        <field name="TEXT">STRONG PASSWORD</field>
+                                    </block>
+                                </value>
+                                <value name="ELSE">
+                                    <block type="text" id="text_weak_pw">
+                                        <field name="TEXT">WEAK PASSWORD</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

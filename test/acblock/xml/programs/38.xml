@@ -1,0 +1,192 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_size">size</variable>
+        <variable id="var_x">x</variable>
+        <variable id="var_mark">mark</variable>
+        <variable id="var_row">row</variable>
+        <variable id="var_item">item</variable>
+        <variable id="var_empty">empty</variable>
+        <variable id="var_y">y</variable>
+        <variable id="var_vault">grid</variable>
+    </variables>
+    <block type="variables_set" id="set_size" x="30" y="10">
+        <field name="VAR" id="var_size">size</field>
+        <value name="VALUE">
+            <block type="math_number" id="num_3">
+                <field name="NUM">3</field>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_mark">
+                <field name="VAR" id="var_mark">mark</field>
+                <value name="VALUE">
+                    <block type="text" id="text_x">
+                        <field name="TEXT">X</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_empty">
+                        <field name="VAR" id="var_empty">empty</field>
+                        <value name="VALUE">
+                            <block type="text" id="text_o">
+                                <field name="TEXT">O</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_vault">
+                                <field name="VAR" id="var_vault">grid</field>
+                                <value name="VALUE">
+                                    <block type="lists_create_with" id="create_empty_list">
+                                        <mutation items="0"></mutation>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="text_print" id="print_building">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_building">
+                                                <field name="TEXT">Building...</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="controls_for" id="for_x" x="30" y="190">
+        <field name="VAR" id="var_x">x</field>
+        <value name="FROM">
+            <block type="math_number" id="num_from_1">
+                <field name="NUM">1</field>
+            </block>
+        </value>
+        <value name="TO">
+            <block type="variables_get" id="get_size_1">
+                <field name="VAR" id="var_size">size</field>
+            </block>
+        </value>
+        <value name="BY">
+            <block type="math_number" id="num_by_1">
+                <field name="NUM">1</field>
+            </block>
+        </value>
+        <statement name="DO">
+            <block type="variables_set" id="set_row">
+                <field name="VAR" id="var_row">row</field>
+                <value name="VALUE">
+                    <block type="text" id="text_empty_row">
+                        <field name="TEXT"></field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_for" id="for_y">
+                        <field name="VAR" id="var_y">y</field>
+                        <value name="FROM">
+                            <block type="math_number" id="num_from_2">
+                                <field name="NUM">1</field>
+                            </block>
+                        </value>
+                        <value name="TO">
+                            <block type="variables_get" id="get_size_2">
+                                <field name="VAR" id="var_size">size</field>
+                            </block>
+                        </value>
+                        <value name="BY">
+                            <block type="math_number" id="num_by_2">
+                                <field name="NUM">1</field>
+                            </block>
+                        </value>
+                        <statement name="DO">
+                            <block type="controls_if" id="if_diag">
+                                <mutation else="1"></mutation>
+                                <value name="IF0">
+                                    <block type="logic_compare" id="cmp_xy">
+                                        <field name="OP">EQ</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_x_1">
+                                                <field name="VAR" id="var_x">x</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="variables_get" id="get_y_1">
+                                                <field name="VAR" id="var_y">y</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <statement name="DO0">
+                                    <block type="text_append" id="append_mark">
+                                        <field name="VAR" id="var_row">row</field>
+                                        <value name="TEXT">
+                                            <block type="variables_get" id="get_mark_1">
+                                                <field name="VAR" id="var_mark">mark</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                                <statement name="ELSE">
+                                    <block type="text_append" id="append_empty">
+                                        <field name="VAR" id="var_row">row</field>
+                                        <value name="TEXT">
+                                            <block type="variables_get" id="get_empty_1">
+                                                <field name="VAR" id="var_empty">empty</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </statement>
+                            </block>
+                        </statement>
+                        <next>
+                            <block type="lists_setIndex" id="append_row_to_vault">
+                                <mutation at="false"></mutation>
+                                <field name="MODE">INSERT</field>
+                                <field name="WHERE">LAST</field>
+                                <value name="LIST">
+                                    <block type="variables_get" id="get_vault_1">
+                                        <field name="VAR" id="var_vault">grid</field>
+                                    </block>
+                                </value>
+                                <value name="TO">
+                                    <block type="variables_get" id="get_row_1">
+                                        <field name="VAR" id="var_row">row</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </statement>
+        <next>
+            <block type="controls_forEach" id="foreach_item">
+                <field name="VAR" id="var_item">item</field>
+                <value name="LIST">
+                    <block type="variables_get" id="get_vault_2">
+                        <field name="VAR" id="var_vault">grid</field>
+                    </block>
+                </value>
+                <statement name="DO">
+                    <block type="text_print" id="print_item">
+                        <value name="TEXT">
+                            <block type="variables_get" id="get_item_1">
+                                <field name="VAR" id="var_item">item</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+                <next>
+                    <block type="text_print" id="print_finished">
+                        <value name="TEXT">
+                            <block type="text" id="text_finished">
+                                <field name="TEXT">Finished.</field>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

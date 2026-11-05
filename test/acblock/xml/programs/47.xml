@@ -1,0 +1,273 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id=",vu!b8KAQB{itvA`DL(*">sentence</variable>
+        <variable id="T=M)nWg`1`hj1*1!R`^%">count</variable>
+        <variable id="U2ayvGAKvt#P(uP/j7TE">target</variable>
+        <variable id="pj%4,B{`6`Y?eUyId2_L">word</variable>
+        <variable id="DXaFe^QDvjUBLMll|BJL">words</variable>
+        <variable id="kSL(~eT)|9eaze3Wv)Ni">percent</variable>
+        <variable id="9L/jr!4WPKyJ{mB,4lHM">total</variable>
+    </variables>
+    <block type="variables_set" id="set_sentence" x="30" y="10">
+        <field name="VAR" id=",vu!b8KAQB{itvA`DL(*">sentence</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_sentence">
+                <mutation type="TEXT"></mutation>
+                <field name="TYPE">TEXT</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_sent">
+                        <field name="TEXT">Enter a sentence</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_target">
+                <field name="VAR" id="U2ayvGAKvt#P(uP/j7TE">target</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_target">
+                        <mutation type="TEXT"></mutation>
+                        <field name="TYPE">TEXT</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_prompt_tgt">
+                                <field name="TEXT">Enter word to count</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_sentence_lower">
+                        <field name="VAR" id=",vu!b8KAQB{itvA`DL(*">sentence</field>
+                        <value name="VALUE">
+                            <block type="text_changeCase" id="lower_sentence">
+                                <field name="CASE">LOWERCASE</field>
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_sentence_1">
+                                        <field name="VAR" id=",vu!b8KAQB{itvA`DL(*">sentence</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="variables_set" id="set_target_lower">
+                                <field name="VAR" id="U2ayvGAKvt#P(uP/j7TE">target</field>
+                                <value name="VALUE">
+                                    <block type="text_changeCase" id="lower_target">
+                                        <field name="CASE">LOWERCASE</field>
+                                        <value name="TEXT">
+                                            <block type="variables_get" id="get_target_1">
+                                                <field name="VAR" id="U2ayvGAKvt#P(uP/j7TE">target</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_words">
+                                        <field name="VAR" id="DXaFe^QDvjUBLMll|BJL">words</field>
+                                        <value name="VALUE">
+                                            <block type="lists_split" id="split_words">
+                                                <mutation mode="SPLIT"></mutation>
+                                                <field name="MODE">SPLIT</field>
+                                                <value name="INPUT">
+                                                    <block type="variables_get" id="get_sentence_2">
+                                                        <field name="VAR" id=",vu!b8KAQB{itvA`DL(*">sentence</field>
+                                                    </block>
+                                                </value>
+                                                <value name="DELIM">
+                                                    <block type="text" id="text_space">
+                                                        <field name="TEXT"> </field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="variables_set" id="set_total">
+                                                <field name="VAR" id="9L/jr!4WPKyJ{mB,4lHM">total</field>
+                                                <value name="VALUE">
+                                                    <block type="lists_length" id="list_len">
+                                                        <value name="VALUE">
+                                                            <block type="variables_get" id="get_words_1">
+                                                                <field name="VAR" id="DXaFe^QDvjUBLMll|BJL">words</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="variables_set" id="set_count" x="30" y="230">
+        <field name="VAR" id="T=M)nWg`1`hj1*1!R`^%">count</field>
+        <value name="VALUE">
+            <block type="math_number" id="num_0">
+                <field name="NUM">0</field>
+            </block>
+        </value>
+        <next>
+            <block type="controls_forEach" id="foreach_words">
+                <field name="VAR" id="pj%4,B{`6`Y?eUyId2_L">word</field>
+                <value name="LIST">
+                    <block type="variables_get" id="get_words_2">
+                        <field name="VAR" id="DXaFe^QDvjUBLMll|BJL">words</field>
+                    </block>
+                </value>
+                <statement name="DO">
+                    <block type="controls_if" id="if_match">
+                        <value name="IF0">
+                            <block type="logic_compare" id="cmp_word">
+                                <field name="OP">EQ</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_word_1">
+                                        <field name="VAR" id="pj%4,B{`6`Y?eUyId2_L">word</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="variables_get" id="get_target_2">
+                                        <field name="VAR" id="U2ayvGAKvt#P(uP/j7TE">target</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO0">
+                            <block type="variables_set" id="set_count_inc">
+                                <field name="VAR" id="T=M)nWg`1`hj1*1!R`^%">count</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="math_add_count">
+                                        <field name="OP">ADD</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_count_1">
+                                                <field name="VAR" id="T=M)nWg`1`hj1*1!R`^%">count</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_1">
+                                                <field name="NUM">1</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                    </block>
+                </statement>
+                <next>
+                    <block type="variables_set" id="set_percent">
+                        <field name="VAR" id="kSL(~eT)|9eaze3Wv)Ni">percent</field>
+                        <value name="VALUE">
+                            <block type="math_round" id="round_percent">
+                                <field name="OP">ROUND</field>
+                                <value name="NUM">
+                                    <block type="math_arithmetic" id="math_mult_100">
+                                        <field name="OP">MULTIPLY</field>
+                                        <value name="A">
+                                            <block type="math_arithmetic" id="math_div_total">
+                                                <field name="OP">DIVIDE</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_count_2">
+                                                        <field name="VAR" id="T=M)nWg`1`hj1*1!R`^%">count</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="variables_get" id="get_total_1">
+                                                        <field name="VAR" id="9L/jr!4WPKyJ{mB,4lHM">total</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_100">
+                                                <field name="NUM">100</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="text_print" id="print_total" x="30" y="470">
+        <value name="TEXT">
+            <block type="text_join" id="join_total">
+                <mutation items="2"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_total_label">
+                        <field name="TEXT">Total words: </field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="variables_get" id="get_total_2">
+                        <field name="VAR" id="9L/jr!4WPKyJ{mB,4lHM">total</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_count">
+                <value name="TEXT">
+                    <block type="text_join" id="join_count">
+                        <mutation items="5"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_word_label">
+                                <field name="TEXT">Word '</field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="variables_get" id="get_target_3">
+                                <field name="VAR" id="U2ayvGAKvt#P(uP/j7TE">target</field>
+                            </block>
+                        </value>
+                        <value name="ADD2">
+                            <block type="text" id="text_appears">
+                                <field name="TEXT">' appears </field>
+                            </block>
+                        </value>
+                        <value name="ADD3">
+                            <block type="variables_get" id="get_count_3">
+                                <field name="VAR" id="T=M)nWg`1`hj1*1!R`^%">count</field>
+                            </block>
+                        </value>
+                        <value name="ADD4">
+                            <block type="text" id="text_times">
+                                <field name="TEXT"> times</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_freq">
+                        <value name="TEXT">
+                            <block type="text_join" id="join_freq">
+                                <mutation items="3"></mutation>
+                                <value name="ADD0">
+                                    <block type="text" id="text_freq_label">
+                                        <field name="TEXT">Frequency: </field>
+                                    </block>
+                                </value>
+                                <value name="ADD1">
+                                    <block type="variables_get" id="get_percent_1">
+                                        <field name="VAR" id="kSL(~eT)|9eaze3Wv)Ni">percent</field>
+                                    </block>
+                                </value>
+                                <value name="ADD2">
+                                    <block type="text" id="text_pct_sign">
+                                        <field name="TEXT">%</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

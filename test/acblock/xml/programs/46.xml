@@ -1,0 +1,107 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="?b^_Ycv:*%fKOB})]$yp">txt</variable>
+        <variable id="cZ**AIAg*=f-gONFz1$Q">userWord</variable>
+        <variable id="hZF?A`(};gjZLXUM0o/M">result</variable>
+    </variables>
+    <block type="procedures_defreturn" id="def_is_palindrome" x="20" y="20">
+        <mutation>
+            <arg name="txt" varid="?b^_Ycv:*%fKOB})]$yp"></arg>
+        </mutation>
+        <field name="NAME">isPalindrome</field>
+        <comment pinned="false" h="80" w="160">Describe this function...</comment>
+        <statement name="STACK">
+            <block type="procedures_ifreturn" id="Q#E?qE4`vm,}3lpjP.rS">
+                <mutation value="1"></mutation>
+                <value name="CONDITION">
+                    <block type="logic_compare" id="cmp_eq">
+                        <field name="OP">EQ</field>
+                        <value name="A">
+                            <block type="variables_get" id="get_txt_1">
+                                <field name="VAR" id="?b^_Ycv:*%fKOB})]$yp">txt</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="text_reverse" id="text_rev_1">
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_txt_2">
+                                        <field name="VAR" id="?b^_Ycv:*%fKOB})]$yp">txt</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <value name="VALUE">
+                    <block type="logic_boolean" id="w*_.Yr8h22W3pqE-9Bf=">
+                        <field name="BOOL">TRUE</field>
+                    </block>
+                </value>
+            </block>
+        </statement>
+        <value name="RETURN">
+            <block type="logic_boolean" id="23tg%ETpN6doCX?K2;Nl">
+                <field name="BOOL">FALSE</field>
+            </block>
+        </value>
+    </block>
+    <block type="variables_set" id="set_user_word" x="20" y="200">
+        <field name="VAR" id="cZ**AIAg*=f-gONFz1$Q">userWord</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_word">
+                <mutation type="TEXT"></mutation>
+                <field name="TYPE">TEXT</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_label">
+                        <field name="TEXT">Enter word:</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_result">
+                <field name="VAR" id="hZF?A`(};gjZLXUM0o/M">result</field>
+                <value name="VALUE">
+                    <block type="procedures_callreturn" id="call_is_palindrome">
+                        <mutation name="isPalindrome">
+                            <arg name="txt"></arg>
+                        </mutation>
+                        <value name="ARG0">
+                            <block type="variables_get" id="get_user_word_1">
+                                <field name="VAR" id="cZ**AIAg*=f-gONFz1$Q">userWord</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_if" id="if_result">
+                        <mutation else="1"></mutation>
+                        <value name="IF0">
+                            <block type="variables_get" id="@7eC3DWY8vNO~KhkxWFX">
+                                <field name="VAR" id="hZF?A`(};gjZLXUM0o/M">result</field>
+                            </block>
+                        </value>
+                        <statement name="DO0">
+                            <block type="text_print" id="print_yes">
+                                <value name="TEXT">
+                                    <block type="text" id="text_yes">
+                                        <field name="TEXT">Is Palindrome? Yes</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                        <statement name="ELSE">
+                            <block type="text_print" id="print_no">
+                                <value name="TEXT">
+                                    <block type="text" id="text_no">
+                                        <field name="TEXT">Is Palindrome? No</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

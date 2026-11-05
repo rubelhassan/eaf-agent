@@ -1,0 +1,129 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="01!Zw30G6Q~i9THFU@%E">a</variable>
+        <variable id="dD`S5@.d/P(bq4b{3+{i">b</variable>
+        <variable id="D0C7[7F{383})stD$u?5">side1</variable>
+        <variable id="tKd86[B]-u_dDB*^8*?`">hypotenuse</variable>
+        <variable id="1W)C%%hGysj7/zvsg$cE">side2</variable>
+    </variables>
+    <block type="procedures_defreturn" id="def_calc_hypot" x="30" y="10">
+        <mutation>
+            <arg name="a" varid="01!Zw30G6Q~i9THFU@%E"></arg>
+            <arg name="b" varid="dD`S5@.d/P(bq4b{3+{i"></arg>
+        </mutation>
+        <field name="NAME">calcHypot</field>
+        <comment pinned="false" h="80" w="160">Describe this function...</comment>
+        <statement name="STACK">
+            <block type="variables_set" id="P$DJ@?RA#LH+j4Jrm$s)">
+                <field name="VAR" id="tKd86[B]-u_dDB*^8*?`">hypotenuse</field>
+                <value name="VALUE">
+                    <block type="math_single" id="math_sqrt">
+                        <field name="OP">ROOT</field>
+                        <value name="NUM">
+                            <block type="math_arithmetic" id="math_add">
+                                <field name="OP">ADD</field>
+                                <value name="A">
+                                    <block type="math_arithmetic" id="math_pow_a">
+                                        <field name="OP">POWER</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_a_1">
+                                                <field name="VAR" id="01!Zw30G6Q~i9THFU@%E">a</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_2a">
+                                                <field name="NUM">2</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_arithmetic" id="math_pow_b">
+                                        <field name="OP">POWER</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_b_1">
+                                                <field name="VAR" id="dD`S5@.d/P(bq4b{3+{i">b</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_number" id="num_2b">
+                                                <field name="NUM">2</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </statement>
+        <value name="RETURN">
+            <block type="variables_get" id="=dU@NWT-+Zd.uLiz|/)k">
+                <field name="VAR" id="tKd86[B]-u_dDB*^8*?`">hypotenuse</field>
+            </block>
+        </value>
+    </block>
+    <block type="variables_set" id="set_side1" x="30" y="170">
+        <field name="VAR" id="D0C7[7F{383})stD$u?5">side1</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_side1">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_a">
+                        <field name="TEXT">Enter side A length</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_side2">
+                <field name="VAR" id="1W)C%%hGysj7/zvsg$cE">side2</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_side2">
+                        <mutation type="NUMBER"></mutation>
+                        <field name="TYPE">NUMBER</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_prompt_b">
+                                <field name="TEXT">Enter side B length</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_hypot">
+                        <value name="TEXT">
+                            <block type="text_join" id="join_hypot">
+                                <mutation items="2"></mutation>
+                                <value name="ADD0">
+                                    <block type="text" id="text_hypot_label">
+                                        <field name="TEXT">Hypotenuse: </field>
+                                    </block>
+                                </value>
+                                <value name="ADD1">
+                                    <block type="procedures_callreturn" id="call_calc_hypot">
+                                        <mutation name="calcHypot">
+                                            <arg name="a"></arg>
+                                            <arg name="b"></arg>
+                                        </mutation>
+                                        <value name="ARG0">
+                                            <block type="variables_get" id="get_side1_1">
+                                                <field name="VAR" id="D0C7[7F{383})stD$u?5">side1</field>
+                                            </block>
+                                        </value>
+                                        <value name="ARG1">
+                                            <block type="variables_get" id="get_side2_1">
+                                                <field name="VAR" id="1W)C%%hGysj7/zvsg$cE">side2</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

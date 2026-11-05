@@ -1,0 +1,27 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <block type="text_print" id="print_1" x="60" y="40">
+        <value name="TEXT">
+            <block type="text" id="text_1">
+                <field name="TEXT">Wake up!</field>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_2">
+                <value name="TEXT">
+                    <block type="text" id="text_2">
+                        <field name="TEXT">Brush teeth.</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_3">
+                        <value name="TEXT">
+                            <block type="text" id="text_3">
+                                <field name="TEXT">Eat breakfast.</field>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

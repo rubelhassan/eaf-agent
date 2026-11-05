@@ -1,0 +1,51 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_coins">coins</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_coins">coins</field>
+        <value name="VALUE">
+            <block type="math_number" id="num_5">
+                <field name="NUM">5</field>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_1">
+                <value name="TEXT">
+                    <block type="text" id="text_1">
+                        <field name="TEXT">You found the magic chest!</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_2">
+                        <field name="VAR" id="var_coins">coins</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="arith_1">
+                                <field name="OP">MULTIPLY</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_1">
+                                        <field name="VAR" id="var_coins">coins</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_2">
+                                        <field name="NUM">2</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_2">
+                                        <field name="VAR" id="var_coins">coins</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

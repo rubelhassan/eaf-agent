@@ -2,6 +2,7 @@
 import * as Blockly from 'blockly/core';
 import {getStackLabelFromStackNode} from '../labels_and_comments/stack_labels';
 import {Speech} from '../audio/speech';
+import {sayDialog, speakDialogFocus} from './dialog_speech.js';
 
 export class NavigationalHint {
     /**
@@ -195,15 +196,15 @@ export class NavigationalHint {
         this.prevFocus = document.activeElement;
         this.root.classList.add('acc-navhint--open');
         this.index = -1;
+        this.isOpen = true;
 
         // focus sentinel to keep SR in focus mode
         try {
             this.root.querySelector('.acc-navhint__dialog')?.focus();
         } catch {}
 
-        this._say('Navigational assistnat opened. Use W or S to move through hints. Press Escape to close.');
+        this._say('Navigational assistant opened. Use W or S to move through hints. Press Escape to close.');
         document.addEventListener('keydown', this._onKeydownInDialog, true);
-        this.isOpen = true;
     }
 
     close() {
@@ -266,7 +267,7 @@ export class NavigationalHint {
   transform: translate(-50%,-50%) scale(.985);
   inline-size: clamp(340px, 48vw, 720px);
   max-block-size: min(76vh, 620px);
-  background: #fff; color: #111;
+  background: var(--eaf-surface, #fff); color: var(--eaf-fg, #111);
   border-radius: 12px; box-shadow: 0 12px 36px rgba(0,0,0,.22);
   display: flex; flex-direction: column; overflow: hidden;
   opacity: 0; transition: opacity .14s ease, transform .14s ease;
@@ -277,13 +278,13 @@ export class NavigationalHint {
 }
 .acc-navhint--open .acc-navhint__dialog { opacity: 1; transform: translate(-50%,-50%) scale(1); }
 
-.acc-navhint__header { padding: 14px 16px; border-bottom: 1px solid #eee; display:flex; align-items:center; justify-content:space-between; }
+.acc-navhint__header { padding: 14px 16px; border-bottom: 1px solid var(--eaf-line-soft, #eee); display:flex; align-items:center; justify-content:space-between; }
 .acc-navhint__title { margin: 0; font-weight: 600; font-size: 17px; }
 .acc-navhint__close { appearance:none; background:transparent; border:0; font-size:20px; cursor:pointer; line-height:1; padding:4px; border-radius:8px; }
-.acc-navhint__close:focus-visible { outline: 2px solid #4c8bf5; outline-offset: 2px; }
+.acc-navhint__close:focus-visible { outline: 2px solid var(--eaf-focus, #4c8bf5); outline-offset: 2px; }
 
 .acc-navhint__body { padding: 0; overflow:auto; }
-.acc-navhint__intro { margin: 12px 16px; color:#333; font-size: 13.5px; }
+.acc-navhint__intro { margin: 12px 16px; color:var(--eaf-fg, #333); font-size: 13.5px; }
 
 .acc-navhint__list { list-style:none; margin: 0; padding: 6px 0; }
 .acc-navhint__item {
@@ -291,15 +292,15 @@ export class NavigationalHint {
   column-gap: 12px; row-gap: 6px; align-items:start; justify-items:start;
   padding: 10px 12px; font-size: 14px;
 }
-.acc-navhint__item + .acc-navhint__item { border-top: 1px solid #f0f2f6; }
-.acc-navhint__item--active { background: #f6f7fb; box-shadow: inset 0 0 0 2px #4c8bf5; }
+.acc-navhint__item + .acc-navhint__item { border-top: 1px solid var(--eaf-line-soft, #f0f2f6); }
+.acc-navhint__item--active { background: var(--eaf-surface-alt, #f6f7fb); box-shadow: inset 0 0 0 2px var(--eaf-focus, #4c8bf5); }
 
 .acc-navhint__descTitle { font-weight: 600; margin: 0 0 2px 0; }
-.acc-navhint__descDetail { color:#444; margin: 0; }
+.acc-navhint__descDetail { color:var(--eaf-fg-muted, #444); margin: 0; }
 .acc-navhint__keys { display:inline-flex; gap:6px; align-items:center; justify-self:end; min-block-size:28px; margin-inline-start:12px; }
 .acc-navhint__kbd {
   display:inline-block; min-width:22px; padding:3px 9px; border-radius:7px;
-  background:#f8fafc; border:1px solid #cfd7e3; color:#111827;
+  background:var(--eaf-surface-alt, #f8fafc); border:1px solid var(--eaf-line, #cfd7e3); color:var(--eaf-fg, #111827);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13.5px; line-height:20px; font-weight:600; letter-spacing:.2px; white-space:nowrap;
 }
@@ -312,13 +313,6 @@ export class NavigationalHint {
   white-space: nowrap !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  .acc-navhint__dialog { background:#1f2023; color:#f0f2f5; }
-  .acc-navhint__item + .acc-navhint__item { border-color:#2b2e33; }
-  .acc-navhint__item--active { background:#27292d; box-shadow: inset 0 0 0 2px #4c8bf5; }
-  .acc-navhint__kbd { background:#2a2c31; border-color:#4a4f59; color:#f6f7fb; }
-  .acc-navhint__intro { color:#cfd3da; }
-}
 @media (prefers-reduced-motion: reduce) {
   .acc-navhint__backdrop, .acc-navhint__dialog { transition:none !important; }
 }
@@ -351,6 +345,10 @@ export class NavigationalHint {
 
         // Stop underlying app from hijacking pointer/focus; allow close button/backdrop.
         const dialog = root.querySelector('.acc-navhint__dialog');
+        dialog.tabIndex = -1;
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-labelledby', 'acc-navhint-title');
+        root.querySelector('.acc-navhint__close').setAttribute('aria-label', 'Close navigational assistant');
         const swallow = (e) => e.stopPropagation();
         dialog.addEventListener('pointerdown', swallow, true);
         dialog.addEventListener('mousedown', swallow, true);
@@ -493,8 +491,11 @@ export class NavigationalHint {
         }
     }
 
-    _onFocusInGuard() {
-        if (this.isOpen) return;
+    _onFocusInGuard(event) {
+        if (this.isOpen) {
+            if (event.target.matches('button')) speakDialogFocus(event.target);
+            return;
+        }
         try { (this.prevFocus || document.body)?.focus?.(); } catch {}
     }
 
@@ -572,6 +573,6 @@ export class NavigationalHint {
     }
 
     _say(msg) {
-        try { this.speech?.update?.(msg); } catch {}
+        sayDialog(msg, {fallback: (line) => this.speech?.update?.(line)});
     }
 }

@@ -1,0 +1,58 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_cookies">cookies</variable>
+        <variable id="var_total">total</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_cookies">cookies</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="+^)1D=-kG6]_WI1dc%Z@">
+                        <field name="TEXT">How many cookies?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_2">
+                <field name="VAR" id="var_total">total</field>
+                <value name="VALUE">
+                    <block type="math_arithmetic" id="arith_1">
+                        <field name="OP">ADD</field>
+                        <value name="A">
+                            <block type="variables_get" id="get_1">
+                                <field name="VAR" id="var_cookies">cookies</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="variables_get" id="get_2">
+                                <field name="VAR" id="var_cookies">cookies</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_1">
+                        <value name="TEXT">
+                            <block type="text" id="text_1">
+                                <field name="TEXT">You now have</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <block type="variables_get" id="get_3">
+                                        <field name="VAR" id="var_total">total</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

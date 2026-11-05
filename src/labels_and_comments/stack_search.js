@@ -12,6 +12,9 @@
 
 import * as Blockly from 'blockly/core';
 import { getStackLabelManager } from './stack_labels.js';
+import {getOutputManager} from '../output/active.js';
+import {sayDialog, speakDialogFocus} from '../util/dialog_speech.js';
+import {stackName} from './stack_name.js';
 
 // Global registry to track all StackSearchManager instances by workspace ID
 const stackSearchManagerRegistry = new Map();
@@ -140,7 +143,7 @@ export class StackSearchManager {
     const block = workspace.getBlockById(targetBlockId);
     if (!block) return null;
 
-    const customText = stackLabelManager.customLabels_?.get(targetBlockId) || '';
+    const customText = stackName(block);
     const label = customText ? `${L} with custom label ${customText}` : L;
 
     return { block, blockId: targetBlockId, letter: L, customText, label };
@@ -173,7 +176,7 @@ export class StackSearchManager {
     const availableStacks = this.getAvailableStacks_(stackLabelManager);
 
     if (availableStacks.length === 0) {
-      this.speech?.update('No labeled stacks available to search');
+      this.announceMessage_('No labeled stacks available to search');
       return false;
     }
 
@@ -204,8 +207,7 @@ export class StackSearchManager {
               topBlock = topBlock.previousConnection.targetBlock();
             }
 
-            // Get custom label if available (stored in stackLabelTexts_)
-            const customText = stackLabelManager.stackLabelTexts_?.get(blockId) || '';
+            const customText = stackName(topBlock);
             const fullLabel = customText ? `${letter} ${customText}` : letter;
 
             stacks.push({
@@ -242,7 +244,7 @@ export class StackSearchManager {
 
     // Announce to screen readers
     const stackList = availableStacks.map(s => s.label).join('.  ');
-    this.speech?.update(`Stack search active. ${availableStacks.length} stacks are available.  Press WASD to navigate, or Escape to close.`);
+    this.announceMessage_(`Stack search active. ${availableStacks.length} stacks are available.  Press WASD to navigate, or Escape to close.`);
   }
 
   /**
@@ -267,7 +269,8 @@ export class StackSearchManager {
     overlay.className = 'blockly-stack-search-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-label', 'Stack Search');
-    overlay.setAttribute('aria-live', 'polite');
+    // Results are announced explicitly; making the whole dialog live repeats every list update.
+    overlay.setAttribute('aria-live', 'off');
 
     // Create content
     const content = document.createElement('div');
@@ -291,6 +294,9 @@ export class StackSearchManager {
     searchInput.className = 'blockly-stack-search-input';
     searchInput.setAttribute('aria-label', 'Search stacks by name');
     searchInput.setAttribute('tabindex', '-1'); // Prevent default tab focus
+    searchInput.addEventListener('focus', () => {
+      speakDialogFocus(searchInput);
+    });
     searchInputContainer.appendChild(searchInput);
 
     // Create dual-panel container
@@ -331,22 +337,11 @@ export class StackSearchManager {
     cancelInstructions.className = 'blockly-stack-search-cancel';
     cancelInstructions.textContent = 'Press Escape to cancel';
 
-    // Add live region for screen reader announcements
-    const liveRegion = document.createElement('div');
-    liveRegion.setAttribute('aria-live', 'assertive');
-    liveRegion.setAttribute('aria-atomic', 'true');
-    liveRegion.style.position = 'absolute';
-    liveRegion.style.left = '-10000px';
-    liveRegion.style.width = '1px';
-    liveRegion.style.height = '1px';
-    liveRegion.style.overflow = 'hidden';
-
     content.appendChild(title);
     content.appendChild(instructions);
     content.appendChild(searchInputContainer);
     content.appendChild(panelContainer);
     content.appendChild(cancelInstructions);
-    content.appendChild(liveRegion);
     overlay.appendChild(content);
 
     // Set up search input event listener
@@ -385,8 +380,8 @@ export class StackSearchManager {
 
     // Don't auto-focus search input - let users choose navigation method
     // Focus the overlay for accessibility, but allow W/S navigation by default
-    overlay.focus();
     overlay.setAttribute('tabindex', '0');
+    overlay.focus();
   }
 
   /**
@@ -427,18 +422,11 @@ export class StackSearchManager {
           this.activePanel_ = 'stacks';
           this.updateSelectionHighlight_();
           this.announceMessage_('Focus moved to stacks panel. Use W/S to navigate.');
-          if (this.speech) {
-            this.speech.update('Focus moved to stacks panel. Use W/S to navigate.');
-          }
         } else {
           // Currently in stacks/blocks panel, move to search input
           console.log('Stack search: Moving focus from panel to search input');
           if (searchInput) {
             searchInput.focus();
-            this.announceMessage_('Search input focused. Type to search stacks, or press / to return to stacks.');
-            if (this.speech) {
-              this.speech.update('Search input focused. Type to search stacks, or press / to return to stacks.');
-            }
           }
         }
         return;
@@ -528,9 +516,6 @@ export class StackSearchManager {
       this.blockSelectionIndex_ = 0;
       const message = 'Stack panel selected. Use W/S to navigate stacks, D to view blocks.';
       this.announceMessage_(message);
-      if (this.speech) {
-        this.speech.update(message);
-      }
     } else {
       stackPanel?.classList.remove('active');
       blockPanel?.classList.add('active');
@@ -544,15 +529,9 @@ export class StackSearchManager {
       if (selectedBlock) {
         const message = `Block panel selected. Block ${selectedBlock.number}: ${selectedBlock.description}`;
         this.announceMessage_(message);
-        if (this.speech) {
-          this.speech.update(message);
-        }
       } else {
         const message = `Block panel selected. ${this.availableBlocks_.length} blocks available. Use W/S to navigate, A to go back to stacks.`;
         this.announceMessage_(message);
-        if (this.speech) {
-          this.speech.update(message);
-        }
       }
     }
 
@@ -582,9 +561,7 @@ export class StackSearchManager {
         // Announce selection
         const selectedStack = this.availableStacks_[newIndex];
         if (selectedStack) {
-          if (this.speech) {
-            this.speech.update(`Stack ${selectedStack.label}`);
-          }
+          this.announceMessage_(`Stack ${selectedStack.label}`);
         }
       }
     } else {
@@ -598,9 +575,7 @@ export class StackSearchManager {
         // Announce selection
         const selectedBlock = this.availableBlocks_[newIndex];
         if (selectedBlock) {
-          if (this.speech) {
-            this.speech.update(`Block ${selectedBlock.number}: ${selectedBlock.description}`);
-          }
+          this.announceMessage_(`Block ${selectedBlock.number}: ${selectedBlock.description}`);
         }
       }
     }
@@ -705,7 +680,7 @@ export class StackSearchManager {
   navigateToStack_(letter, speech) {
     const stackLabelManager = getStackLabelManager(this.workspace_);
     if (!stackLabelManager) {
-      this.speech?.update('Stack label manager not available');
+      this.announceMessage_('Stack label manager not available');
       return false;
     }
 
@@ -721,14 +696,14 @@ export class StackSearchManager {
     }
 
     if (!targetBlockId) {
-      this.speech?.update(`No stack found with letter ${letter}`);
+      this.announceMessage_(`No stack found with letter ${letter}`);
       return false;
     }
 
     // Get the target block
     let targetBlock = this.workspace_.getBlockById(targetBlockId);
     if (!targetBlock) {
-      this.speech?.update(`Stack ${letter} block not found`);
+      this.announceMessage_(`Stack ${letter} block not found`);
       return false;
     }
 
@@ -751,11 +726,11 @@ export class StackSearchManager {
       cursor.setCurNode(astNode);
 
       // Get label for announcement
-      const customText = stackLabelManager.customLabels_?.get(targetBlockId) || '';
+      const customText = stackName(targetBlock);
       const fullLabel = customText ? `${letter} ${customText}` : letter;
 
       // Announce successful navigation
-      this.speech?.update(`Navigated to stack ${fullLabel}`);
+      this.announceMessage_(`Navigated to stack ${fullLabel}`);
       console.log('Stack search log: Successfully navigated to stack', letter, 'top block:', targetBlock.id);
       return true;
     } catch (e) {
@@ -1018,7 +993,7 @@ export class StackSearchManager {
     // Restore focus to workspace
     this.restoreWorkspaceFocus_();
 
-    this.speech?.update('Stack search closed. Focus is on workspace.');
+    this.announceMessage_('Stack search closed. Focus is on workspace.');
   }
 
   /**
@@ -1067,6 +1042,11 @@ export class StackSearchManager {
    * @private
    */
   announceMessage_(message) {
+    const output = getOutputManager();
+    if (output) {
+      sayDialog(message);
+      return;
+    }
     try {
       // Create temporary announcement element for screen readers
       const announcement = document.createElement('div');
@@ -1165,7 +1145,7 @@ document.head.insertAdjacentHTML('beforeend', `
     left: 50%;
     transform: translate(-50%, -50%);
     background: white;
-    border: 2px solid #1976d2;
+    border: 2px solid var(--eaf-accent, #1976d2);
     border-radius: 8px;
     padding: 20px;
     width: 700px;
@@ -1189,9 +1169,9 @@ document.head.insertAdjacentHTML('beforeend', `
   .blockly-stack-search-panel {
     flex: 1;
     min-width: 0;
-    border: 2px solid #ddd;
+    border: 2px solid var(--eaf-line, #ddd);
     border-radius: 4px;
-    background: #f9f9f9;
+    background: var(--eaf-surface-alt, #f9f9f9);
   }
   
   .blockly-stack-search-input-container {
@@ -1203,23 +1183,23 @@ document.head.insertAdjacentHTML('beforeend', `
     width: 100%;
     padding: 8px 12px;
     font-size: 14px;
-    border: 2px solid #ddd;
+    border: 2px solid var(--eaf-line, #ddd);
     border-radius: 4px;
     box-sizing: border-box;
   }
   
   .blockly-stack-search-input:focus {
     outline: none;
-    border-color: #1976d2;
+    border-color: var(--eaf-accent, #1976d2);
   }
   
   .blockly-stack-search-panel.active {
-    border-color: #1976d2;
-    background: #e3f2fd;
+    border-color: var(--eaf-accent, #1976d2);
+    background: var(--eaf-selected-bg, #e3f2fd);
   }
   
   .panel-title {
-    background: #1976d2;
+    background: var(--eaf-accent, #1976d2);
     color: white;
     padding: 8px 12px;
     font-weight: bold;
@@ -1230,20 +1210,20 @@ document.head.insertAdjacentHTML('beforeend', `
   }
   
   .blockly-stack-search-panel.active .panel-title {
-    background: #0d47a1;
+    background: var(--eaf-accent-strong, #0d47a1);
   }
   
   .blockly-stack-search-title {
     font-size: 18px;
     font-weight: bold;
-    color: #1976d2;
+    color: var(--eaf-accent, #1976d2);
     margin-bottom: 12px;
     text-align: center;
   }
   
   .blockly-stack-search-instructions {
     font-size: 14px;
-    color: #333;
+    color: var(--eaf-fg, #333);
     margin-bottom: 16px;
     text-align: center;
   }
@@ -1260,10 +1240,10 @@ document.head.insertAdjacentHTML('beforeend', `
   
   .blockly-stack-search-item {
     padding: 8px 12px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--eaf-line-soft, #eee);
     font-family: monospace;
     font-size: 14px;
-    color: #333;
+    color: var(--eaf-fg, #333);
   }
   
   .blockly-stack-search-item:last-child {
@@ -1271,19 +1251,19 @@ document.head.insertAdjacentHTML('beforeend', `
   }
   
   .blockly-stack-search-item:hover {
-    background: #e3f2fd;
+    background: var(--eaf-selected-bg, #e3f2fd);
   }
   
   .blockly-stack-search-item.selected {
-    background: #1976d2 !important;
+    background: var(--eaf-accent, #1976d2) !important;
     color: white !important;
     font-weight: bold;
-    border: 2px solid #0d47a1;
+    border: 2px solid var(--eaf-accent-strong, #0d47a1);
   }
   
   .blockly-stack-search-cancel {
     font-size: 12px;
-    color: #666;
+    color: var(--eaf-fg-muted, #666);
     text-align: center;
     font-style: italic;
   }

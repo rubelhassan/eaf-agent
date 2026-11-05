@@ -1,0 +1,51 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_weather">weather</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_weather">weather</field>
+        <value name="VALUE">
+            <block type="text" id="text_1">
+                <field name="TEXT">rain</field>
+            </block>
+        </value>
+        <next>
+            <block type="controls_if" id="if_1">
+                <mutation else="1"></mutation>
+                <value name="IF0">
+                    <block type="logic_compare" id="compare_1">
+                        <field name="OP">EQ</field>
+                        <value name="A">
+                            <block type="variables_get" id="get_1">
+                                <field name="VAR" id="var_weather">weather</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="text" id="text_2">
+                                <field name="TEXT">rain</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <statement name="DO0">
+                    <block type="text_print" id="print_1">
+                        <value name="TEXT">
+                            <block type="text" id="text_3">
+                                <field name="TEXT">Take an umbrella!</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+                <statement name="ELSE">
+                    <block type="text_print" id="print_2">
+                        <value name="TEXT">
+                            <block type="text" id="text_4">
+                                <field name="TEXT">Enjoy the sunshine!</field>
+                            </block>
+                        </value>
+                    </block>
+                </statement>
+            </block>
+        </next>
+    </block>
+</xml>

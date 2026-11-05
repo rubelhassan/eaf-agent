@@ -1,0 +1,56 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_myName">myName</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_myName">myName</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="TEXT"></mutation>
+                <field name="TYPE">TEXT</field>
+                <value name="TEXT">
+                    <block type="text" id="qB,P@@_J^?19R`U.Ln0O">
+                        <field name="TEXT">What is your name?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_1">
+                <value name="TEXT">
+                    <block type="text_join" id="join_1">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_1">
+                                <field name="TEXT">Hi, </field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="variables_get" id="get_1">
+                                <field name="VAR" id="var_myName">myName</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_2">
+                        <value name="TEXT">
+                            <block type="text" id="text_2">
+                                <field name="TEXT">You are awesome!</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_3">
+                                <value name="TEXT">
+                                    <block type="text" id="text_3">
+                                        <field name="TEXT">See you later!</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

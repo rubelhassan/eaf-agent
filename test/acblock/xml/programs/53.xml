@@ -1,0 +1,125 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_kids">kids</variable>
+        <variable id="var_pizzas">pizzas</variable>
+        <variable id="var_totalSlices">totalSlices</variable>
+        <variable id="var_perKid">perKid</variable>
+    </variables>
+    <block type="variables_set" id="set_kids" x="60" y="40">
+        <field name="VAR" id="var_kids">kids</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_kids">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_kids_prompt">
+                        <field name="TEXT">How many kids are coming to the party?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_pizzas">
+                <field name="VAR" id="var_pizzas">pizzas</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_pizzas">
+                        <mutation type="NUMBER"></mutation>
+                        <field name="TYPE">NUMBER</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_pizzas_prompt">
+                                <field name="TEXT">How many pizzas will you order?</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_totalSlices">
+                        <field name="VAR" id="var_totalSlices">totalSlices</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="math_totalSlices">
+                                <field name="OP">MULTIPLY</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_pizzas_1">
+                                        <field name="VAR" id="var_pizzas">pizzas</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_8">
+                                        <field name="NUM">8</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="text_print" id="print_totalSlices">
+                                <value name="TEXT">
+                                    <block type="text_join" id="join_totalSlices">
+                                        <mutation items="2"></mutation>
+                                        <value name="ADD0">
+                                            <block type="text" id="text_total_prefix">
+                                                <field name="TEXT">Total slices: </field>
+                                            </block>
+                                        </value>
+                                        <value name="ADD1">
+                                            <block type="variables_get" id="get_totalSlices_1">
+                                                <field name="VAR" id="var_totalSlices">totalSlices</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_perKid">
+                                        <field name="VAR" id="var_perKid">perKid</field>
+                                        <value name="VALUE">
+                                            <block type="math_arithmetic" id="math_perKid">
+                                                <field name="OP">DIVIDE</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_totalSlices_2">
+                                                        <field name="VAR" id="var_totalSlices">totalSlices</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="variables_get" id="get_kids_1">
+                                                        <field name="VAR" id="var_kids">kids</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="text_print" id="print_perKid">
+                                                <value name="TEXT">
+                                                    <block type="text_join" id="join_perKid">
+                                                        <mutation items="2"></mutation>
+                                                        <value name="ADD0">
+                                                            <block type="text" id="text_perKid_prefix">
+                                                                <field name="TEXT">Slices per kid: </field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="ADD1">
+                                                            <block type="variables_get" id="get_perKid_1">
+                                                                <field name="VAR" id="var_perKid">perKid</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                                <next>
+                                                    <block type="text_print" id="print_closing">
+                                                        <value name="TEXT">
+                                                            <block type="text" id="text_closing">
+                                                                <field name="TEXT">Hope everyone is hungry!</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </next>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

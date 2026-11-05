@@ -1,6 +1,7 @@
 // shortcut_assistance.js
 import * as Constants from '../constants';
 import { Speech } from '../audio/speech';
+import {sayDialog, speakDialogFocus} from './dialog_speech.js';
 
 export class ShortcutAssistance {
     /**
@@ -74,7 +75,7 @@ export class ShortcutAssistance {
             this.root.querySelector('.acc-shortcuts__dialog')?.focus();
         } catch {}
 
-        this.speech.update(
+        this._say(
             'Shortcut help opened. Use W or S to navigate shortcuts. ' +
             'Press Slash to search. Press Escape key to close.'
         );
@@ -99,7 +100,7 @@ export class ShortcutAssistance {
         this.prevFocus = null;
         this.isOpen = false;
 
-        this.speech.update('Shortcut help closed.');
+        this._say('Shortcut help closed.');
 
         // remove from DOM so nothing can intercept clicks
         this._teardownDOM();
@@ -216,8 +217,8 @@ export class ShortcutAssistance {
   transform: translate(-50%,-50%) scale(.985);
   inline-size: clamp(360px, 56vw, 860px);
   max-block-size: min(82vh, 720px);
-  background: #fff;
-  color: #111;
+  background: var(--eaf-surface, #fff);
+  color: var(--eaf-fg, #111);
   border-radius: 12px;
   box-shadow: 0 12px 36px rgba(0,0,0,.22);
   display: flex;
@@ -239,7 +240,7 @@ export class ShortcutAssistance {
 /* Header */
 .acc-shortcuts__header {
   padding: 14px 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--eaf-line-soft, #eee);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -260,7 +261,7 @@ export class ShortcutAssistance {
   border-radius: 8px;
 }
 .acc-shortcuts__close:focus-visible {
-  outline: 2px solid #4c8bf5;
+  outline: 2px solid var(--eaf-focus, #4c8bf5);
   outline-offset: 2px;
 }
 
@@ -271,7 +272,7 @@ export class ShortcutAssistance {
 }
 .acc-shortcuts__intro {
   margin: 12px 16px;
-  color: #333;
+  color: var(--eaf-fg, #333);
   font-size: 13.5px;
 }
 
@@ -279,8 +280,8 @@ export class ShortcutAssistance {
 .acc-shortcuts__footer {
   padding: 10px 14px;
   font-size: 12.5px;
-  color: #444;
-  border-top: 1px solid #eee;
+  color: var(--eaf-fg-muted, #444);
+  border-top: 1px solid var(--eaf-line-soft, #eee);
 }
 
 /* Search */
@@ -301,12 +302,12 @@ export class ShortcutAssistance {
   box-sizing: border-box;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid #cfd7e3;
+  border: 1px solid var(--eaf-line, #cfd7e3);
   font-size: 14px;
-  background: #fff;
+  background: var(--eaf-surface, #fff);
 }
 .acc-shortcuts__searchInput:focus-visible {
-  outline: 2px solid #4c8bf5;
+  outline: 2px solid var(--eaf-focus, #4c8bf5);
   outline-offset: 2px;
 }
 
@@ -332,13 +333,13 @@ export class ShortcutAssistance {
 }
 
 .acc-shortcuts__item + .acc-shortcuts__item {
-  border-top: 1px solid #f0f2f6;
+  border-top: 1px solid var(--eaf-line-soft, #f0f2f6);
 }
 
 /* Active (keyboard-nav) style */
 .acc-shortcuts__item--active {
-  background: #f6f7fb;
-  box-shadow: inset 0 0 0 2px #4c8bf5;
+  background: var(--eaf-surface-alt, #f6f7fb);
+  box-shadow: inset 0 0 0 2px var(--eaf-focus, #4c8bf5);
 }
 
 /* Left column (title + detail) */
@@ -359,7 +360,7 @@ export class ShortcutAssistance {
 }
 
 .acc-shortcuts__descDetail {
-  color: #444;
+  color: var(--eaf-fg-muted, #444);
   margin: 0;
   text-align: left;
 }
@@ -382,9 +383,9 @@ export class ShortcutAssistance {
   min-width: 22px;
   padding: 3px 9px;
   border-radius: 7px;
-  background: #f8fafc;
-  border: 1px solid #cfd7e3;
-  color: #111827;
+  background: var(--eaf-surface-alt, #f8fafc);
+  border: 1px solid var(--eaf-line, #cfd7e3);
+  color: var(--eaf-fg, #111827);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13.5px;
   line-height: 20px;
@@ -395,8 +396,8 @@ export class ShortcutAssistance {
 
 /* Focus style when rows are focusable (if you ever set tabindex="0") */
 .acc-shortcuts__item[tabindex="0"]:focus {
-  background: #f6f7fb;
-  box-shadow: inset 0 0 0 2px #4c8bf5;
+  background: var(--eaf-surface-alt, #f6f7fb);
+  box-shadow: inset 0 0 0 2px var(--eaf-focus, #4c8bf5);
   outline: none;
 }
 
@@ -439,15 +440,6 @@ export class ShortcutAssistance {
 /* ==========================
    Dark / Forced colors / R-M
    ========================== */
-@media (prefers-color-scheme: dark) {
-  .acc-shortcuts__dialog { background: #1f2023; color: #f0f2f5; }
-  .acc-shortcuts__item + .acc-shortcuts__item { border-color: #2b2e33; }
-  .acc-shortcuts__item--active { background: #27292d; box-shadow: inset 0 0 0 2px #4c8bf5; }
-  .acc-shortcuts__kbd { background: #2a2c31; border-color: #4a4f59; color: #f6f7fb; }
-  .acc-shortcuts__header, .acc-shortcuts__footer { border-color: #2b2e33; }
-  .acc-shortcuts__intro, .acc-shortcuts__descDetail { color: #cfd3da; }
-  .acc-shortcuts__searchInput { background: #1f2023; color: #f0f2f5; border-color: #4a4f59; }
-}
 
 @media (forced-colors: active) {
   .acc-shortcuts__item[tabindex="0"]:focus { outline: 2px solid Highlight; outline-offset: 0; box-shadow: none; }
@@ -506,6 +498,10 @@ export class ShortcutAssistance {
 
         // Dialog semantics
         const dialog = root.querySelector('.acc-shortcuts__dialog');
+        dialog.tabIndex = -1;
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-labelledby', 'acc-shortcuts-title');
+        root.querySelector('.acc-shortcuts__close').setAttribute('aria-label', 'Close shortcut help');
         // Stop underlying app from hijacking pointer/focus; allow close button to work.
         const swallow = (e) => e.stopPropagation();
         dialog.addEventListener('pointerdown', swallow, true);
@@ -653,9 +649,9 @@ export class ShortcutAssistance {
             const msg = total === 1
                 ? '1 shortcut found. Press Escape to focus it, then use W or S to navigate.'
                 : `${total} shortcuts found. Press Escape to focus result, then W or S to navigate.`;
-            this.speech.update(msg);
+            this._say(msg);
         } else {
-            this.speech.update(`${this.items.length} shortcuts available.`);
+            this._say(`${this.items.length} shortcuts available.`);
         }
     }
 
@@ -668,7 +664,11 @@ export class ShortcutAssistance {
     _onFocusInGuard(e) {
         if (!this.root || !this.isOpen) return;
         const isHidden = this.root.getAttribute('aria-hidden') === 'true';
-        if (!isHidden) return;
+        if (!isHidden) {
+            const target = e.target;
+            if (target.matches('input, button')) speakDialogFocus(target);
+            return;
+        }
         const fallback = document.querySelector('#blocklyDiv') || document.body;
         try {
             (this.prevFocus || fallback)?.focus?.();
@@ -694,7 +694,7 @@ export class ShortcutAssistance {
             const row = this.rowsView[nextIndex] || {};
             let label = (row.sr && row.sr.trim()) || el.dataset.sr || el.getAttribute('aria-label') || '';
             const pos = `${this.index + 1} of ${this.items.length}`;
-            this.speech.update(`${label}`);
+            this._say(`${label}`);
         }
     }
 
@@ -841,7 +841,10 @@ export class ShortcutAssistance {
             } catch {}
         });
 
-        this.speech.update('Search shortcuts. Type to filter by title. Press Escape to jump to results.');
+    }
+
+    _say(text) {
+        sayDialog(text, {fallback: (line) => this.speech.update(line)});
     }
 
     _onSearchInput(e) {

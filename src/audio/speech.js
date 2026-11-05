@@ -1,11 +1,24 @@
 import * as Blockly from 'blockly/core';
 import {Constants} from "../index";
 import * as Util from "../util/util";
+import {blockTypes} from "../blocks/registry";
+import {getOutputManager} from "../output/active.js";
+import {madeByWords} from '../blocks/authorship_marks.js';
+
+
+/** The stack a cursor node is in (its top block id), or null on the workspace. */
+function stackOf(node) {
+    if (!node) return null;
+    if (node.getType() === Blockly.ASTNode.types.WORKSPACE) return null;
+    const block = node.getType() === Blockly.ASTNode.types.STACK ? node.getLocation() : node.getSourceBlock?.();
+    return block?.getRootBlock?.().id ?? null;
+}
 
 export class Speech {
     constructor() {
         this.toggle = false;
         this.readTimeouts = [];
+        this.lastStack = undefined;
         this.dirWordMap = {
             [Blockly.ASTNode.types.NEXT]: 'bottom',
             [Blockly.ASTNode.types.PREVIOUS]: 'top',
@@ -14,13 +27,32 @@ export class Speech {
         }
     }
 
+    /** 'enteredStack' or 'leftStack' when the cursor is in another stack than at the last message. */
+    stackCue() {
+        const node = Blockly.getMainWorkspace?.()?.getCursor?.()?.getCurNode?.();
+        const stack = stackOf(node);
+        const before = this.lastStack;
+        this.lastStack = stack;
+        if (before === undefined || stack === before) return null;
+        return stack ? 'enteredStack' : 'leftStack';
+    }
+
     clearPreviousSpeeches() {
         this.readTimeouts.forEach(id => cancelAnimationFrame(id));
         this.readTimeouts = [];
     }
 
-    update(text) {
+    /**
+     * @param {string} text
+     * @param {{cue?: string}=} options  cue: an earcon played before the words (with an output manager)
+     */
+    update(text, {cue} = {}) {
         console.log("Speech: " + text);
+        const output = getOutputManager();
+        if (output) {
+            output.say({text, source: 'navigation', kind: 'navigation', cue: cue || this.stackCue()});
+            return;
+        }
         this.clearPreviousSpeeches();
         // Schedule single DOM change so screen reader announce exactly once
         const speak = () => {
@@ -152,12 +184,21 @@ export class Speech {
             }
         }
 
+        // custom block types describe themselves on focus
+        const customFocus = blockTypes.focusText(blockSvg);
+        if (customFocus) {
+            this.update(`${prefixTxt} ${customFocus}`);
+            return;
+        }
+
         // add speech for container‑type blocks
         if (this.getFirstStatementConnection(blockSvg)) {
             outStr = `container block ${outStr}`;
         }
 
-        this.update(`${prefixTxt} ${outStr}`);
+        // custom block types may add to any block's description (e.g. "Answers a question.")
+        const suffix = blockTypes.focusSuffix(blockSvg);
+        this.update(`${prefixTxt} ${outStr}${suffix ? `. ${suffix}` : ''}`);
     }
 
 
@@ -295,7 +336,7 @@ export class Speech {
                 return `${disabledPrefix}set variable ${fieldPhrase(blk,'VAR','name')} 
                 to ${inputsPhrase(blk,'VALUE','(value)')}`;
             default:
-                return `${disabledPrefix}${type}`;
+                return `${disabledPrefix}${blockTypes.describe(blk) ?? type}`;
         }
     }
 
@@ -364,7 +405,8 @@ export class Speech {
                 postfix = 'selected'
         }
 
-        this.update(`${prefix}: ${name} ${postfix}`);
+        const note = blockTypes.categoryNote(category, Blockly.getMainWorkspace?.());
+        this.update(`${prefix}: ${name}${note ? `, ${note}` : ''} ${postfix}`);
     }
 
 
@@ -420,7 +462,11 @@ export class Speech {
             ? 'back'
             : '';
 
-        const phrase = `Move ${dirstrt} to ${disabledPrefix} item ${label} under ${categoryName} category`;
+        const note = node.getSourceBlock ? blockTypes.flyoutNote(node.getSourceBlock()) : null;
+        // Choices shown outside the toolbox (e.g. a question's) have no category.
+        const where = categoryName ? ` under ${categoryName} category` : '';
+        const phrase = ['Move', dirstrt, 'to', disabledPrefix, 'item', `${label}${note ? `, ${note}` : ''}${where}`]
+            .filter(Boolean).join(' ');
         this.update(phrase);
     }
 
@@ -579,7 +625,7 @@ export class Speech {
             stackIndex};
     }
 
-    announceCursorLoc(node) {
+    announceCursorLoc(node, {after} = {}) {
         if (!node) {
             this.update('Cursor is on workspace.'); return;
         }
@@ -629,7 +675,8 @@ export class Speech {
             phrase += `, under the ${this.ordinalWord(containerBlockInfo.stackIndex)}) stack`;
         }
 
-        this.update(phrase);
+        const ending = after ?? madeByWords(srcBlock);
+        this.update(ending ? `${phrase}, ${ending}` : phrase);
     }
 
     announceEditModeToggle(editMode, curNode) {
@@ -642,8 +689,9 @@ export class Speech {
 
         if (block) {
             const label = this.friendlyName(block);
+            const hint = editMode ? blockTypes.editLock(block) : null;
             const phrase = editMode
-                ? `Entering edit mode on ${label}`
+                ? `Entering edit mode on ${label}${hint ? `. ${hint}` : ''}`
                 : `Leaving edit mode on ${label}`;
             this.update(phrase);
         } else {

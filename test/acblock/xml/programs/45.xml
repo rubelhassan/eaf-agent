@@ -1,0 +1,117 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="xvLSHswSTe-w[g:Cm|S[">r</variable>
+        <variable id="y?L[;KNW1(!gb31gw]sM">area</variable>
+        <variable id="6:`2FEf;t;=NUBYXe^V[">circ</variable>
+    </variables>
+    <block type="variables_set" id="set_r" x="30" y="30">
+        <field name="VAR" id="xvLSHswSTe-w[g:Cm|S[">r</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_r">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_r">
+                        <field name="TEXT">Radius in cm?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_area">
+                <field name="VAR" id="y?L[;KNW1(!gb31gw]sM">area</field>
+                <value name="VALUE">
+                    <block type="math_arithmetic" id="math_pi_times_r2">
+                        <field name="OP">MULTIPLY</field>
+                        <value name="A">
+                            <block type="math_constant" id="math_pi_1">
+                                <field name="CONSTANT">PI</field>
+                            </block>
+                        </value>
+                        <value name="B">
+                            <block type="math_arithmetic" id="math_r_pow2">
+                                <field name="OP">POWER</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_r_1">
+                                        <field name="VAR" id="xvLSHswSTe-w[g:Cm|S[">r</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="math_number" id="num_2">
+                                        <field name="NUM">2</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+                <next>
+                    <block type="variables_set" id="set_circ">
+                        <field name="VAR" id="6:`2FEf;t;=NUBYXe^V[">circ</field>
+                        <value name="VALUE">
+                            <block type="math_arithmetic" id="math_2pi_r">
+                                <field name="OP">MULTIPLY</field>
+                                <value name="A">
+                                    <block type="math_arithmetic" id="math_2_pi">
+                                        <field name="OP">MULTIPLY</field>
+                                        <value name="A">
+                                            <block type="math_number" id="num_2b">
+                                                <field name="NUM">2</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="math_constant" id="math_pi_2">
+                                                <field name="CONSTANT">PI</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="variables_get" id="get_r_2">
+                                        <field name="VAR" id="xvLSHswSTe-w[g:Cm|S[">r</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="text_print" id="print_area" x="30" y="190">
+        <value name="TEXT">
+            <block type="text_join" id="join_area">
+                <mutation items="2"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_area_label">
+                        <field name="TEXT">Area: </field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="variables_get" id="get_area_1">
+                        <field name="VAR" id="y?L[;KNW1(!gb31gw]sM">area</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_circ">
+                <value name="TEXT">
+                    <block type="text_join" id="join_circ">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_circ_label">
+                                <field name="TEXT">Circumference: </field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="variables_get" id="get_circ_1">
+                                <field name="VAR" id="6:`2FEf;t;=NUBYXe^V[">circ</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+</xml>

@@ -1,62 +1,62 @@
-# Build and deploy static content to GitHub Pages
-name: Deploy Blockly Workspace to Github Pages
-
-on:
-  push:
-    branches: ["develop"]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
-jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # Node setup for build
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-
-      - name: Build (creates dist/index.js)
-        run: npm run build
-
-      - name: Copy built file to test/acblock/keyboard-navigation
-        run: |
-          mkdir -p test/acblock/keyboard-navigation
-          cp dist/index.js test/acblock/keyboard-navigation/index.js
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      # Upload only the 'test/acblock' directory as the site root
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: "test/acblock"
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+## Build and deploy static content to GitHub Pages
+#name: Deploy Blockly Workspace to Github Pages
+#
+#on:
+#  push:
+#    branches: ["develop"]
+#  workflow_dispatch:
+#
+#permissions:
+#  contents: read
+#  pages: write
+#  id-token: write
+#
+#concurrency:
+#  group: "pages"
+#  cancel-in-progress: false
+#
+#jobs:
+#  deploy:
+#    environment:
+#      name: github-pages
+#      url: ${{ steps.deployment.outputs.page_url }}
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#
+#      # Node setup for build
+#      - name: Setup Node
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: "20"
+#          cache: "npm"
+#
+#      - name: Install dependencies
+#        run: |
+#          if [ -f package-lock.json ]; then
+#            npm ci
+#          else
+#            npm install
+#          fi
+#
+#      - name: Build (creates dist/index.js)
+#        run: npm run build
+#
+#      - name: Copy built file to test/acblock/keyboard-navigation
+#        run: |
+#          mkdir -p test/acblock/keyboard-navigation
+#          cp dist/index.js test/acblock/keyboard-navigation/index.js
+#
+#      - name: Setup Pages
+#        uses: actions/configure-pages@v5
+#
+#      # Upload only the 'test/acblock' directory as the site root
+#      - name: Upload artifact
+#        uses: actions/upload-pages-artifact@v3
+#        with:
+#          path: "test/acblock"
+#
+#      - name: Deploy to GitHub Pages
+#        id: deployment
+#        uses: actions/deploy-pages@v4

@@ -1,0 +1,116 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_scores">scores</variable>
+        <variable id="var_count">count</variable>
+        <variable id="var_x">x</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_scores">scores</field>
+        <value name="VALUE">
+            <block type="lists_create_with" id="list_1">
+                <mutation items="3"></mutation>
+                <value name="ADD0">
+                    <block type="math_number" id="num_1">
+                        <field name="NUM">10</field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="math_number" id="num_2">
+                        <field name="NUM">90</field>
+                    </block>
+                </value>
+                <value name="ADD2">
+                    <block type="math_number" id="T`.~|h^7Y31sswgV_e~A">
+                        <field name="NUM">60</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_2">
+                <field name="VAR" id="var_count">count</field>
+                <value name="VALUE">
+                    <block type="math_number" id="num_3">
+                        <field name="NUM">0</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="text_print" id="print_1">
+                        <value name="TEXT">
+                            <block type="text" id="text_1">
+                                <field name="TEXT">Checking...</field>
+                            </block>
+                        </value>
+                        <next>
+                            <block type="controls_forEach" id="foreach_1">
+                                <field name="VAR" id="var_x">x</field>
+                                <value name="LIST">
+                                    <block type="variables_get" id="get_1">
+                                        <field name="VAR" id="var_scores">scores</field>
+                                    </block>
+                                </value>
+                                <statement name="DO">
+                                    <block type="controls_if" id="if_1">
+                                        <value name="IF0">
+                                            <block type="logic_compare" id="compare_1">
+                                                <field name="OP">GT</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_2">
+                                                        <field name="VAR" id="var_x">x</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="math_number" id="num_4">
+                                                        <field name="NUM">50</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <statement name="DO0">
+                                            <block type="variables_set" id="set_3">
+                                                <field name="VAR" id="var_count">count</field>
+                                                <value name="VALUE">
+                                                    <block type="math_arithmetic" id="arith_1">
+                                                        <field name="OP">ADD</field>
+                                                        <value name="A">
+                                                            <block type="variables_get" id="get_3">
+                                                                <field name="VAR" id="var_count">count</field>
+                                                            </block>
+                                                        </value>
+                                                        <value name="B">
+                                                            <block type="math_number" id="num_5">
+                                                                <field name="NUM">1</field>
+                                                            </block>
+                                                        </value>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </statement>
+                                    </block>
+                                </statement>
+                                <next>
+                                    <block type="text_print" id="print_3">
+                                        <value name="TEXT">
+                                            <block type="text" id="text_2">
+                                                <field name="TEXT">Passed Count:</field>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="text_print" id="print_4">
+                                                <value name="TEXT">
+                                                    <block type="variables_get" id="get_5">
+                                                        <field name="VAR" id="var_count">count</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

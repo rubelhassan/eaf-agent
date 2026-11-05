@@ -1,0 +1,55 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="var_count">count</variable>
+    </variables>
+    <block type="variables_set" id="set_1" x="20" y="20">
+        <field name="VAR" id="var_count">count</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_1">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_1">
+                        <field name="TEXT">How many waves?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_1">
+                <value name="TEXT">
+                    <block type="text" id="text_2">
+                        <field name="TEXT">Starting Monitor...</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_repeat_ext" id="repeat_1">
+                        <value name="TIMES">
+                            <block type="variables_get" id="get_1">
+                                <field name="VAR" id="var_count">count</field>
+                            </block>
+                        </value>
+                        <statement name="DO">
+                            <block type="text_print" id="print_2">
+                                <value name="TEXT">
+                                    <block type="text" id="text_3">
+                                        <field name="TEXT">^v^v</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </statement>
+                        <next>
+                            <block type="text_print" id="print_3">
+                                <value name="TEXT">
+                                    <block type="text" id="text_4">
+                                        <field name="TEXT">End of sound.</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </next>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+</xml>

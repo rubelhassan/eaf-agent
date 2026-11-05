@@ -16,8 +16,21 @@ import {initStackSearch, disposeStackSearch, getStackSearchManager} from './labe
 import {ShortcutAssistance} from "./util/shortcut_assistance";
 import {NavigationalHint} from "./util/navigational_hint";
 import {ZoomingControl} from './util/zooming_controls';
+import {ModeBadge} from './util/mode_badge';
+import {FocusMagnifier} from './util/focus_magnifier.js';
+import {observeProperty} from './util/observe';
 import {FlyoutCompatibilityManager} from "./util/flyout_compatibility_manager"
 import {WorkspaceContainerFilter} from "./util/workspace_flyout_manager";
+import {blockTypes} from './blocks/registry';
+
+/** A connection action moves its inferior block, which may differ from the cursor's owner.
+ * @param {?Blockly.ASTNode} node @returns {?Blockly.Block}
+ */
+function movingBlock(node) {
+  const connection = node?.isConnection?.() ? node.getLocation() : null;
+  const inferior = connection && (connection.isSuperior() ? connection.targetConnection : connection);
+  return inferior?.getSourceBlock?.() || node?.getSourceBlock?.() || null;
+}
 
 /**
  * Class for registering shortcuts for keyboard navigation.
@@ -54,6 +67,10 @@ export class NavigationController {
       this.accessibleCursor.setSpeechListener(this.speech);
       this.shortcutAssistance = new ShortcutAssistance(this.speech);
       this.navHint = new NavigationalHint({ speech: this.speech });
+      /** Visible Navigation/Edit mode cue; hosts can call modeBadge.setEnabled(false). */
+      this.modeBadge = new ModeBadge();
+      /** Enlarged copy of the focused part (M, Ctrl+Shift+Plus); hosts read and set its level. */
+      this.focusMagnifier = new FocusMagnifier({say: (line) => this.speech?.update(line)});
     }
     this.keyHintListener = null;
     this.zooming = new ZoomingControl(this.speech);
@@ -68,6 +85,46 @@ export class NavigationController {
   init() {
     this.addShortcutHandlers();
     this.registerDefaults();
+    this.lockMovesWhileEditing_();
+  }
+
+  /**
+   * Some blocks (e.g. a learner's question) are edited as a whole: while Edit
+   * mode is on them, moving between their connections is refused with the
+   * block type's hint. Only in the workspace; the toolbox and flyout keep their keys.
+   */
+  lockMovesWhileEditing_() {
+    const names = [
+      Constants.SHORTCUT_NAMES.PREVIOUS, Constants.SHORTCUT_NAMES.NEXT,
+      Constants.SHORTCUT_NAMES.OUT, Constants.SHORTCUT_NAMES.IN,
+      Constants.SHORTCUT_NAMES.LAYER_IN, Constants.SHORTCUT_NAMES.LAYER_OUT,
+      Constants.SHORTCUT_NAMES.DISCONNECT, Constants.SHORTCUT_NAMES.PASTE,
+      Constants.SHORTCUT_NAMES.MOVE_STATEMENT_UP, Constants.SHORTCUT_NAMES.MOVE_STATEMENT_DOWN,
+    ];
+    const registry = Blockly.ShortcutRegistry.registry;
+    const shortcuts = registry.getRegistry();
+    for (const name of names) {
+      const shortcut = shortcuts[name];
+      if (!shortcut?.callback) continue;
+      const original = shortcut.callback;
+      registry.register({
+        ...shortcut,
+        callback: (workspace, ...rest) => {
+          const hint = this.editLockHint_(workspace);
+          if (!hint) return original(workspace, ...rest);
+          this.speech?.update(`You can't move inside it. ${hint}`);
+          return true;
+        },
+      }, /* allowOverrides= */ true);
+    }
+  }
+
+  /** @returns {?string} The hint when Edit mode is on a block that is edited as a whole. */
+  editLockHint_(workspace) {
+    if (this.navigation.getState(workspace) !== Constants.STATE.WORKSPACE) return null;
+    const cursor = workspace.getCursor?.();
+    if (!cursor?.editMode) return null;
+    return blockTypes.editLock(cursor.editingBlock?.getSourceBlock?.() || null);
   }
 
   addKeyHintListener(keyHint) {
@@ -216,6 +273,16 @@ export class NavigationController {
     if (this.accessibleCursor) {
       const markerManager = Blockly.getMainWorkspace().getMarkerManager();
       markerManager.setCursor(this.accessibleCursor);
+      this.modeBadge.attach(workspace, this.accessibleCursor);
+      this.focusMagnifier.attach(workspace);
+      blockTypes.setNavigationHost(this);
+      const cursor = this.accessibleCursor;
+      const syncEditTarget = () => blockTypes.editTargetChanged(workspace,
+          cursor.editMode ? cursor.editingBlock?.getSourceBlock?.() || null : null);
+      this.editWatchers_ = [
+        observeProperty(cursor, 'editMode', syncEditTarget),
+        observeProperty(cursor, 'editingBlock', syncEditTarget),
+      ];
     }
 
     // Initialize block numbers and stack labels
@@ -740,10 +807,17 @@ export class NavigationController {
         const dirKey = acCursor.editConnection;
 
         switch (this.navigation.getState(workspace)) {
-          case Constants.STATE.WORKSPACE:
+          case Constants.STATE.WORKSPACE: {
+            // Custom block types may handle Enter on themselves (e.g. question details).
+            const node = acCursor.getCurNode();
+            if (node?.getType() === Blockly.ASTNode.types.BLOCK &&
+                blockTypes.activate(node.getSourceBlock(), {workspace, speech: this.speech})) {
+              return true;
+            }
             this.navigation.handleEnterForWS(workspace);
             this.speech.announceMark(workspace.getCursor().getCurNode(), originalBlock, dirKey)
             return true;
+          }
           case Constants.STATE.FLYOUT:
             flyoutCursor = this.navigation.getFlyoutCursor(workspace);
             if (!flyoutCursor) {
@@ -763,14 +837,22 @@ export class NavigationController {
                   return true;
                 }
                 let flyoutBlock = this.navigation.getFlyoutCursor(workspace).getCurNode()?.getSourceBlock();
+                // Custom block rules (e.g. a question's intended blocks) explain their own rejections.
+                const customRejection = () => {
+                  if (!markerNode?.isConnection() || !flyoutBlock) return null;
+                  const target = blockTypes.resolveTarget(markerNode, Blockly.ASTNode.createBlockNode(flyoutBlock));
+                  return target?.isConnection() ?
+                    blockTypes.explainRejection(flyoutBlock, target.getLocation()) :
+                    null;
+                };
                 if (flyoutBlock.isEnabled && !flyoutBlock.isEnabled()) {
                   const disabledBlockName = this.speech.friendlyName(flyoutBlock) || 'block';
-                  this.speech.update(`s${disabledBlockName} is disabled and cannot be inserted.`);
+                  this.speech.update(customRejection() || `${disabledBlockName} is disabled and cannot be inserted.`, {cue: 'rejected'});
                   return true;
                 }
                 const inserted = this.navigation.insertFromFlyout(workspace);
                 if (!inserted) {
-                  this.speech.update('The selected block is not compatible with the marked connection.');
+                  this.speech.update(customRejection() || 'The selected block is not compatible with the marked connection.', {cue: 'rejected'});
                   return true;
                 }
                 const newBlock = workspace.getCursor().getCurNode();
@@ -812,6 +894,12 @@ export class NavigationController {
           );
           return true;
         }
+        const block = this.accessibleCursor.getCurNode()?.getSourceBlock?.();
+        const refusal = !this.accessibleCursor.editMode && blockTypes.actionRefusal(block, 'edit');
+        if (refusal) {
+          this.speech.update(refusal);
+          return true;
+        }
         const editMode = this.accessibleCursor.toggleEditMode();
         const curNode = this.accessibleCursor.getCurNode();
         this.navigation.removeMark?.(workspace);
@@ -840,18 +928,24 @@ export class NavigationController {
             workspace.keyboardAccessibilityMode && !workspace.options.readOnly
         );
       },
-      callback: (workspace) => {
+      callback: (workspace, event) => {
         switch (this.navigation.getState(workspace)) {
           case Constants.STATE.WORKSPACE:
             // must be in Edit mode
             const cursor = workspace && workspace.getCursor ? workspace.getCursor() : null;
+            const node = cursor?.getCurNode?.();
+            const refusal = blockTypes.actionRefusal(movingBlock(node), 'edit');
+            if (refusal) {
+              event?.preventDefault();
+              this.speech.update(refusal);
+              return true;
+            }
             if (!cursor || !cursor?.editMode) {
               this.speech.update('Blocks can be disconnected only in Edit mode. Press E to activate Edit mode.');
               return true;
             }
 
             // must be on a connection
-            const node = cursor.getCurNode ? cursor.getCurNode() : null;
             /** @type {!Blockly.RenderedConnection} */ const conn = node?.getLocation();
             if (!conn?.isConnected?.() || !conn.targetConnection) {
               this.speech.update('Move to a connection to disconnect blocks.');
@@ -1353,8 +1447,8 @@ export class NavigationController {
       callback: (workspace) => {
         const runButton = document.querySelector('[data-run]');
         if (runButton && !runButton.disabled) {
+          // The run says its own messages ("Running program", still running, finished, stopped).
           runButton.click();
-          this.announceToScreenReader('Running program');
           return true;
         }
         return false;
@@ -1392,8 +1486,9 @@ export class NavigationController {
             return (
                 !Blockly.Gesture.inProgress() &&
                 sourceBlock &&
-                sourceBlock.isDeletable() &&
-                sourceBlock.isMovable()
+                ((sourceBlock.isDeletable() && sourceBlock.isMovable()) ||
+                  (!sourceBlock.isShadow() && sourceBlock.contextMenu !== false &&
+                    !!blockTypes.actionRefusal(sourceBlock, 'edit')))
             );
           }
         }
@@ -1545,7 +1640,7 @@ export class NavigationController {
           } else if (wasDisabled) {
             blockToAttach.setEnabled(false);
           }
-          this.speech.update('The block is not compatible with this connection.');
+          this.speech.update('The block is not compatible with this connection.', {cue: 'rejected'});
           return true;
         }
 
@@ -1647,21 +1742,28 @@ export class NavigationController {
         ) {
           const curNode = workspace.getCursor().getCurNode();
           if (curNode && curNode.getSourceBlock()) {
-            const sourceBlock = curNode.getSourceBlock();
+            const sourceBlock = movingBlock(curNode);
             return (
                 !Blockly.Gesture.inProgress() &&
                 sourceBlock &&
-                sourceBlock.isDeletable() &&
-                sourceBlock.isMovable() &&
+                ((sourceBlock.isDeletable() && sourceBlock.isMovable()) ||
+                  !!blockTypes.actionRefusal(sourceBlock, 'delete')) &&
                 !sourceBlock.workspace.isFlyout
             );
           }
         }
         return false;
       },
-      callback: (workspace) => {
+      callback: (workspace, event) => {
         if (this.navigation.getState(workspace) !== Constants.STATE.WORKSPACE) {
           return false;
+        }
+        const node = workspace.getCursor()?.getCurNode?.();
+        const refusal = blockTypes.actionRefusal(movingBlock(node), 'delete');
+        if (refusal) {
+          event?.preventDefault();
+          this.speech.update(refusal);
+          return true;
         }
         // already has detached block
         if (this.detachedBlock && !this.detachedBlock.isDisposed?.()) {
@@ -1675,7 +1777,6 @@ export class NavigationController {
           return true;
         }
 
-        const node = cursor?.getCurNode?.();
         const block = node?.getSourceBlock?.();
         if (!block || block.isShadow?.() || block.workspace?.isFlyout) {
           this.speech.update('Nothing to detach here.');
@@ -1683,12 +1784,7 @@ export class NavigationController {
         }
 
         // prefer detaching inferior child when cursor is on a live connection that is currently connected.
-        let targetBlock = block;
-        if (node.isConnection()) {
-          const conn = node.getLocation();
-          const inferior = conn.isSuperior ? (conn.isSuperior() ? conn.targetConnection : conn) : null;
-          targetBlock = inferior?.getSourceBlock?.() || block;
-        }
+        const targetBlock = movingBlock(node);
 
 
         // capture the context before we unplug, so we know where to focus after
@@ -1811,7 +1907,7 @@ export class NavigationController {
           const curNode = workspace.getCursor().getCurNode();
           if (curNode && curNode.getSourceBlock()) {
             const sourceBlock = curNode.getSourceBlock();
-            return sourceBlock && sourceBlock.isDeletable();
+            return sourceBlock && (sourceBlock.isDeletable() || !!blockTypes.actionRefusal(sourceBlock, 'delete'));
           }
         }
         return false;
@@ -1823,6 +1919,11 @@ export class NavigationController {
         // Do this first to prevent an error in the delete code from resulting
         // in data loss.
         e.preventDefault();
+        const refusal = blockTypes.actionRefusal(sourceBlock, 'delete');
+        if (refusal) {
+          this.speech.update(refusal);
+          return true;
+        }
         // Don't delete while dragging.  Jeez.
         if (Blockly.Gesture.inProgress()) {
           return false;
@@ -1975,8 +2076,8 @@ export class NavigationController {
           requestAnimationFrame(() => {
             const ta = queryTextarea();
             if (ta) {
-              // make SR prefer your live region (#blockReader) after focus
-              ta.setAttribute('aria-describedby', 'blockReader');
+              // Keep navigation announcements out of the field's accessible description.
+              ta.setAttribute('aria-label', 'Comment');
               try {
                 ta.focus({preventScroll: true});
               } catch {
@@ -2485,7 +2586,6 @@ export class NavigationController {
     );
   }
 
-
   /**
    * Keyboard shortcut to open the first editable dropdown on the current block.
    * Shift + F
@@ -2665,7 +2765,72 @@ export class NavigationController {
    * Removes all the keyboard navigation shortcuts.
    * @public
    */
+  /**
+   * Shows blocks in the flyout for inserting at `target` (e.g. a question's
+   * choices). With keyboard navigation on, Edit mode starts at `anchor`, the marker
+   * goes on `target` and focus moves into the flyout, so W/S, Enter and Esc work
+   * as in the toolbox.
+   */
+  showChoices(workspace, {items, target, anchor, message}) {
+    const flyout = workspace.getFlyout?.();
+    if (!flyout) return false;
+    workspace.getToolbox()?.clearSelection();
+    flyout.show(items);
+    if (workspace.keyboardAccessibilityMode && this.accessibleCursor) {
+      const cursor = workspace.getCursor();
+      // Flyout inserts only happen in Edit mode.
+      if (!cursor.editMode) {
+        cursor.setCurNode(Blockly.ASTNode.createBlockNode(anchor));
+        cursor.toggleEditMode();
+      }
+      this.navigation.getMarker(workspace).setCurNode(Blockly.ASTNode.createConnectionNode(target));
+      this.navigation.focusFlyout(workspace);
+    }
+    const first = flyout.getContents()[0];
+    const label = first?.block ? this.speech.blockToText(first.block) : first?.button?.getText();
+    const note = first?.block && blockTypes.flyoutNote(first.block);
+    if (message) this.speech?.update(`${message}${label ? ` First choice: ${label}${note ? `, ${note}` : ''}.` : ''}`);
+    return true;
+  }
+
+  /**
+   * Back to Navigation mode on the first stack (e.g. after a new program loads):
+   * Edit mode and the marker are cleared, since their blocks may be gone.
+   */
+  resetNavigation(workspace) {
+    // Wait until the load's events are delivered: a delete event for an old block
+    // with the same id as a new one would otherwise move the cursor off the stack.
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      workspace.removeChangeListener(listener);
+      clearTimeout(fallback);
+      this.resetNow_(workspace);
+    };
+    const listener = () => setTimeout(run, 0);
+    workspace.addChangeListener(listener);
+    const fallback = setTimeout(run, 200);
+  }
+
+  resetNow_(workspace) {
+    if (!workspace.keyboardAccessibilityMode) return;
+    const cursor = workspace.getCursor();
+    if (cursor?.editMode) {
+      cursor.editMode = false;
+      cursor.editingBlock = null;
+      cursor.editConnection = null;
+    }
+    this.navigation.removeMark(workspace);
+    this.navigation.focusWorkspace(workspace);
+    const node = cursor?.getCurNode();
+    const label = node?.getType() === Blockly.ASTNode.types.STACK ? getStackLabelFromStackNode(node, workspace) : null;
+    this.speech?.update(label ? `Navigation mode, on stack ${label}.` : 'Navigation mode.');
+  }
+
   dispose() {
+    blockTypes.setNavigationHost(null);
+    this.editWatchers_?.forEach((stop) => stop());
     const shortcutNames = Object.values(Constants.SHORTCUT_NAMES);
     for (const name of shortcutNames) {
       Blockly.ShortcutRegistry.registry.unregister(name);
@@ -2673,6 +2838,8 @@ export class NavigationController {
     this.removeShortcutHandlers();
     this.navigation.dispose();
     this.shortcutAssistance?.dispose?.();
+    this.modeBadge?.dispose();
+    this.focusMagnifier?.dispose();
   }
 
   applyToolboxFilter(workspace) {
@@ -2703,14 +2870,11 @@ export class NavigationController {
   }
 
   /**
-   * Announce message to screen reader using blockReader element
+   * Announce a message through Speech (screen reader or system voice)
    * @param {string} message The message to announce
    * @protected
    */
   announceToScreenReader(message) {
-    const blockReader = document.getElementById('blockReader');
-    if (blockReader) {
-      blockReader.textContent = message;
-    }
+    this.speech.update(message);
   }
 }

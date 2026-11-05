@@ -1,0 +1,173 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+    <variables>
+        <variable id="K4B_])0w8xXZ#gUc=Zxc">balance</variable>
+        <variable id="LfzH#cIt#2bZxFL%eyL`">goal</variable>
+        <variable id="VnXt|lp/[lY1qnq[x[Pu">rate</variable>
+        <variable id="HJvM8C3:A0$h~!EBid4:">years</variable>
+        <variable id="7xmX9XKpz?isB~?5Wd3M">interest</variable>
+    </variables>
+    <block type="variables_set" id="set_balance" x="10" y="10">
+        <field name="VAR" id="K4B_])0w8xXZ#gUc=Zxc">balance</field>
+        <value name="VALUE">
+            <block type="text_prompt_ext" id="prompt_balance">
+                <mutation type="NUMBER"></mutation>
+                <field name="TYPE">NUMBER</field>
+                <value name="TEXT">
+                    <block type="text" id="text_prompt_balance">
+                        <field name="TEXT">Starting Amount?</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_rate">
+                <field name="VAR" id="VnXt|lp/[lY1qnq[x[Pu">rate</field>
+                <value name="VALUE">
+                    <block type="text_prompt_ext" id="prompt_rate">
+                        <mutation type="NUMBER"></mutation>
+                        <field name="TYPE">NUMBER</field>
+                        <value name="TEXT">
+                            <block type="text" id="text_prompt_rate">
+                                <field name="TEXT">Interest Rate (decimal)?</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+    <block type="variables_set" id="set_goal" x="10" y="110">
+        <field name="VAR" id="LfzH#cIt#2bZxFL%eyL`">goal</field>
+        <value name="VALUE">
+            <block type="math_arithmetic" id="math_balance_x2">
+                <field name="OP">MULTIPLY</field>
+                <value name="A">
+                    <block type="variables_get" id="get_balance_1">
+                        <field name="VAR" id="K4B_])0w8xXZ#gUc=Zxc">balance</field>
+                    </block>
+                </value>
+                <value name="B">
+                    <block type="math_number" id="num_2">
+                        <field name="NUM">2</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="variables_set" id="set_years">
+                <field name="VAR" id="HJvM8C3:A0$h~!EBid4:">years</field>
+                <value name="VALUE">
+                    <block type="math_number" id="num_0">
+                        <field name="NUM">0</field>
+                    </block>
+                </value>
+                <next>
+                    <block type="controls_whileUntil" id="while_double">
+                        <field name="MODE">WHILE</field>
+                        <value name="BOOL">
+                            <block type="logic_compare" id="cmp_balance_goal">
+                                <field name="OP">LT</field>
+                                <value name="A">
+                                    <block type="variables_get" id="get_balance_2">
+                                        <field name="VAR" id="K4B_])0w8xXZ#gUc=Zxc">balance</field>
+                                    </block>
+                                </value>
+                                <value name="B">
+                                    <block type="variables_get" id="get_goal_1">
+                                        <field name="VAR" id="LfzH#cIt#2bZxFL%eyL`">goal</field>
+                                    </block>
+                                </value>
+                            </block>
+                        </value>
+                        <statement name="DO">
+                            <block type="variables_set" id="set_interest">
+                                <field name="VAR" id="7xmX9XKpz?isB~?5Wd3M">interest</field>
+                                <value name="VALUE">
+                                    <block type="math_arithmetic" id="math_balance_rate">
+                                        <field name="OP">MULTIPLY</field>
+                                        <value name="A">
+                                            <block type="variables_get" id="get_balance_3">
+                                                <field name="VAR" id="K4B_])0w8xXZ#gUc=Zxc">balance</field>
+                                            </block>
+                                        </value>
+                                        <value name="B">
+                                            <block type="variables_get" id="get_rate_1">
+                                                <field name="VAR" id="VnXt|lp/[lY1qnq[x[Pu">rate</field>
+                                            </block>
+                                        </value>
+                                    </block>
+                                </value>
+                                <next>
+                                    <block type="variables_set" id="set_balance_new">
+                                        <field name="VAR" id="K4B_])0w8xXZ#gUc=Zxc">balance</field>
+                                        <value name="VALUE">
+                                            <block type="math_arithmetic" id="math_balance_add">
+                                                <field name="OP">ADD</field>
+                                                <value name="A">
+                                                    <block type="variables_get" id="get_balance_4">
+                                                        <field name="VAR" id="K4B_])0w8xXZ#gUc=Zxc">balance</field>
+                                                    </block>
+                                                </value>
+                                                <value name="B">
+                                                    <block type="variables_get" id="get_interest_1">
+                                                        <field name="VAR" id="7xmX9XKpz?isB~?5Wd3M">interest</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </value>
+                                        <next>
+                                            <block type="math_change" id="change_years">
+                                                <field name="VAR" id="HJvM8C3:A0$h~!EBid4:">years</field>
+                                                <value name="DELTA">
+                                                    <block type="math_number" id="num_1">
+                                                        <field name="NUM">1</field>
+                                                    </block>
+                                                </value>
+                                            </block>
+                                        </next>
+                                    </block>
+                                </next>
+                            </block>
+                        </statement>
+                    </block>
+                </next>
+            </block>
+        </next>
+    </block>
+    <block type="text_print" id="print_years" x="10" y="370">
+        <value name="TEXT">
+            <block type="text_join" id="join_years">
+                <mutation items="2"></mutation>
+                <value name="ADD0">
+                    <block type="text" id="text_years_label">
+                        <field name="TEXT">Years to double: </field>
+                    </block>
+                </value>
+                <value name="ADD1">
+                    <block type="variables_get" id="get_years_1">
+                        <field name="VAR" id="HJvM8C3:A0$h~!EBid4:">years</field>
+                    </block>
+                </value>
+            </block>
+        </value>
+        <next>
+            <block type="text_print" id="print_balance">
+                <value name="TEXT">
+                    <block type="text_join" id="join_balance">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                            <block type="text" id="text_balance_label">
+                                <field name="TEXT">Final Amount: </field>
+                            </block>
+                        </value>
+                        <value name="ADD1">
+                            <block type="variables_get" id="get_balance_5">
+                                <field name="VAR" id="K4B_])0w8xXZ#gUc=Zxc">balance</field>
+                            </block>
+                        </value>
+                    </block>
+                </value>
+            </block>
+        </next>
+    </block>
+</xml>
