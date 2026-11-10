@@ -119,15 +119,27 @@ function statusText(status) {
  * skipped while any question is empty.
  * @param {!Blockly.Workspace} workspace
  * @param {{execute: function(!Array<string>): (!import('./task_tests.js').Execution|!Promise<!import('./task_tests.js').Execution>),
- *          locate?: function(!Blockly.Block): string}} host
- * @returns {!Promise<{lines: !Array<string>, summary: string}>}  Lines for the output panel; a short spoken summary.
+ *          locate?: function(!Blockly.Block): string, submittedQuestions?: !Array<!Object>}} host
+ * @returns {!Promise<{lines: !Array<string>, summary: string, questionLines: !Array<!Object>}>} Text and optional result styling.
  */
-export async function assess(workspace, {execute, locate = () => ''}) {
+export async function assess(workspace, {execute, locate = () => '', submittedQuestions}) {
   const lines = [];
   const summary = [];
+  const questionLines = [];
   const statuses = questionStatuses(workspace);
 
-  if (statuses.length) {
+  if (submittedQuestions) {
+    if (submittedQuestions.length) {
+      const solved = submittedQuestions.filter(question => question.solved).length;
+      const unchecked = submittedQuestions.filter(question => question.solved === null).length;
+      const total = `Questions: ${solved} of ${submittedQuestions.length} solved.${unchecked ? ` ${unchecked} not checked.` : ''}`;
+      lines.push(total); summary.push(total);
+      for (const question of submittedQuestions) {
+        if (question.solved !== null) questionLines.push({index: lines.length, solved: question.solved});
+        lines.push(`  Question ${question.number}: ${question.solved === null ? 'Not checked' : question.solved ? 'Solved' : 'Not solved'}`);
+      }
+    }
+  } else if (statuses.length) {
     const fits = statuses.filter((s) => s.state !== AnswerState.EMPTY && !isMisfit(s.state)).length;
     lines.push(`Questions: ${fits} of ${statuses.length} fit.`);
     summary.push(`Questions: ${fits} of ${statuses.length} fit.`);
@@ -157,5 +169,5 @@ export async function assess(workspace, {execute, locate = () => ''}) {
       if (!result.ok && result.lines.length) lines.push(`    Printed: ${result.lines.join(' | ')}`);
     }
   }
-  return {lines, summary: summary.join(' ')};
+  return {lines, summary: summary.join(' '), questionLines};
 }

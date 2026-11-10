@@ -138,3 +138,4 @@ export {assess, learnerRunWarning, questionStatuses, runGate} from './check.js';
 export {TaskTestsDialog} from './ui/task_tests_dialog.js';
 export {ModalForm} from './ui/modal_form.js';
 export {checkProgram, isSolved, createSolvedWatcher, uncoveredQuestions} from './solved.js';
+export {submissionQuestions} from './submission.js';
