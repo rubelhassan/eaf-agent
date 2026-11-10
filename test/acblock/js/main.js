@@ -223,8 +223,181 @@ function downloadXml(xml, suffix) {
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
+/** Keyboard and button submissions share one confirmation and one write. @param {!Object} options */
+function createWorkSubmission({workspace, document: doc, ModalForm, snapshot, save, say, download}) {
+    let dialog = null; let pending = false; let disposed = false;
+    function confirm() {
+        return new Promise(resolve => {
+            let settled = false;
+            const finish = result => { if (!settled) { settled = true; resolve(result); } };
+            class SubmitForm extends ModalForm {
+                close_() { const opened = this.isOpen(); super.close_(); if (opened) finish(false); }
+            }
+            dialog = new SubmitForm();
+            const submit = dialog.button_('Submit', () => {finish(true); dialog.close_();}, true);
+            const no = dialog.button_('No', () => dialog.close_());
+            dialog.openShell_('Submit your work?', [dialog.help_('Your teacher will see your program and how you made it.')], [submit, no]);
+            dialog.backdrop_.classList.add('work-submit-modal');
+            // Keep Settings open behind the modal so focus can return to Save my work.
+            dialog.dialog_.addEventListener('click', event => event.stopPropagation());
+            submit.focus();
+        });
+    }
+    async function open({downloadFile = false} = {}) {
+        if (pending || disposed) return;
+        pending = true;
+        try {
+            if (!await confirm() || disposed) return;
+            const body = await snapshot();
+            if (downloadFile) download(body.programXml);
+            const result = await save(body);
+            if (!/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}$/.test(result?.code)) throw new Error('Invalid submission code');
+            if (!disposed) say(`Submitted. Your submission id is ${result.code}.`,
+                `Submitted. Your submission id is ${result.code.split('').join(' ')}.`);
+        } catch (error) {
+            if (!disposed) say('Could not submit. Try again, or tell your teacher.');
+        } finally { pending = false; dialog = null; }
+    }
+    function key(event) {
+        if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.key.toLowerCase() !== 's' || getPolicy(workspace).teacherMode) return;
+        event.preventDefault(); event.stopPropagation();
+        return open();
+    }
+    const click = () => open({downloadFile: true});
+    const escape = event => {
+        if (event.key !== 'Escape' || !dialog?.isOpen()) return;
+        event.preventDefault(); event.stopImmediatePropagation(); dialog.close_();
+    };
+    const button = doc.getElementById('saveWorkBtn');
+    button.addEventListener('click', click); doc.addEventListener('keydown', key, true);
+    doc.defaultView.addEventListener('keydown', escape, true);
+    return {open, dispose() {disposed = true; dialog?.close_(); button.removeEventListener('click', click);
+        doc.removeEventListener('keydown', key, true); doc.defaultView.removeEventListener('keydown', escape, true);}};
+}
+
+function setupWorkSubmission(workspace) {
+    const submission = createWorkSubmission({workspace, document, ModalForm: QuestionBlock.ModalForm,
+        async snapshot() {
+            const save = workspace.workSave;
+            const savedAt = new Date().toISOString();
+            const task = workspace.workTask || 'untitled';
+            const programXml = QuestionBlock.workXml(workspace);
+            const summary = authorshipSummary(workspace, {stackLetters: assistantView(workspace).stackLetters(),
+                session: {...save?.session, task, pageStartedAt: save?.pageStartedAt, savedAt}});
+            summary.questions = await QuestionBlock.submissionQuestions(workspace, {execute: runHeadless});
+            return {programXml, task, savedAt, summary};
+        },
+        save: body => {
+            if (!workspace.workSave) throw new Error('Server not ready');
+            return workspace.workSave.server.work(body);
+        },
+        download: xml => downloadXml(xml, 'work'),
+        say: (text, spoken = text) => {appendLog(text); window.eafOutput?.say({source: 'navigation', kind: 'system', text: spoken});},
+    });
+    window.addEventListener('pagehide', () => submission.dispose(), {once: true});
+}
+
+/** The teacher's authoring workspace stays in memory while a submission is inspected. @param {!Object} options */
+function createTeacherEvaluation({workspace, document: doc, panel, entry, populate, snapshot, loadXml, say,
+    serverUrl, fetch: send = (...args) => fetch(...args)}) {
+    const view = doc.getElementById('teacherViewSelect');
+    view.value = 'authoring';
+    const select = doc.getElementById('programSelect');
+    const label = doc.querySelector('label[for="programSelect"]');
+    const run = doc.getElementById('runButton');
+    let evaluating = false; let task = null; let authoring = null; let saved = null; let revision = 0; let disposed = false;
+    const lifetime = new AbortController();
+    function option(text, value = '') {
+        const node = doc.createElement('option'); node.textContent = text; node.value = value; select.append(node); return node;
+    }
+    async function request(code = '') {
+        const base = serverUrl();
+        if (!base) throw new Error('Server not ready');
+        const response = await send(`${base}/v1/work${code ? '/' + encodeURIComponent(code) : ''}?task=${encodeURIComponent(task.id)}`, {
+            signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(5000)]), cache: 'no-store'});
+        if (!response.ok) throw new Error(`Submission read failed: ${response.status}`);
+        return response.json();
+    }
+    function renderRole() {
+        const teacher = getPolicy(workspace).teacherMode;
+        doc.getElementById('learnerLevelCell').hidden = teacher;
+        doc.getElementById('teacherViewCell').hidden = !teacher;
+    }
+    async function setMode(mode) {
+        if (disposed) return;
+        if (mode === 'evaluating' && !getPolicy(workspace).teacherMode) return;
+        const next = mode === 'evaluating';
+        if (next === evaluating) return;
+        const version = ++revision;
+        if (next) {
+            task = entry() || {id: 'untitled', label: 'Untitled'};
+            authoring = snapshot(); saved = null; panel.show(null);
+        }
+        evaluating = next; view.value = next ? 'evaluating' : 'authoring'; panel.setActive(next);
+        run.firstChild.textContent = next ? 'Evaluate ' : 'Run ';
+        run.disabled = next;
+        doc.getElementById('taskPublication').hidden = next || !getPolicy(workspace).teacherMode || !entry()?.serverTask;
+        if (!next) {
+            saved = null; panel.show(null); populate(); select.value = task.id === 'untitled' ? 'Default' : task.id; select.disabled = false;
+            label.textContent = 'Choose a program'; select.setAttribute('aria-label', 'Choose a program');
+            if (authoring !== null) loadXml(authoring);
+            return;
+        }
+        label.textContent = `Submissions for ${task.label}`; select.setAttribute('aria-label', label.textContent);
+        select.replaceChildren(); option('Loading submissions…'); select.disabled = true;
+        try {
+            const rows = await request();
+            if (disposed || version !== revision) return;
+            if (!Array.isArray(rows) || rows.length > 10) throw new Error('Invalid submission list');
+            select.replaceChildren(); option(rows.length ? 'Pick a submission…' : 'No submissions yet');
+            const today = new Date().toLocaleDateString();
+            for (const row of rows) {
+                if (!/^[A-Za-z0-9_-]{4}$/.test(row.code) || !Number.isFinite(Date.parse(row.savedAt))) throw new Error('Invalid submission');
+                const date = new Date(row.savedAt);
+                const time = date.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+                option(`Submission ${row.code}, ${date.toLocaleDateString() === today ? '' : date.toLocaleDateString() + ', '}${time}`, row.code);
+            }
+        } catch (error) {
+            if (disposed || version !== revision) return;
+            select.replaceChildren(); option('Could not load submissions.'); say('Could not load submissions. Try again.');
+        } finally { if (!disposed && version === revision) select.disabled = false; }
+    }
+    async function loadSelected({focus = true} = {}) {
+        const code = select.value; const version = ++revision;
+        saved = null; panel.show(null); run.disabled = true;
+        if (!code) return;
+        try {
+            const result = await request(code);
+            if (disposed || version !== revision) return;
+            if (result?.code !== code || typeof result.programXml !== 'string' || !result.summary || !Array.isArray(result.summary.blocks)) throw new Error('Invalid submission');
+            loadXml(result.programXml); saved = result; panel.show(result); run.disabled = false;
+            doc.getElementById('taskPublication').hidden = true;
+            if (focus) workspace.getParentSvg()?.focus();
+        } catch (error) {
+            if (!disposed && version === revision) say('Could not load the submission. Try again.');
+        }
+    }
+    const change = () => setMode(view.value);
+    const off = onPolicyChange(workspace, () => {renderRole(); if (!getPolicy(workspace).teacherMode) return setMode('authoring');});
+    view.addEventListener('change', change); renderRole();
+    return {setMode, loadSelected, isEvaluating: () => evaluating, submission: () => saved,
+        dispose() {disposed = true; revision++; lifetime.abort(); off(); panel.dispose(); view.removeEventListener('change', change);}};
+}
+
+function setupTeacherEvaluation(workspace) {
+    teacherEvaluation = createTeacherEvaluation({workspace, document,
+        panel: createReliancePanel({document, blockName: blockTypeName, assistantName: () => window.eafOutput.aiName()}),
+        entry: () => findProgramById(document.getElementById('programSelect').value), populate: populateProgramsToDom,
+        snapshot: () => QuestionBlock.workXml(workspace), loadXml: xml => loadXmlToWorkspace(workspace, xml),
+        serverUrl: () => window.eafTaskServer,
+        say: text => {appendLog(text); window.eafOutput?.say({source: 'navigation', kind: 'system', text});},
+    });
+    window.addEventListener('pagehide', () => teacherEvaluation.dispose(), {once: true});
+}
+
 /** The role badge above the gear: Teacher in teacher mode, else Student (also on the plain learner page). */
 function showRoleBadge(teacher) {
+    document.title = `Blockly AI Tutor - ${teacher ? 'Teacher' : 'Student'}`;
     // Questions are ordinary blocks in teacher mode (nothing vanishes), so make the role obvious.
     const badge = document.getElementById('roleBadge');
     badge.hidden = false;
@@ -468,6 +641,7 @@ let navController = null;
 let solvedWatcher = null;
 let workspaceLoading = false;
 let publication = null;
+let teacherEvaluation = null;
 
 function publicationSnapshot(workspace) {
     const {activity, editMode, wholePlan, voiceFallback} = getPolicy(workspace);
@@ -641,18 +815,8 @@ function initWorkspace() {
     setupTaskPublication(workspace);
     onPolicyChange(workspace, () => syncSolvedWatcher(workspace));
     syncSolvedWatcher(workspace);
-    // Learners hand in their work as a file; a teacher imports it and Run assesses it.
-    document.getElementById('saveWorkBtn').addEventListener('click', () => {
-        const programXml = QuestionBlock.workXml(workspace);
-        downloadXml(programXml, 'work');
-        const save = workspace.workSave;
-        if (!save) { console.warn('[work] Server connection is not ready; the file was downloaded.'); return; }
-        const savedAt = new Date().toISOString();
-        const task = workspace.workTask || 'untitled';
-        const summary = authorshipSummary(workspace, {stackLetters: assistantView(workspace).stackLetters(),
-            session: {...save.session, task, pageStartedAt: save.pageStartedAt, savedAt}});
-        void save.server.work({programXml, task, savedAt, summary}).catch((error) => console.warn('[work]', error));
-    });
+    setupWorkSubmission(workspace);
+    setupTeacherEvaluation(workspace);
 
     const keyOverlay = new KeyOverlay({ hideDelayMs: 5000 });
     keyOverlay.attach();
@@ -673,6 +837,7 @@ function initWorkspace() {
     async function loadChosen({ focus }) {
         browsing = false;
         publication?.beginLoad();
+        if (teacherEvaluation?.isEvaluating()) { await teacherEvaluation.loadSelected({focus}); return; }
         const selectedId = programSelect.value;
         if (!selectedId || selectedId === "Default") {
             // Clear workspace if no program selected
@@ -684,7 +849,7 @@ function initWorkspace() {
             try {
                 const xml = await fetchProgramXmlById(selectedId);
                 loadXmlToWorkspace(workspace, xml);
-                workspace.workTask = findProgramById(selectedId)?.file || selectedId;
+                workspace.workTask = selectedId;
             } catch (e) {
                 publication?.loaded();
                 console.error(e);
@@ -809,12 +974,13 @@ async function runProgram(workspace, speech) {
 
 /** Shows assessment lines; the caller chooses whether its summary should be spoken. */
 async function showAssessment(workspace) {
+    const submission = teacherEvaluation?.isEvaluating() ? teacherEvaluation.submission() : null;
     const report = await QuestionBlock.assess(workspace, {
-        execute: (inputs) => runHeadless(workspace, inputs),
-        locate: describeBlockLocation,
+        execute: (inputs) => runHeadless(workspace, inputs), locate: describeBlockLocation,
+        ...(submission ? {submittedQuestions: submission.summary.questions || []} : {}),
     });
     appendOutput('Assessment');
-    report.lines.forEach((line) => appendOutput(line));
+    report.lines.forEach((line, index) => appendOutput(line, report.questionLines?.find(item => item.index === index)));
     appendOutput(authorshipLine(authorshipSummary(workspace, {stackLetters: assistantView(workspace).stackLetters()}),
         window.eafOutput.aiName()));
     return report.summary || 'Assessment done.';
@@ -846,8 +1012,11 @@ function clearOutput() {
     setOutputMode('output');
 }
 
-/** An app message: it replaces a program's output in view; more messages add to the log. */
+/** An app message for teachers: it replaces a program's output in view; more messages add to the log. Students only
+ * ever see their program's output. */
 function appendLog(text) {
+    const workspace = window.workspace;
+    if (workspace && !getPolicy(workspace).teacherMode) return;
     if (outputMode !== 'log') {
         clearLines();
         setOutputMode('log');
@@ -855,7 +1024,7 @@ function appendLog(text) {
     appendOutput(text);
 }
 
-function appendOutput(text) {
+function appendOutput(text, assessment = null) {
     const outputPanel = document.getElementById("outputPanel");
     outputPanel.setAttribute('tabindex', '-1');
 
@@ -876,6 +1045,15 @@ function appendOutput(text) {
         const lineContent = document.createElement('div');
         lineContent.className = 'output-line-content';
         lineContent.textContent = line;
+        if (assessment) {
+            lineContent.classList.add(assessment.solved ? 'assessment-solved' : 'assessment-unsolved');
+            const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            icon.setAttribute('viewBox', '0 0 16 16'); icon.setAttribute('aria-hidden', 'true');
+            icon.setAttribute('class', 'assessment-icon');
+            const path = document.createElementNS(icon.namespaceURI, 'path');
+            path.setAttribute('d', assessment.solved ? 'M3 8L6 11L13 3' : 'M3 3L13 13M13 3L3 13');
+            icon.append(path); lineContent.prepend(icon);
+        }
 
         lineDiv.appendChild(lineNumber);
         lineDiv.appendChild(lineContent);

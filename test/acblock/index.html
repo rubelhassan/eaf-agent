@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BP - Blockly Playground</title>
+    <title>Blockly AI Tutor</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20class%3D%22assistant-logo%22%20width%3D%2224%22%20height%3D%2224%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%220.5%22%20y%3D%223.5%22%20width%3D%2223%22%20height%3D%2217%22%20rx%3D%226.46%22%20fill%3D%22%231f2a44%22%2F%3E%3Ccircle%20cx%3D%226.94%22%20cy%3D%2210.64%22%20r%3D%222.55%22%20fill%3D%22%238ff0b4%22%2F%3E%3Ccircle%20cx%3D%2217.06%22%20cy%3D%2210.64%22%20r%3D%222.55%22%20fill%3D%22%238ff0b4%22%2F%3E%3Cpath%20d%3D%22M8.78%2015.4Q12%2018.12%2015.22%2015.4%22%20fill%3D%22none%22%20stroke%3D%22%238ff0b4%22%20stroke-width%3D%221.53%22%2F%3E%3C%2Fsvg%3E">
     <link rel="stylesheet" href="main.css">
     <link rel="stylesheet" href="js/assistant/assistant_panel.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -28,6 +29,7 @@
     <script src="./js/display.js"></script>
     <script src="./js/run.js"></script>
     <script src="./js/task_publication.js"></script>
+    <script src="./js/reliance_panel.js"></script>
     <script src="./js/main.js"></script>
     <script src="./js/settings.js"></script>
     <script src="./js/teacher_guide.js"></script>
@@ -68,7 +70,7 @@
             <div id="settingsPanel" class="settings-panel" role="region" aria-labelledby="settingsTitle" hidden>
                 <h2 id="settingsTitle" class="settings-title">Settings</h2>
                 <div class="settings-row settings-pair">
-                    <div class="settings-cell">
+                    <div class="settings-cell" id="learnerLevelCell">
                         <label class="settings-label" for="learnerLevelSelect">Learner level</label>
                         <select id="learnerLevelSelect" class="settings-select" aria-describedby="learnerLevelHint">
                             <option value="beginner">Beginner</option>
@@ -76,6 +78,13 @@
                             <option value="advanced">Advanced</option>
                         </select>
                         <p id="learnerLevelHint" class="settings-hint">Beginners hear extra help.</p>
+                    </div>
+                    <div class="settings-cell" id="teacherViewCell" hidden>
+                        <label class="settings-label" for="teacherViewSelect">Teacher mode</label>
+                        <select id="teacherViewSelect" class="settings-select">
+                            <option value="authoring">Authoring</option>
+                            <option value="evaluating">Evaluating</option>
+                        </select>
                     </div>
                     <div class="settings-cell">
                         <label class="settings-label" for="magnifierSelect">Focus magnifier</label>
@@ -204,7 +213,7 @@
                     <button id="saveWorkBtn" class="settings-action" type="button" aria-describedby="saveWorkHint">
                         <i class="fas fa-floppy-disk" aria-hidden="true"></i> Save my work
                     </button>
-                    <p id="saveWorkHint" class="settings-hint">Downloads your program and answers for your teacher.</p>
+                    <p id="saveWorkHint" class="settings-hint">Downloads and submits your work to your teacher. Control S submits without a download.</p>
                 </div>
                 <div class="settings-row">
                     <button id="studentGuideBtn" class="settings-action" type="button" data-guide="student">
@@ -325,6 +334,8 @@
             <div class="code-container">
                 <div class="code-header">
                     <h3 id="codeHeader">Code</h3>
+                    <div id="relianceFigures" class="reliance-figures" hidden></div>
+                    <button id="relianceSizeBtn" class="guide-btn" type="button" aria-label="Maximize AI Reliance" hidden>Maximize</button>
                     <label class="sr-only" for="languageSelect">Language</label>
                     <select id="languageSelect" class="program-dropdown program-dropdown--sm">
                         <option value="javascript">JavaScript</option>
@@ -334,8 +345,11 @@
                         <option value="dart">Dart</option>
                         <option value="xml">XML</option>
                     </select>
+                    <p id="relianceNote" class="reliance-note" hidden>Share of the blocks the student added, or changed with the assistant. Other changes to the task's own blocks aren't counted yet.</p>
                 </div>
                 <pre id="codeOutput" class="prettyprint" style="border: none"><code class="language-javascript"></code></pre>
+                <div id="reliancePanel" class="reliance-body" role="region" aria-labelledby="codeHeader"
+                     aria-describedby="relianceFigures relianceNote" tabindex="0" hidden></div>
             </div>
 
             <!-- The student or teacher guide: takes the place of Output and Code while open. -->
@@ -485,6 +499,11 @@
         window.eafApplyBusy = () => assistant.state().task?.state === 'applying';
         assistantUi = createAssistantUi({
             workspace: window.workspace, coordinator: assistant, output, name, offline,
+            isQuiz: () => {
+                const policy = getPolicy(window.workspace);
+                return !policy.teacherMode && policy.activity === 'quiz';
+            },
+            onPolicyChange: listener => onPolicyChange(window.workspace, listener),
             createConversation: createConversationController,
             mount: document.querySelector('.execution-panel'),
             before: document.querySelector('.execution-panel > .output-container'),

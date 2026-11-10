@@ -1025,3 +1025,30 @@ pattern[id^="blocklyGridPattern"] line {
 .eaf-cat-variables .blocklyTreeLabel::before { content: var(--eaf-symbol-variables, "") / ""; }
 .eaf-cat-procedures .blocklyTreeLabel::before { content: var(--eaf-symbol-procedures, "") / ""; }
 .eaf-cat .blocklyTreeLabel::before { font-weight: 700; }
+
+.assessment-solved { color: var(--eaf-ok-fg, #14532D); }
+.assessment-unsolved { color: var(--eaf-bad-fg, #7F1D1D); }
+.assessment-icon { width: 1em; height: 1em; margin-right: .4em; vertical-align: -.1em; fill: none; stroke: currentColor; stroke-width: 2; }
+.reliance-active > .code-header { flex-wrap: wrap; }
+.reliance-figures { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-left: auto; font-size: .85rem; font-weight: 600; }
+.reliance-figures[hidden], .reliance-body[hidden], .reliance-charts[hidden] { display: none; }
+.reliance-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; color: var(--eaf-fg, #1f2328); }
+.reliance-body:focus-visible { outline: 3px solid var(--eaf-focus, #2854C5); outline-offset: -3px; }
+.reliance-body table { border-collapse: collapse; width: 100%; font: .9rem/1.5 system-ui, sans-serif; }
+.reliance-body table + table { margin-top: 18px; }
+.reliance-note { flex: 1 0 100%; margin: 0; font: .8rem/1.4 system-ui, sans-serif; color: var(--eaf-fg-muted, #57606a); }
+.reliance-body caption { text-align: left; font-weight: 600; margin-bottom: 8px; }
+.reliance-body th, .reliance-body td { text-align: left; padding: 8px; border-bottom: 1px solid var(--eaf-line-soft, #e5e7eb); }
+.reliance-body th { background: var(--eaf-surface-alt, #f8fafc); }
+.reliance-mark { margin-left: 5px; vertical-align: middle; }
+.code-container.reliance-max { position: fixed; inset: 16px; width: auto; z-index: 1100; box-shadow: 0 16px 48px rgb(0 0 0 / 35%); }
+.reliance-max .reliance-body { padding: 20px 5%; }
+.reliance-charts { margin-top: 24px; }
+.reliance-chart { display: block; width: 100%; max-width: 900px; margin: 16px auto; }
+.reliance-chart text { fill: var(--eaf-fg, #1f2328); font: 14px system-ui, sans-serif; }
+.reliance-student { fill: var(--eaf-ok-fg, #14532D); }
+.reliance-assisted { fill: var(--eaf-accent, #2854C5); }
+.reliance-created { fill: var(--eaf-bad-fg, #7F1D1D); }
+.reliance-placeholder { border: 1px dashed var(--eaf-line, #ccc); background: var(--eaf-surface-alt, #f8fafc); }
+.eaf-qd-backdrop.work-submit-modal { z-index: 11000; }
+#relianceSizeBtn { width: auto; padding: 0 10px; color: var(--eaf-fg, #1f2328); }

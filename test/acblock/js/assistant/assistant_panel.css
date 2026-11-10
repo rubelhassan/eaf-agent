@@ -1,0 +1,1015 @@
+/* The assistant panel (js/assistant/panel.js). */
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=Nunito:wght@800&display=swap');
+
+:root {
+    /* Version A (approved 2026-11-02): one solid blue, the old gradient's start deepened to 6:1 with white. */
+    --assistant-blue: #4757cc;
+    --assistant-blue-dark: #3a47b0;
+    --assistant-bg: #fcfcff;
+    --assistant-fg: #1b1f3b;
+    --assistant-muted: #4b5068;
+    --assistant-faint: #5c6178;
+    --assistant-border: #6b7085;
+    --assistant-line: #c9cde0;
+    --assistant-accent: #1b6b3a;
+    --assistant-accent-bg: #e8f5ec;
+    --assistant-accent-fg: #fdfdff;
+    --assistant-accent-soft: #dfe3ff;
+    --assistant-user-bg: #fcfcff;
+    --assistant-reply-bg: #eef0fd;
+    --assistant-chat-bg: #f6f7fb;
+    --assistant-interaction-accent: var(--assistant-blue);
+    --assistant-focus: #1f2a7a;
+    --assistant-inactive-bg: #f6f7fb;
+    --assistant-action-accent: var(--assistant-blue);
+    --assistant-send-bg: var(--assistant-blue);
+    --assistant-shade: rgb(27 31 59 / 28%);
+    --assistant-font: 'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', Verdana, sans-serif;
+    --assistant-name-font: 'Nunito', 'Atkinson Hyperlegible Next', sans-serif;
+    /* The logo: four puzzle pieces with darker sides, and the face. */
+    --logo-blue: #5fb0f5;
+    --logo-blue-side: #1f86d6;
+    --logo-yellow: #ffd43b;
+    --logo-yellow-side: #e8a900;
+    --logo-pink: #ff7aa8;
+    --logo-pink-side: #e04a83;
+    --logo-green: #74d27a;
+    --logo-green-side: #2fa84a;
+    --logo-screen: #1f2a44;
+    --logo-eyes: #8ff0b4;
+}
+
+.assistant-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
+    max-height: 60vh;
+    padding: 0;
+    border: 1px solid var(--assistant-line);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--assistant-chat-bg);
+    color: var(--assistant-fg);
+    font-family: var(--assistant-font);
+    font-size: 1rem;
+    line-height: 1.45;
+}
+
+.assistant-restriction {
+    margin: 16px;
+    padding: 12px;
+    border: 2px solid var(--eaf-quiz-line, #b91c1c);
+    border-radius: 8px;
+    color: var(--eaf-quiz-fg, #7f1d1d);
+    background: var(--eaf-quiz-bg, #fef2f2);
+    font-weight: 700;
+}
+
+.assistant-panel[data-restricted] :is(.assistant-transcript, .assistant-plan, .assistant-answers) {
+    display: none;
+}
+
+.assistant-open[data-restricted],
+.assistant-panel[data-restricted] .assistant-draft :is(.assistant-input, .assistant-voice-area, .assistant-btn:disabled) {
+    border-color: var(--eaf-quiz-line, #b91c1c);
+    color: var(--eaf-quiz-fg, #7f1d1d);
+    background: var(--eaf-quiz-bg, #fef2f2);
+}
+
+.assistant-panel[data-restricted] .assistant-draft :is(.assistant-input, .assistant-btn:disabled) {
+    cursor: not-allowed;
+}
+
+/* The assistant fills the right column; short screens can scroll to every control. */
+.execution-panel > .assistant-panel {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.execution-panel:has(> .assistant-panel:not([hidden])) > .output-container,
+.execution-panel:has(> .assistant-panel:not([hidden])) > .code-container {
+    display: none;
+}
+
+/* The column's minimum width would push the panel off a narrow screen. */
+@media (max-width: 600px) {
+    .execution-panel {
+        min-width: 0;
+    }
+
+    .assistant-draft-row {
+        flex-wrap: wrap;
+    }
+
+    .assistant-draft-row .assistant-input {
+        flex-basis: 100%;
+        order: -1;
+    }
+}
+
+.assistant-panel[hidden],
+.assistant-open[hidden],
+.assistant-plan[hidden],
+.assistant-answers[hidden] {
+    display: none;
+}
+
+.assistant-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 4px 4px 4px 12px;
+    background: var(--assistant-blue);
+    color: var(--assistant-accent-fg);
+}
+
+/* Blockly's notch: the header joins the conversation like a block joins the one below. */
+.assistant-header::after {
+    content: '';
+    position: absolute;
+    left: 14px;
+    bottom: -8px;
+    width: 30px;
+    height: 8px;
+    background: var(--assistant-blue);
+    clip-path: polygon(0 0, 100% 0, 75% 100%, 25% 100%);
+}
+
+.assistant-header-logo {
+    display: block;
+    flex: none;
+}
+
+.assistant-header-logo .assistant-logo {
+    display: block;
+    filter: drop-shadow(0 0 0.6px var(--assistant-accent-fg)) drop-shadow(0 0 0.6px var(--assistant-accent-fg));
+}
+
+/* The name, with "Blockly AI Companion" small under it. */
+.assistant-title {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.assistant-title-name {
+    font: 800 1.1rem/1.15 var(--assistant-name-font);
+}
+
+.assistant-title-sub {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--assistant-accent-soft);
+}
+
+.assistant-status {
+    margin: 0;
+    padding: 0;
+    color: var(--assistant-accent);
+    font-size: 0.85rem;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.assistant-header-buttons {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0;
+}
+
+.assistant-header-buttons .assistant-btn:first-child {
+    --assistant-header-shift: 6px;
+}
+
+.assistant-header-buttons .assistant-btn:last-child {
+    --assistant-header-shift: -6px;
+}
+
+.assistant-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px 12px;
+    border: 2px solid var(--assistant-border);
+    border-radius: 6px;
+    background: var(--assistant-bg);
+    color: var(--assistant-fg);
+    font: inherit;
+    cursor: pointer;
+}
+
+.assistant-btn:hover {
+    border-color: var(--assistant-blue);
+}
+
+/* A 44 px target with a smaller drawn button (28 px), so Clear and Close stay smaller than the logo. */
+.assistant-header .assistant-btn {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--assistant-accent-fg);
+    font-size: 0.8rem;
+}
+
+.assistant-header .assistant-btn::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid var(--assistant-accent-soft);
+    border-radius: 8px;
+}
+
+.assistant-header .assistant-btn:hover::before {
+    background: var(--assistant-blue-dark);
+}
+
+.assistant-header .assistant-btn i {
+    position: relative;
+}
+
+.assistant-header .assistant-btn::before,
+.assistant-header .assistant-btn i {
+    transform: translateX(var(--assistant-header-shift, 0px));
+}
+
+.assistant-panel :focus-visible,
+.assistant-open:focus-visible {
+    outline: 3px solid var(--assistant-focus);
+    outline-offset: 2px;
+}
+
+.assistant-header :focus-visible {
+    outline-color: var(--assistant-accent-fg);
+    outline-offset: -4px;
+}
+
+.assistant-header .assistant-btn:focus-visible {
+    outline: none;
+}
+
+.assistant-header .assistant-btn:focus-visible::before {
+    outline: 3px solid var(--assistant-accent-fg);
+    outline-offset: 0;
+}
+
+.assistant-transcript {
+    flex: 0 1 auto;
+    min-height: 6em;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--assistant-chat-bg);
+}
+
+.assistant-turns {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.assistant-turn {
+    position: relative;
+    max-width: calc(90% - 42px);
+    padding: 10px 14px;
+    border: none;
+    border-radius: 16px;
+    background: var(--assistant-reply-bg);
+}
+
+.assistant-turn--user {
+    align-self: flex-end;
+    margin-right: 42px;
+    border: 1px solid var(--assistant-line);
+    background: var(--assistant-user-bg);
+    color: var(--assistant-fg);
+    border-bottom-right-radius: 4px;
+}
+
+.assistant-turn--assistant {
+    align-self: flex-start;
+    margin-left: 42px;
+    border-bottom-left-radius: 4px;
+}
+
+/* The thinking placeholder: shaped like a reply, with the face blinking and three dots pulsing (1.2 s, slow). */
+.assistant-thinking {
+    position: relative;
+    align-self: flex-start;
+    margin-left: 42px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    background: var(--assistant-reply-bg);
+}
+.assistant-thinking-dots {
+    display: inline-flex;
+    gap: 6px;
+    vertical-align: middle;
+}
+.assistant-thinking-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--assistant-muted);
+    opacity: 0.45;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .assistant-thinking-dots span {
+        animation: assistant-thinking-dot 1.2s ease-in-out infinite;
+    }
+    .assistant-thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .assistant-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    .assistant-thinking .logo-eyes {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: assistant-thinking-blink 2.4s infinite;
+    }
+}
+@keyframes assistant-thinking-dot {
+    0%, 60%, 100% { opacity: 0.45; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+}
+@keyframes assistant-thinking-blink {
+    0%, 88%, 100% { transform: scaleY(1); }
+    92% { transform: scaleY(0.1); }
+}
+
+.assistant-avatar {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: -42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--assistant-accent-fg);
+    font-size: 0.9rem;
+}
+
+.assistant-turn--user .assistant-avatar {
+    left: auto;
+    right: -42px;
+    background: var(--assistant-avatar-bg, #5f6368);
+    color: var(--assistant-on-blue, #ffffff);
+}
+
+.assistant-speaker {
+    font-weight: 700;
+}
+
+.assistant-spoken {
+    color: var(--assistant-muted);
+    font-style: italic;
+}
+
+.assistant-turn--user .assistant-spoken {
+    color: inherit;
+}
+
+.assistant-text {
+    margin: 2px 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.assistant-plan {
+    margin: 8px 12px;
+    border: 1px solid var(--assistant-line);
+    border-radius: 10px;
+    padding: 8px;
+    background: var(--assistant-bg);
+}
+
+.assistant-plan-title {
+    margin: 0 0 4px;
+    font-size: 1rem;
+}
+
+.assistant-answers {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+}
+
+.assistant-answer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-width: 1px;
+    border-color: var(--assistant-border);
+    color: var(--assistant-fg);
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.assistant-answer:hover {
+    background: var(--assistant-reply-bg);
+    border-color: var(--assistant-blue);
+}
+
+/* Yes is the primary answer. */
+.assistant-answer[data-answer="yes"] {
+    background: var(--assistant-blue);
+    border-color: var(--assistant-blue);
+    color: var(--assistant-accent-fg);
+}
+
+.assistant-answer[data-answer="yes"]:hover {
+    background: var(--assistant-blue-dark);
+}
+
+.assistant-key {
+    font-size: 0.8rem;
+    color: var(--assistant-muted);
+}
+
+.assistant-draft {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding: 0 16px 12px;
+    border-top: 1px solid var(--assistant-line);
+    background: var(--assistant-bg);
+}
+
+.assistant-draft-label {
+    font-weight: 700;
+}
+
+/* One line: the 44 px buttons and the 44 px box share a centre. Several lines: the buttons stay with the last
+   line, where the typing is, and the box grows upward. */
+.assistant-draft-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.assistant-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: block;
+    min-height: 44px;
+    max-height: 120px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--assistant-border);
+    border-radius: 10px;
+    background: var(--assistant-bg);
+    color: var(--assistant-fg);
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 1rem;
+    line-height: 22px;
+    resize: none;
+}
+
+.assistant-input::placeholder {
+    color: var(--assistant-faint);
+}
+
+/* The empty box is one line: a long placeholder ends in an ellipsis instead of wrapping out of sight. */
+.assistant-input:placeholder-shown {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.assistant-input:hover {
+    border-color: var(--assistant-blue);
+}
+
+.assistant-voice,
+.assistant-resume,
+.assistant-send {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-width: 1px;
+    border-radius: 50%;
+}
+
+.assistant-send:disabled {
+    background: var(--assistant-inactive-bg);
+    border-color: var(--assistant-line);
+    color: var(--assistant-faint);
+    cursor: not-allowed;
+}
+
+.assistant-send {
+    background: var(--assistant-send-bg);
+    color: var(--assistant-on-blue, #ffffff);
+    border-color: var(--assistant-send-bg);
+}
+
+/* The resume button sits above the mode toggle, only while listening is paused or stopped. */
+.assistant-mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.assistant-resume {
+    background: var(--assistant-blue);
+    border-color: var(--assistant-blue);
+    color: var(--assistant-on-blue, #ffffff);
+}
+
+.assistant-resume[hidden] {
+    display: none;
+}
+
+/* The mode toggle (microphone in text mode, keyboard in voice mode): outlined in every state. */
+.assistant-voice {
+    position: relative;
+    background: var(--assistant-bg);
+    border-color: var(--assistant-border);
+    color: var(--assistant-fg);
+}
+
+.assistant-input[hidden],
+.assistant-voice-area[hidden] {
+    display: none;
+}
+
+/* Voice mode: a read-only area in the text box's place, with the microphone's state and the dictated pieces. */
+.assistant-voice-area {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 44px;
+    /* Up to 4 lines of words under the state line, then it scrolls. */
+    max-height: calc(4 * 22px + 38px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 4px 12px 8px;
+    border: 1px solid var(--assistant-border);
+    border-radius: 10px;
+    background: var(--assistant-reply-bg);
+    color: var(--assistant-fg);
+}
+
+.assistant-voice-words {
+    margin: 2px 0 0;
+    line-height: 22px;
+    overflow-wrap: anywhere;
+}
+
+.assistant-voice-words:empty::before {
+    content: 'Say your message. Enter reads it back, Control Enter sends.';
+    color: var(--assistant-faint);
+}
+
+.assistant-voice-hearing {
+    color: var(--assistant-muted);
+    font-style: italic;
+}
+
+/* "Starting", "Listening", "Listening paused", "Not listening": the microphone's state in words. */
+/* Stays at the top while long dictation scrolls. */
+.assistant-mic-state {
+    position: sticky;
+    top: -4px;
+    z-index: 1;
+    padding: 2px 0;
+    background: var(--assistant-reply-bg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--assistant-blue-dark);
+}
+
+.assistant-mic-state::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.assistant-voice-area[data-microphone-state="off"] .assistant-mic-state,
+.assistant-voice-area[data-microphone-state="paused"] .assistant-mic-state {
+    color: var(--assistant-muted);
+}
+
+/* Off the server engine (basic or browser): deep orange, 5.6:1 on the voice area. */
+.assistant-voice-area[data-engine][data-microphone-state="listening"] .assistant-mic-state {
+    color: var(--assistant-engine-warn, #a43f00);
+}
+
+.assistant-mic-state[hidden] {
+    display: none;
+}
+
+/* While listening, a ripple from the state dot. */
+.assistant-voice-area[data-microphone-state="listening"] .assistant-mic-state::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    box-sizing: border-box;
+    pointer-events: none;
+    animation: assistant-listening-ripple 1.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* In voice mode the toggle and Send are centred with the voice area (in text mode they stay with the last line). */
+.assistant-panel[data-mode="voice"] .assistant-draft-row {
+    align-items: center;
+}
+
+/* In voice mode the words being heard show in the voice area, not in the strip under the row. */
+.assistant-panel[data-mode="voice"] .assistant-partial:not([data-announcement]) {
+    display: none !important;
+}
+
+@keyframes assistant-listening-ripple {
+    from {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    to {
+        transform: scale(1.45);
+        opacity: 0;
+    }
+}
+
+.assistant-partial {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    margin: 8px 0 0;
+    min-height: 32px;
+    padding: 4px 12px;
+    border-radius: 10px;
+    background: var(--assistant-reply-bg);
+    color: var(--assistant-muted);
+    font-size: 0.9rem;
+    font-style: italic;
+    overflow-wrap: anywhere;
+}
+
+.assistant-partial[data-announcement],
+.assistant-draft:has(.assistant-voice-area[data-microphone-state="listening"]) .assistant-partial:not(:empty) {
+    display: flex;
+}
+
+.assistant-partial[data-announcement]::before,
+.assistant-draft:has(.assistant-voice-area[data-microphone-state="listening"]) .assistant-partial:not(:empty)::before {
+    content: '';
+    flex: 0 0 15px;
+    height: 16px;
+    background:
+        linear-gradient(var(--assistant-blue), var(--assistant-blue)) left center / 3px 8px no-repeat,
+        linear-gradient(var(--assistant-blue), var(--assistant-blue)) center center / 3px 16px no-repeat,
+        linear-gradient(var(--assistant-blue), var(--assistant-blue)) right center / 3px 10px no-repeat;
+    animation: assistant-transcription-wave 0.9s ease-in-out infinite alternate;
+}
+
+.assistant-partial[data-announcement]::after {
+    content: attr(data-announcement);
+}
+
+@keyframes assistant-transcription-wave {
+    to {
+        transform: scaleY(0.45);
+        opacity: 0.6;
+    }
+}
+
+.assistant-draft-hint {
+    margin: 2px 0 0;
+    font-size: 0.85rem;
+    color: var(--assistant-muted);
+}
+
+.assistant-open {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--assistant-blue);
+    color: var(--assistant-accent-fg);
+    font: inherit;
+    box-shadow: 0 4px 10px -2px var(--assistant-shade);
+    cursor: pointer;
+}
+
+.assistant-open:hover {
+    background: var(--assistant-blue-dark);
+}
+
+/* The logo's parts, coloured here so the SVG markup carries no colours. */
+.assistant-logo .logo-blue { fill: var(--logo-blue); }
+.assistant-logo .logo-blue-side { fill: var(--logo-blue-side); }
+.assistant-logo .logo-yellow { fill: var(--logo-yellow); }
+.assistant-logo .logo-yellow-side { fill: var(--logo-yellow-side); }
+.assistant-logo .logo-pink { fill: var(--logo-pink); }
+.assistant-logo .logo-pink-side { fill: var(--logo-pink-side); }
+.assistant-logo .logo-green { fill: var(--logo-green); }
+.assistant-logo .logo-green-side { fill: var(--logo-green-side); }
+.assistant-logo .logo-screen { fill: var(--logo-screen); }
+.assistant-logo .logo-eyes { fill: var(--logo-eyes); }
+.assistant-logo .logo-smile { fill: none; stroke: var(--logo-eyes); stroke-linecap: round; }
+
+.assistant-panel .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+@media (forced-colors: active) {
+    .assistant-input:hover {
+        background: Field;
+        border-color: FieldText;
+    }
+
+    .assistant-turn {
+        border: 1px solid CanvasText;
+    }
+
+    .assistant-header,
+    .assistant-status {
+        background: Canvas;
+        color: CanvasText;
+    }
+
+    .assistant-header .assistant-btn::before {
+        border-color: ButtonText;
+    }
+
+    .assistant-turn--user {
+        background: Highlight;
+        color: HighlightText;
+    }
+
+    .assistant-panel,
+    .assistant-btn,
+    .assistant-input,
+    .assistant-transcript,
+    .assistant-plan {
+        border-color: CanvasText;
+    }
+
+    .assistant-header::after {
+        display: none;
+    }
+
+    .assistant-voice-area,
+    .assistant-open {
+        background: Highlight;
+        color: HighlightText;
+        border-color: Highlight;
+    }
+
+    .assistant-panel :focus-visible,
+    .assistant-open:focus-visible {
+        outline-color: Highlight;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .assistant-panel *,
+    .assistant-mic-state::after,
+    .assistant-partial::before,
+    .assistant-open {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* The step list (step_list.js): compact rows, only the selected step shows its words. */
+.assistant-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.assistant-steps:focus {
+    outline: none;
+}
+
+.assistant-step {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 2px 10px;
+    align-items: center;
+    padding: 4px 10px;
+    border: 1px solid var(--assistant-step-line, #e5e7eb);
+    border-radius: 10px;
+    background: var(--assistant-bg);
+    cursor: pointer;
+}
+
+.assistant-step[aria-selected="true"] {
+    grid-template-columns: 28px 1fr;
+    align-items: start;
+    padding: 8px 10px;
+    border-color: var(--assistant-interaction-accent);
+    background: var(--assistant-reply-bg);
+}
+
+.assistant-steps:focus-visible .assistant-step[aria-selected="true"] {
+    outline: 3px solid var(--assistant-focus);
+    outline-offset: 2px;
+}
+
+.assistant-step-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--assistant-step-line, #e5e7eb);
+    color: var(--assistant-muted);
+    font-size: 0.75rem;
+}
+
+.assistant-step[aria-selected="true"] .assistant-step-icon {
+    grid-row: span 2;
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+}
+
+.assistant-step--applied .assistant-step-icon,
+.assistant-step--doneByYou .assistant-step-icon {
+    background: var(--assistant-accent-bg);
+    color: var(--assistant-accent);
+}
+
+.assistant-step--next .assistant-step-icon,
+.assistant-step--yours .assistant-step-icon {
+    background: var(--assistant-blue);
+    color: var(--assistant-accent-fg);
+}
+
+.assistant-step-head {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.assistant-step--applied .assistant-step-state,
+.assistant-step--doneByYou .assistant-step-state {
+    color: var(--assistant-accent);
+}
+
+.assistant-step--next .assistant-step-state,
+.assistant-step--yours .assistant-step-state {
+    color: var(--assistant-interaction-accent);
+}
+
+.assistant-step--waiting .assistant-step-state,
+.assistant-step--notDone .assistant-step-state {
+    color: var(--assistant-muted);
+}
+
+.assistant-step-words {
+    display: none;
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+}
+
+.assistant-step[aria-selected="true"] .assistant-step-words {
+    display: block;
+    grid-column: 2;
+}
+
+.assistant-step--applied .assistant-step-words,
+.assistant-step--doneByYou .assistant-step-words {
+    color: var(--assistant-muted);
+}
+
+.assistant-plan-hint {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    color: var(--assistant-muted);
+}
+
+/* The status in a small grey-outlined pill */
+.assistant-step-state {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 8px;
+    border: 1px solid var(--assistant-step-state, #9ca3af);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+/* "Plan ended: 2 of 3 steps done." in the conversation */
+.assistant-note {
+    display: inline-flex;
+    align-self: center;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: var(--assistant-step-line, #e5e7eb);
+    color: var(--assistant-fg);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* An ended plan's note: a button that shows the steps and their final statuses (closed at first) */
+.assistant-note-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: center;
+    gap: 6px;
+    width: 90%;
+}
+
+.assistant-note-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--assistant-step-line, #e5e7eb);
+    color: var(--assistant-fg);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.assistant-ended-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.assistant-ended-steps[hidden] {
+    display: none;
+}
+
+.assistant-ended-steps .assistant-step {
+    cursor: default;
+}
+
+.assistant-ended-steps .assistant-step-words {
+    display: block;
+    grid-column: 2;
+    color: var(--assistant-muted);
+    font-size: 0.9rem;
+}
+
+@media (forced-colors: active) {
+    .assistant-note-toggle,
+    .assistant-step,
+    .assistant-step-icon,
+    .assistant-note {
+        border: 1px solid CanvasText;
+    }
+}
