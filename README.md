@@ -1,6 +1,6 @@
 # BlockTutr
 
-**An accessible Blockly AI tutor for blind and low-vision (BLV) learners, with equal support for sighted learners.**
+**An accessible AI tutor for blind and low-vision (BLV) learners, with equal support for sighted learners.**
 
 > **Disclaimer:** Research findings, prompts, and model training and evaluation sets are withheld during the ongoing study and will be published later.
 
