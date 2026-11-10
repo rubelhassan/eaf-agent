@@ -1,8 +1,8 @@
-# Blockly AI Tutor
+# BlockTutr
 
-An accessible Blockly plugin with an AI tutor.
+**An accessible Blockly AI tutor for blind and low-vision (BLV) learners, with equal support for sighted learners.**
 
-> **Disclaimer:** Parts of the code and data are redacted from this repository due to ongoing research and data privacy.
+> **Disclaimer:** Research findings, prompts, and model training and evaluation sets are withheld during the ongoing study and will be published later.
 
 | Part | Where | What it is |
 |---|---|---|
@@ -12,8 +12,9 @@ An accessible Blockly plugin with an AI tutor.
 
 ## Requirements
 
-- Node.js 22.9 or newer, npm, Git.
-- Chrome (recommended).
+- Node.js 22.9+ and npm
+- An LLM API key (only for real AI answers)
+- Python 3.10+ (only for voice)
 
 ## App setup
 
@@ -22,22 +23,62 @@ From the repository root:
 ```sh
 npm install
 ./build.sh                                              # builds the plugin into the app
-cp test/acblock/config.example.js test/acblock/config.local.js
+cp test/acblock/config.example.js test/acblock/config.local.js   # set testing: true for offline replies
 npx http-server test/acblock -p 8080 -c-1
 ```
 
-Open http://localhost:8080 to explore.
+Open http://localhost:8080 in browser.
 
 ## Server setup
 
 ```sh
 cd server
 npm install
-cp .env.example .env                                    # models and configurations
-npm run dev                                             # http://localhost:8787
+npm run models          # local name-finding model
+cp .env.example .env    # add LLM API Key, models and configurations
+npm run dev
 ```
 
-Check it at http://localhost:8787/v1/health. 
+In `config.local.js` set `testing: false` and `agentServer: 'http://localhost:8787'`. Check http://localhost:8787/v1/health.
+
+### Model settings
+
+Any OpenAI-compatible endpoint works, hosted or local (e.g. Ollama). Set these in `server/.env`:
+
+```dotenv
+LLM_BASE_URL=http://localhost:11434/v1   # endpoint URL
+LLM_API_KEY=                             # leave empty if the server needs no key
+LLM_MODEL=                               # model 
+```
+
+The endpoint must support JSON mode (`response_format: json_object`).
+
+## Keyboard
+
+| Keys | Action |
+|---|---|
+| Shift+K | All shortcuts |
+| Shift+P | Assistant panel |
+| Shift+R / Shift+O | Run / go to output |
+| Alt+Shift+Y / A / N / U / R | Yes / all / stop / undo / repeat |
+| Ctrl+Shift+V | Voice conversation |
+
+Teacher mode: http://localhost:8080/?teacher=1
+
+## Voice (optional)
+
+```sh
+test/acblock/models/build_engines.sh asr   # speech recognition
+test/acblock/models/build_engines.sh tts   # AI voice
+```
+
+## Tests
+
+```sh
+npm test
+cd server && npm test
+```
+
 
 ## Plugin integration
 
@@ -51,10 +92,8 @@ nav.addWorkspace(workspace);
 
 The plugin needs Blockly 11.2.2. `test/acblock/index.html` and `test/acblock/js/main.js` show the full integration.
 
-In the app, Shift+K lists every shortcut and Shift+P opens the assistant panel.
+## Copyright
 
-## Copyright and license
+Copyright (c) 2026 Rubel Hassan Mollik and the DiscoverABILITY Lab, University of North Texas.
 
-Copyright (c) 2026 Rubel Hassan Mollik and the DiscoverABILITY Lab, University of North Texas. All rights reserved.
-
-This repository is shared for viewing only. 
+**This repository is shared for viewing only.**
