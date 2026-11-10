@@ -4,11 +4,11 @@
 
 > **Disclaimer:** Research findings, prompts, and model training and evaluation sets are withheld during the ongoing study and will be published later.
 
-| Part | Where | What it is |
+| Component | Directory | Description |
 |---|---|---|
-| The plugin | `src/` | Keyboard navigation, speech, question blocks, output manager, voice. |
-| The app | `test/acblock/` | The web page: Blockly, the plugin, the assistant panel, settings. |
-| The agent server | `server/` | A local Node server on `localhost:8787` that model calls go through. |
+| Blockly plugin | `src/` | Keyboard navigation, speech output, question blocks, output manager and voice interaction. |
+| Web application | `test/acblock/` | The learner and teacher interface: Blockly workspace, plugin, assistant panel and settings. |
+| Agent server | `server/` | Local Node.js service (`localhost:8787`) that routes all model requests. |
 
 ## Requirements
 
