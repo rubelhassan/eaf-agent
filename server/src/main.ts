@@ -10,6 +10,7 @@ import {TASKS} from './envelope.js';
 import {createGuard} from './guard/index.js';
 import {loadNer} from './guard/ner.js';
 import {createOpenRouterProvider} from './models/openrouter.js';
+import {endpointFromEnv} from './models/endpoint.js';
 import {createRouting, type RoutingConfig} from './models/router.js';
 import {DEFAULT_PROMPT_VERSIONS} from './prompts/index.js';
 import {openLogs} from './store/logs.js';
@@ -20,8 +21,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config: RoutingConfig = JSON.parse(fs.readFileSync(path.join(root, 'routing.json'), 'utf8'));
 const {version} = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const settings = config.providers.openrouter;
-const apiKey = process.env[settings.keyEnv] || '';
-if (!apiKey) console.warn(`${settings.keyEnv} is not set: model calls will fail. Put it in server/.env.`);
+let endpoint: ReturnType<typeof endpointFromEnv>;
+try {
+  endpoint = endpointFromEnv(process.env, config);
+} catch (e) {
+  console.error(`Not starting: ${(e as Error).message}`);
+  process.exit(1);
+}
+const {baseUrl, apiKey, isOpenRouter, host, config: routingConfig} = endpoint;
+if (isOpenRouter && !apiKey) console.warn(`${settings.keyEnv} is not set: model calls will fail. Put it in server/.env.`);
+if (!isOpenRouter) console.info(`Model endpoint: ${host}; model: ${routingConfig.tasks['*'].model}`);
 
 // No masking, no server: learners' words never leave unmasked.
 const nerModel: string = JSON.parse(fs.readFileSync(path.join(root, 'ner_models.json'), 'utf8')).use;
@@ -33,7 +42,7 @@ try {
   process.exit(1);
 }
 
-const routing = createRouting(config, {openrouter: createOpenRouterProvider({baseUrl: settings.baseUrl, apiKey})});
+const routing = createRouting(routingConfig, {openrouter: createOpenRouterProvider({baseUrl, apiKey, openRouter: isOpenRouter})});
 const logs = openLogs(path.join(root, 'data', 'agent.db'));
 const guard = createGuard({ner});
 const core = createAgentCore({routing, log: logs, guard});
@@ -53,6 +62,7 @@ const app = await buildApp({
     models: Object.fromEntries(TASKS.map((t) => [t, routing.model(t)])),
     promptVersions: Object.fromEntries(TASKS.map((t) => [t, routing.promptVersion(t) || DEFAULT_PROMPT_VERSIONS[t]])),
     keySet: !!apiKey,
+    endpoint: isOpenRouter ? 'openrouter' : 'custom',
     nameFinder: nerModel,
   }),
 });

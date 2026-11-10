@@ -34,9 +34,11 @@ function validWork(body: unknown): body is WorkSave {
   if (!isText(body.task, 512) || !isText(body.savedAt, 40) || !Number.isFinite(Date.parse(body.savedAt))) return false;
   if (typeof body.programXml !== 'string' || !body.programXml.length || Buffer.byteLength(body.programXml) > PROGRAM_BYTES) return false;
   const summary = body.summary;
-  if (!isRecord(summary) || !hasOnlyKeys(summary, ['blocks', 'deleted', 'session', 'counts']) ||
+  if (!isRecord(summary) || !hasOnlyKeys(summary, ['blocks', 'deleted', 'session', 'counts', 'questions']) ||
       Buffer.byteLength(JSON.stringify(summary)) > SUMMARY_BYTES || !Array.isArray(summary.blocks) ||
       !Array.isArray(summary.deleted) || !isRecord(summary.session) || !isRecord(summary.counts)) return false;
+  if (summary.questions !== undefined && (!Array.isArray(summary.questions) || summary.questions.length > 50 ||
+      !summary.questions.every(validSubmissionQuestion))) return false;
   const counts = summary.counts;
   const blocks = counts.blocks;
   if (!isRecord(blocks) || !['created', 'assisted', 'learner'].every((kind) => isCount(blocks[kind]))) return false;
@@ -45,10 +47,20 @@ function validWork(body: unknown): body is WorkSave {
   const deleted = counts.deleted;
   if (!isRecord(deleted) || !['created', 'assisted', 'learner'].every((kind) => isCountMap(deleted[kind]))) return false;
   return summary.blocks.every((block) => isRecord(block) && isText(block.id, 200) && isText(block.type, 200) &&
-    ['created', 'assisted', 'learner'].includes(block.kind as string) && Array.isArray(block.history) && block.history.length <= 20) &&
+    ['created', 'assisted', 'learner'].includes(block.kind as string) && (block.added === undefined || typeof block.added === 'boolean') &&
+    Array.isArray(block.history) && block.history.length <= 20) &&
     summary.deleted.every((entry) => isRecord(entry) && isText(entry.blockType, 200) &&
       ['created', 'assisted', 'learner'].includes(entry.priorKind as string) && entry.by === 'ai' && entry.action === 'delete' &&
       ['edit', 'debug'].includes(entry.type as string) && isText(entry.task, 200) && isText(entry.at, 40) && Number.isFinite(Date.parse(entry.at)));
+}
+
+function validSubmissionQuestion(value: unknown): boolean {
+  return isRecord(value) && hasOnlyKeys(value, ['number', 'solved', 'writtenHints', 'aiHints']) &&
+    isCount(value.number) && (value.number as number) >= 1 && (value.number as number) <= 50 &&
+    (value.solved === null || typeof value.solved === 'boolean') && isCount(value.writtenHints) && isRecord(value.aiHints) &&
+    hasOnlyKeys(value.aiHints, ['count', 'levels']) && isCount(value.aiHints.count) &&
+    Array.isArray(value.aiHints.levels) && value.aiHints.levels.length <= 5 &&
+    value.aiHints.levels.every(level => ['nudge', 'point', 'kind'].includes(level));
 }
 
 /** Pages served from this machine (the test app runs on its own port). */
@@ -108,12 +120,27 @@ export async function buildApp({core, events = null, health, origins = LOCAL_ORI
     });
   }
 
-  if (work) app.post('/v1/work', {bodyLimit: WORK_BODY_BYTES}, async (request, reply) => {
-    const origin = request.headers.origin;
-    if (origin && !origins.test(origin)) return reply.code(403).send({error: 'local origins only'});
-    if (!validWork(request.body)) return reply.code(400).send({error: 'invalid saved work or size limit exceeded'});
-    return {workId: work.saveWork(request.body)};
-  });
+  if (work) {
+    app.get<{Querystring: {task?: string}}>('/v1/work', async (request, reply) => {
+      if (request.headers.origin && !origins.test(request.headers.origin)) return reply.code(403).send({error: 'local origins only'});
+      if (!validTaskId(request.query.task)) return reply.code(400).send({error: 'invalid task id'});
+      return work.listWork(request.query.task);
+    });
+    app.get<{Params: {code: string}; Querystring: {task?: string}}>('/v1/work/:code', async (request, reply) => {
+      if (request.headers.origin && !origins.test(request.headers.origin)) return reply.code(403).send({error: 'local origins only'});
+      if (!validTaskId(request.query.task) || !/^[A-Za-z0-9_-]{4}$/.test(request.params.code)) {
+        return reply.code(400).send({error: 'invalid task or submission id'});
+      }
+      const saved = work.getWork(request.query.task, request.params.code);
+      return saved || reply.code(404).send({error: 'submission not found'});
+    });
+    app.post('/v1/work', {bodyLimit: WORK_BODY_BYTES}, async (request, reply) => {
+      const origin = request.headers.origin;
+      if (origin && !origins.test(origin)) return reply.code(403).send({error: 'local origins only'});
+      if (!validWork(request.body)) return reply.code(400).send({error: 'invalid saved work or size limit exceeded'});
+      return work.saveWork(request.body);
+    });
+  }
 
   if (tasks) {
     app.delete<{Params: {taskId: string}}>('/v1/tasks/:taskId', async (request, reply) => {

@@ -4,7 +4,7 @@
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
-import {randomUUID} from 'node:crypto';
+import {randomInt, randomUUID} from 'node:crypto';
 import type {CallLog} from '../core.js';
 import type {VoiceRecord} from '../voice/socket.js';
 
@@ -27,8 +27,13 @@ export interface WorkSave {
 }
 
 export interface WorkStore {
-  saveWork(work: WorkSave): string;
+  saveWork(work: WorkSave): {workId: string; code: string};
+  listWork(task: string): Array<{code: string; savedAt: string}>;
+  getWork(task: string, code: string): {code: string; savedAt: string; programXml: string; summary: Record<string, unknown>} | null;
 }
+
+const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+const newWorkCode = () => Array.from({length: 4}, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('');
 
 export interface TaskSave {
   taskId: string;
@@ -75,7 +80,7 @@ const WORK_SCHEMA = `CREATE TABLE IF NOT EXISTS work (
 export const TABLES = ['tasks', 'work', 'sessions', 'calls', 'results', 'events'] as const;
 
 /** @param file  a path, or ':memory:' for tests */
-export function openLogs(file: string): CallLog & WorkStore & TaskStore & {
+export function openLogs(file: string, {workCode = newWorkCode}: {workCode?: () => string} = {}): CallLog & WorkStore & TaskStore & {
   db: Database.Database;
   /** A session seen now; the learner code and client details are kept when given. */
   touchSession(session: {id: string; learnerCode?: string | null; client?: unknown}, at: string): void;
@@ -89,6 +94,10 @@ export function openLogs(file: string): CallLog & WorkStore & TaskStore & {
   db.pragma('journal_mode = WAL');
   db.exec(SCHEMA);
   db.exec(WORK_SCHEMA);
+  const workColumns = db.pragma('table_info(work)') as Array<{name: string}>;
+  if (!workColumns.some((column) => column.name === 'code')) db.exec('ALTER TABLE work ADD COLUMN code TEXT');
+  db.exec('CREATE INDEX IF NOT EXISTS work_saved ON work (task, saved_at)');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS work_code ON work (task, code) WHERE code IS NOT NULL');
   const columns = db.pragma('table_info(calls)') as Array<{name: string}>;
   if (!columns.some((column) => column.name === 'finish_reason')) db.exec('ALTER TABLE calls ADD COLUMN finish_reason TEXT');
   if (!columns.some((column) => column.name === 'error_message')) db.exec('ALTER TABLE calls ADD COLUMN error_message TEXT');
@@ -105,8 +114,13 @@ export function openLogs(file: string): CallLog & WorkStore & TaskStore & {
     VALUES (@id, @sessionId, @seq, @time, @kind, @taskId, @revision, @data)`);
   const touchSession = (session: {id: string; learnerCode?: string | null; client?: unknown}, at: string) =>
     touch.run({id: session.id, code: session.learnerCode ?? null, at, client: session.client ? JSON.stringify(session.client) : null});
-  const insertWork = db.prepare(`INSERT INTO work (work_id, session_id, learner_code, task, saved_at, program_xml, summary_json)
-    VALUES (@id, @session, @learner, @task, @at, @xml, @summary)`);
+  const insertWork = db.prepare(`INSERT INTO work (work_id, code, session_id, learner_code, task, saved_at, program_xml, summary_json)
+    VALUES (@id, @code, @session, @learner, @task, @at, @xml, @summary)`);
+  const workByCode = db.prepare(`SELECT coalesce(code, substr(work_id, 1, 4)) AS code, saved_at AS savedAt,
+    program_xml AS programXml, summary_json AS summary FROM work
+    WHERE task = ? AND coalesce(code, substr(work_id, 1, 4)) = ? ORDER BY rowid DESC LIMIT 1`);
+  const recentWork = db.prepare(`SELECT coalesce(code, substr(work_id, 1, 4)) AS code, saved_at AS savedAt
+    FROM work WHERE task = ? ORDER BY rowid DESC LIMIT 10`);
   const insertTask = db.prepare('INSERT INTO tasks (version_id, task_id, title, saved_at, task_xml) VALUES (?, ?, ?, ?, ?)');
   const latestTask = db.prepare(`SELECT task_id AS taskId, title, saved_at AS savedAt, task_xml AS taskXml
     FROM tasks WHERE task_id = ? ORDER BY rowid DESC LIMIT 1`);
@@ -122,11 +136,18 @@ export function openLogs(file: string): CallLog & WorkStore & TaskStore & {
     removeTask: (taskId) => db.prepare('DELETE FROM tasks WHERE task_id = ?').run(taskId).changes,
     saveWork: db.transaction((work: WorkSave) => {
       const id = randomUUID();
+      let code = workCode();
+      while (workByCode.get(work.task, code)) code = workCode();
       touchSession(work.session, work.savedAt);
-      insertWork.run({id, session: work.session.id, learner: work.session.learnerCode ?? null, task: work.task,
+      insertWork.run({id, code, session: work.session.id, learner: work.session.learnerCode ?? null, task: work.task,
         at: work.savedAt, xml: work.programXml, summary: JSON.stringify(work.summary)});
-      return id;
+      return {workId: id, code};
     }),
+    listWork: (task) => recentWork.all(task) as Array<{code: string; savedAt: string}>,
+    getWork(task, code) {
+      const row = workByCode.get(task, code) as {code: string; savedAt: string; programXml: string; summary: string} | undefined;
+      return row ? {...row, summary: JSON.parse(row.summary)} : null;
+    },
     recordVoice(record) {
       const {sessionId, at} = record;
       touchSession({id: sessionId}, at);
