@@ -36,13 +36,27 @@ export function appendToDraft(draft, words) {
 function segmentLayout(pieces) {
   const out = [];
   let text = '';
+  let previous;
   for (const piece of pieces) {
-    if (piece.utterance !== undefined && piece.text && text && !/\s$/.test(text) && !/^\s/.test(piece.text)) {
+    if (piece.utterance !== undefined && piece.utterance !== previous && piece.text && text && !/\s$/.test(text) && !/^\s/.test(piece.text)) {
       out.push({text: ' ', kind: 'heard'}); text += ' ';
     }
     out.push(piece); text += piece.text;
+    previous = piece.utterance;
   }
   return out;
+}
+
+function joinHeard(pieces) {
+  const joined = [];
+  for (const piece of pieces) {
+    const previous = joined[joined.length - 1];
+    if (piece.kind === 'heard' && previous?.kind === 'heard' &&
+        piece.utterance === previous.utterance && piece.provisional === previous.provisional) {
+      joined[joined.length - 1] = {...previous, text: previous.text + piece.text};
+    } else joined.push(piece);
+  }
+  return joined;
 }
 
 /**
@@ -53,14 +67,22 @@ function segmentLayout(pieces) {
 /**
  * Applies one complete covering group, or leaves an edited group alone.
  * @param {!Array<!DraftPiece>} pieces
- * @param {!Array<{utterance: number, text: string}>} updates
+ * @param {!Array<{utterance: number, text: string, segments?: !Array<!DraftPiece>}>} updates
  * @returns {?{segments: !Array<!DraftPiece>, text: string}}
  */
 export function reviseSegments(pieces, updates) {
   if (updates.some((update) => !pieces.some((piece) => piece.provisional && piece.utterance === update.utterance))) return null;
-  const texts = new Map(updates.map((update) => [update.utterance, update.text]));
-  const segments = pieces.map((piece) => texts.has(piece.utterance) ?
-    {...piece, text: texts.get(piece.utterance), provisional: false} : {...piece});
+  const replacements = new Map(updates.map((update) => [update.utterance, update]));
+  const replaced = new Set();
+  const segments = pieces.flatMap((piece) => {
+    const update = replacements.get(piece.utterance);
+    if (!update) return [{...piece}];
+    if (replaced.has(piece.utterance)) return [];
+    replaced.add(piece.utterance);
+    const parts = update.segments?.length ? update.segments : [{text: update.text, kind: 'heard'}];
+    return parts.map((part, index) => ({...part, utterance: piece.utterance, provisional: false,
+      ...(index === 0 ? {id: piece.id, ...(piece.covers ? {covers: [...piece.covers]} : {})} : {})}));
+  });
   return {segments, text: segmentLayout(segments).map((piece) => piece.text).join('')};
 }
 
@@ -94,7 +116,8 @@ export function createDraftSegments({onDrop = () => {}} = {}) {
       const inside = oldEnd === start && position < start && end > start;
       const joined = oldEnd === start && ((start === end && /^\S/.test(inserted)) ||
         (start === position && /\S$/.test(inserted)));
-      if (piece.utterance !== undefined && !(overlap || inside || joined)) {
+      const protectedPiece = piece.utterance !== undefined || piece.kind === 'spelled' || piece.kind === 'quoted';
+      if (protectedPiece && !(overlap || inside || joined)) {
         kept.push({piece, start: position >= oldEnd ? position + delta : position});
       } else if (piece.provisional) dropped.add(piece.utterance);
       position = end;
@@ -113,14 +136,21 @@ export function createDraftSegments({onDrop = () => {}} = {}) {
   function append(text, metadata = {}) {
     text = String(text || '').trim();
     if (!text) return value();
+    const {segments: parts = [{text, kind: 'heard'}], ...provenance} = metadata;
     const previous = metadata.provisional && pieces.find((piece) => piece.provisional && piece.utterance === metadata.utterance);
-    if (previous) previous.text = appendToDraft(previous.text, text);
-    else {
+    const added = parts.map((part) => ({...plain(part.text), ...part, ...provenance}));
+    if (previous) {
+      const indices = pieces.flatMap((piece, index) => piece.utterance === metadata.utterance ? [index] : []);
+      const last = indices[indices.length - 1];
+      if (pieces[last].text) pieces.splice(last + 1, 0, {...plain(' '), ...provenance}, ...added);
+      else pieces.splice(last, 1, ...added);
+    } else {
       const before = value().replace(/\s+$/, '');
       set(before);
       if (before) pieces.push(plain(' '));
-      pieces.push({...plain(text), ...metadata});
+      pieces.push(...added);
     }
+    pieces = joinHeard(pieces);
     return value();
   }
 
@@ -141,9 +171,9 @@ export function createDraftSegments({onDrop = () => {}} = {}) {
       return true;
     },
     replace(utterance, text) {
-      const piece = pieces.find((piece) => piece.utterance === utterance && piece.provisional);
-      if (!piece) return false;
-      piece.text = text; piece.provisional = false;
+      const result = reviseSegments(pieces, [{utterance, text}]);
+      if (!result) return false;
+      pieces = result.segments;
       return true;
     },
     release(utterance) {

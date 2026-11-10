@@ -6,6 +6,7 @@
 
 import {appendToDraft, cleanTranscript, shownTranscript, isStraySound, createDraftSegments, reviseSegments} from './draft.js';
 import {playedShare, spokenWords} from './echo.js';
+import {applyModes} from './modes.js';
 
 export const SessionState = Object.freeze({INACTIVE: 'inactive', STARTING: 'starting', ACTIVE: 'active'});
 
@@ -36,7 +37,7 @@ const ECHO_AFTER_MS = 1500;
 // Screen readers don't say when they finish, so navigation speech is given time by its length.
 const ANNOUNCE_MS_PER_WORD = 400;
 // Nothing said this long: listening stops (the draft and a waiting question stay).
-const IDLE_MS = 60000;
+const IDLE_MS = 30000;
 // While listening and nothing is heard, a soft cue this often says the microphone is still on.
 const REMINDER_MS = 5000;
 const BASIC_FINAL_MS = 1500;
@@ -322,7 +323,9 @@ export function createConversationController(options) {
     setPartial('');
     utterance = null;
     segments.set(draft.value());
-    draft.set(segments.append(shown, provisional ? {utterance: provisional.id, provisional: true, covers: [...provisional.covers]} : {}));
+    const result = applyModes(shown);
+    draft.set(segments.append(result.text, {segments: result.segments,
+      ...(provisional ? {utterance: provisional.id, provisional: true, covers: [...provisional.covers]} : {})}));
     mark('voice:final-shown', detail);
   }
 
@@ -409,11 +412,11 @@ export function createConversationController(options) {
     if (!shown || isStraySound(words(cleanTranscript(shown))) || isEcho(shown, context, context.echo)) {
       dropReplayGroup(context.id); pumpReplay(); return;
     }
-    context.final = shown;
+    context.final = applyModes(shown);
     const owner = replayContexts.get(context.owner);
     const group = owner?.covers.map((id) => replayContexts.get(id));
     if (group?.every((entry) => entry && entry.final !== undefined)) {
-      const updates = group.map((entry) => ({utterance: entry.id, text: entry.final}));
+      const updates = group.map((entry) => ({utterance: entry.id, ...entry.final}));
       segments.set(draft.value());
       if (!group.every((entry) => replayContexts.has(entry.id))) { pumpReplay(); return; }
       if (segments.replaceGroup(updates)) draft.set(segments.value(), {replay: true});
@@ -570,12 +573,12 @@ export function createConversationController(options) {
       onFinal: (text, metadata) => {
         if (version !== sessionVersion || generation !== engineVersion) return;
         if (metadata?.replay) { replayFinal(text, metadata); return; }
-        const window = recognizer !== options.recognizer ? eligibleWindows()[0] : null;
-        if (window) {
-          const owner = replayContexts.get(window.owner);
+        const span = recognizer !== options.recognizer ? eligibleWindows()[0] : null;
+        if (span) {
+          const owner = replayContexts.get(span.owner);
           const active = utterance;
-          utterance = window; heardWords(text, true, owner);
-          if (active?.id !== window.id) utterance = active;
+          utterance = span; heardWords(text, true, owner);
+          if (active?.id !== span.id) utterance = active;
         } else finalWords(text, metadata);
         if (recoveryPending) void restoreServer();
         pumpReplay();
@@ -708,7 +711,8 @@ export function createConversationController(options) {
         if (echoCancelled()) mark('voice:start-wait', {ended: 'skipped'});
         else {
           const wordCount = SAY.listening.split(/\s+/).length;
-          await quiet({capMs: START_WAIT_BASE_MS + START_WAIT_PER_WORD_MS * wordCount});
+          const rate = output.settings?.().speechRate || output.settings?.().aiRate || 1;
+          await quiet({capMs: START_WAIT_BASE_MS + START_WAIT_PER_WORD_MS * wordCount / rate});
         }
       }
       if (!current()) return;
@@ -1007,8 +1011,8 @@ export function createConversationController(options) {
       }
       const medium = spoke ? 'voice' : 'text';
       segments.set(draft.value());
-      const window = eligibleWindows()[0];
-      const owner = window && replayContexts.get(window.owner);
+      const span = eligibleWindows()[0];
+      const owner = span && replayContexts.get(span.owner);
       if (partial) segments.append(partial, owner ? {utterance: owner.id, provisional: true, covers: [...owner.covers]} : {});
       for (const context of replayContexts.values()) {
         clearTimeout(context.timer); context.closed = true; replayBuffer?.end(context.id);
